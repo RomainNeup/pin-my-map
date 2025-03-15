@@ -20,7 +20,7 @@ export class CreatePlaceRequestDto {
     address: string;
     @ApiProperty()
     description: string;
-    @ApiProperty()
+    @ApiProperty({ required: false })
     image: string;
 }
 

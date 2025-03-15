@@ -7,8 +7,8 @@ export class PlaceMapper {
             id: entity._id.toHexString(),
             name: entity.name,
             location: {
-                lat: entity.location[1],
-                lng: entity.location[0]
+                lng: entity.location[0],
+                lat: entity.location[1]
             },
             address: entity.address,
             description: entity.description,

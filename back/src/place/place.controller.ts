@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, Post, Put } from "@nestjs/common";
 import { ApiResponse, ApiTags } from "@nestjs/swagger";
 import { Private } from "src/auth/auth.decorator";
 import { PlaceService } from "./place.service";
@@ -37,4 +37,14 @@ export class PlaceController {
     async getPlace(@Param('id') id: string): Promise<PlaceDto> {
         return await this.placeService.findOne(id);
     }
+
+    @Private()
+    @Put(':id')
+    @HttpCode(200)
+    @ApiResponse({ status: 200, type: PlaceDto, description: 'Place successfully updated.' })
+    @ApiResponse({ status: 404, description: 'Place with the specified ID not found.' })
+    async updatePlace(@Param('id') id: string, @Body() placeDto: CreatePlaceRequestDto): Promise<PlaceDto> {
+        return await this.placeService.update(id, placeDto);
+    }
+
 }
