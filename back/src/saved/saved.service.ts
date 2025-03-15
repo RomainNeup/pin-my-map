@@ -5,12 +5,14 @@ import { Model } from "mongoose";
 import { SavedPlaceDto } from "./saved.dto";
 import { SavedPlaceMapper } from "./saved.mapper";
 import { PlaceService } from "src/place/place.service";
+import { TagService } from "src/tag/tag.service";
 
 @Injectable()
 export class SavedPlaceService {
     constructor(
         @InjectModel(SavedPlace.name) private savedPlaceModel: Model<SavedPlace>,
-        private placeService: PlaceService
+        private placeService: PlaceService,
+        private tagService: TagService
     ) { }
 
     async create(userId: string, placeId: string): Promise<void> {
@@ -70,9 +72,19 @@ export class SavedPlaceService {
 
     async addTag(userId: string, savedPlaceId: string, tagId: string): Promise<void> {
         const place = await this.findOne(userId, savedPlaceId);
+        const tag = await this.tagService.findOne(userId, tagId);
+        const tagExists = place.tags.find(t => t.id === tagId);
 
         if (!place) {
             throw new NotFoundException('Saved place not found');
+        }
+
+        if (!tag) {
+            throw new NotFoundException('Tag not found');
+        }
+
+        if (tagExists) {
+            throw new BadRequestException('Tag already linked');
         }
 
         await this.savedPlaceModel.updateOne({ _id: savedPlaceId }, { $push: { tags: tagId } });
@@ -82,9 +94,14 @@ export class SavedPlaceService {
 
     async removeTag(userId: string, savedPlaceId: string, tagId: string): Promise<void> {
         const place = await this.findOne(userId, savedPlaceId);
+        const tag = place.tags.find(t => t.id === tagId);
 
         if (!place) {
             throw new NotFoundException('Saved place not found');
+        }
+
+        if (!tag) {
+            throw new BadRequestException('Tag not linked');
         }
 
         await this.savedPlaceModel.updateOne({ _id: savedPlaceId }, { $pull: { tags: tagId } });
@@ -92,28 +109,36 @@ export class SavedPlaceService {
         return;
     }
 
-    async addComment(userId: string, savedPlaceId: string, comment: string): Promise<void> {
+    async addComment(userId: string, savedPlaceId: string, comment: string): Promise<SavedPlaceDto> {
         const place = await this.findOne(userId, savedPlaceId);
 
         if (!place) {
             throw new NotFoundException('Saved place not found');
+        }
+
+        if (!comment || !comment.trim()) {
+            throw new BadRequestException('Comment cannot be empty');
         }
 
         await this.savedPlaceModel.updateOne({ _id: savedPlaceId }, { comment });
 
-        return;
+        return this.findOne(userId, savedPlaceId);
     }
 
-    async addRating(userId: string, savedPlaceId: string, rating: number): Promise<void> {
+    async addRating(userId: string, savedPlaceId: string, rating: number): Promise<SavedPlaceDto> {
         const place = await this.findOne(userId, savedPlaceId);
 
         if (!place) {
             throw new NotFoundException('Saved place not found');
         }
 
+        if (rating < 0 || rating > 5) {
+            throw new BadRequestException('Rating must be between 0 and 5');
+        }
+
         await this.savedPlaceModel.updateOne({ _id: savedPlaceId }, { rating });
 
-        return;
+        return this.findOne(userId, savedPlaceId);
     }
 
     async toogleDone(userId: string, savedPlaceId: string): Promise<void> {
