@@ -31,3 +31,11 @@ export class RatingSavedPlaceDto {
     @ApiProperty()
     rating: number;
 }
+
+@ApiSchema({ name: "Place is Saved"})
+export class PlaceIsSavedDto {
+    @ApiProperty()
+    id?: string;
+    @ApiProperty()
+    isSaved: boolean;
+}
