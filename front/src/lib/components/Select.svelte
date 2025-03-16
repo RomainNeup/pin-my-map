@@ -45,14 +45,14 @@
 	};
 </script>
 
-<Button {size} onClick={toggle} {outline} {suffix} {prefix}>
+<Button {size} onClick={toggle} {outline} {suffix} {prefix} className="inline-flex items-center">
 	{placeholder}
 </Button>
 
 {#if isOpen}
 	<div transition:slide class="z-10 mt-1 space-y-1 overflow-hidden rounded-lg py-2">
 		<p>{placeholder}</p>
-		<div class="flex flex-wrap space-x-1">
+		<div class="flex flex-wrap gap-1">
 			{#each options as option}
 				<Button onClick={() => selectOption(option)} size="small" outline={values.includes(option)}>
 					{option}

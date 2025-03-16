@@ -19,11 +19,20 @@
 		lat?: number;
 		zoom?: number;
 		centerOnUser?: boolean;
+		controls?: boolean;
 		sources?: { key: string; points: Point[] }[];
 		children?: Snippet;
 	};
 
-	const { lng, lat, zoom = 0, centerOnUser = false, sources = $bindable([]), children }: Props = $props();
+	const {
+		lng,
+		lat,
+		zoom = 0,
+		centerOnUser = false,
+		controls = true,
+		sources = $bindable([]),
+		children
+	}: Props = $props();
 
 	let map: mapbox.Map;
 	let mapContainer: HTMLDivElement | string;
@@ -45,7 +54,8 @@
 			style: `mapbox://styles/mapbox/outdoors-v11`,
 			zoom: initialState.zoom,
 			attributionControl: false,
-			center: [lng || 0, lat || 0]
+			center: [lng || 0, lat || 0],
+			interactive: controls
 		});
 
 		if (centerOnUser) {

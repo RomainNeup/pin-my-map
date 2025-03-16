@@ -1,16 +1,16 @@
-import { getSavedPlace, type SavedPlace } from "$lib/api/savedPlace";
-import { getTags, type Tag } from "$lib/api/tag";
+import { getPlace, type Place } from "$lib/api/place";
+import { isSavedPlace, type IsSavedPlaceResponse } from "$lib/api/savedPlace";
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({ params }) => {
-    const [placeResponse, tagsResponse] = await Promise.all([
-        getSavedPlace(params.id),
-        getTags()
+    const [placeResponse, isSavedResonse] = await Promise.all([
+        getPlace(params.id),
+        isSavedPlace(params.id)
     ]);
 
     return {
-        savedPlace: placeResponse as SavedPlace,
-        tags: tagsResponse as Tag[]
+        place: placeResponse as Place,
+        saved: isSavedResonse as IsSavedPlaceResponse
     };
 };
 
