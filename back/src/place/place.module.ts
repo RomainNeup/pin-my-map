@@ -6,11 +6,11 @@ import { Place, PlaceSchema } from "./place.entity";
 
 @Module({
     imports: [
-        MongooseModule.forFeature([{name: Place.name, schema: PlaceSchema}])
+        MongooseModule.forFeature([{ name: Place.name, schema: PlaceSchema }])
     ],
     controllers: [PlaceController],
     providers: [PlaceService],
     exports: [PlaceService]
 })
 
-export class PlaceModule {}
+export class PlaceModule { }
