@@ -2,14 +2,23 @@
     import type { Snippet } from "svelte";
 	import { twMerge } from "tailwind-merge";
 
-    type Props = {
+    /**
+     * Props interface for Label component
+     */
+    interface LabelProps {
+        /** Content to display inside the label */
         children: Snippet;
+        /** Optional prefix text */
         prefix?: string;
+        /** Optional suffix text */
         suffix?: string;
+        /** Color theme for the label */
         color?: "primary" | "secondary" | "green" | "red" | "yellow" | "blue" | "indigo" | "purple" | "pink" | "orange";
+        /** Size of the label */
         size?: "small" | "medium" | "large";
+        /** Whether to use outline style */
         outline?: boolean;
-    };
+    }
 
     const {
         children,
@@ -17,8 +26,9 @@
         suffix,
         color = "primary",
         size = "medium",
+        outline = false,
         ...props
-    }: Props = $props();
+    }: LabelProps = $props();
 
     const colorClasses = {
         primary: "bg-primary-100 text-primary-900 border-primary-100",

@@ -90,7 +90,7 @@
 					<p>{data.savedPlace.place.description}</p>
 				</div>
 				<div>
-					<Toggle value={done} onChange={toogleDone} />
+					<Toggle value={done} onToggle={toogleDone} />
 				</div>
 			</div>
 			<div>
