@@ -40,7 +40,7 @@
     };
 
     const baseClasses = twMerge(
-		'inline-flex items-center rounded-full border',
+		'inline-flex items-center rounded-full border text-nowrap',
         sizeClasses[size],
         colorClasses[color]
 	);

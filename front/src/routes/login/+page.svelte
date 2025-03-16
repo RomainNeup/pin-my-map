@@ -37,7 +37,7 @@
     <form class="flex flex-col space-y-4" on:submit|preventDefault={handleLogin}>
         <Input placeholder="Email" type="email" bind:value={email} />
         <Input placeholder="Password" type="password" bind:value={password} />
-        <Button>Login</Button>
+        <Button type="submit">Login</Button>
         <a href="/register" class="text-blue-500">Don't have an account?</a>
     </form>
 </div>

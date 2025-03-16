@@ -6,10 +6,8 @@
 	import Map, { type Point } from '$lib/components/Map.svelte';
 	import { savedPlaces } from '$lib/store/place';
 	import { tags } from '$lib/store/tags';
-	import { accessToken } from '$lib/store/user';
 	import { onMount } from 'svelte';
 
-	let token = $accessToken;
 	let loading = true;
 	let source: { key: string; points: Point[] };
 
@@ -30,11 +28,7 @@
 		};
 	});
 
-	onMount(() => {
-		if (!token) {
-			window.location.href = '/login';
-			return;
-		}
+	onMount(() =>
 		getSavedPlaces()
 			.then((places) => {
 				savedPlaces.set(places);
@@ -44,8 +38,8 @@
 			})
 			.catch((err) => {
 				console.error(err);
-			});
-	});
+			})
+	);
 </script>
 
 <div class="flex h-full">
@@ -55,22 +49,23 @@
 		</div>
 	{:else}
 		{#if allTags && showTags}
-			<div class="flex flex-col h-full bg-white p-4 w-fit">
+			<div class="flex h-full w-fit flex-col bg-white p-4">
 				<div class="grow">
 					{#each allTags as tag}
-						<div class="py-2 text-nowrap border-b">
-							{tag.emoji} {tag.name}
+						<div class="text-nowrap border-b py-2">
+							{tag.emoji}
+							{tag.name}
 						</div>
 					{/each}
 				</div>
 				<div class="z-50">
-					<Button onClick={() => showTags = !showTags}>Add tag</Button>
+					<Button onClick={() => (showTags = !showTags)}>Add tag</Button>
 				</div>
 			</div>
 		{/if}
 		<Map centerOnUser sources={[source]}>
 			<div class="absolute bottom-0 z-50 p-4">
-				<Button onClick={() => showTags = !showTags}>Tags</Button>
+				<Button onClick={() => (showTags = !showTags)}>Tags</Button>
 			</div>
 		</Map>
 		{#if selectedPlace}
@@ -82,7 +77,8 @@
 						<Label prefix={tag.emoji}>{tag.name}</Label>
 					{/each}
 				</div>
-				<Button href={`/place/${selectedPlace.place.id}`}>View</Button>
+				<Button href={`/saved/${selectedPlace.id}`}>View</Button>
+				<Button href={`/place/${selectedPlace.place.id}`}>Edit</Button>
 			</div>
 		{/if}
 	{/if}
