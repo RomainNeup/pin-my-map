@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put } from
 import { ApiResponse, ApiTags } from "@nestjs/swagger";
 import { Private } from "src/auth/auth.decorator";
 import { SavedPlaceService } from "./saved.service";
-import { CommentSavedPlaceDto, RatingSavedPlaceDto, SavedPlaceDto } from "./saved.dto";
+import { CommentSavedPlaceDto, PlaceIsSavedDto, RatingSavedPlaceDto, SavedPlaceDto } from "./saved.dto";
 import { User } from "src/user/user.decorator";
 
 @Controller('saved')
@@ -94,5 +94,13 @@ export class SavedController {
     @ApiResponse({ status: 404, description: 'Saved place not found' })
     async toogleDone(@User("id") userId: string, @Param('id') id: string): Promise<void> {
         return await this.savedPlaceService.toogleDone(userId, id);
+    }
+
+    @Private()
+    @Get(':id/exists')
+    @ApiResponse({ status: 200, type: PlaceIsSavedDto, description: 'Return if place is saved' })
+    @ApiResponse({ status: 404, description: 'Place not found' })
+    async exists(@User("id") userId: string, @Param('id') id: string): Promise<PlaceIsSavedDto> {
+        return await this.savedPlaceService.exists(userId, id);
     }
 }

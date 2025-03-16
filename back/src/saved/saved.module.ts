@@ -8,7 +8,7 @@ import { TagModule } from "src/tag/tag.module";
 
 @Module({
     imports: [
-        MongooseModule.forFeature([{name: SavedPlace.name, schema: SavedPlaceSchema}]),
+        MongooseModule.forFeature([{ name: SavedPlace.name, schema: SavedPlaceSchema }]),
         PlaceModule,
         TagModule
     ],
@@ -16,4 +16,4 @@ import { TagModule } from "src/tag/tag.module";
     providers: [SavedPlaceService]
 })
 
-export class SavedPlaceModule {}
+export class SavedPlaceModule { }

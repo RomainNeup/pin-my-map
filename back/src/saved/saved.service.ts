@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { InjectModel } from "@nestjs/mongoose";
 import { SavedPlace } from "./saved.entity";
 import { Model } from "mongoose";
-import { SavedPlaceDto } from "./saved.dto";
+import { PlaceIsSavedDto, SavedPlaceDto } from "./saved.dto";
 import { SavedPlaceMapper } from "./saved.mapper";
 import { PlaceService } from "src/place/place.service";
 import { TagService } from "src/tag/tag.service";
@@ -22,9 +22,9 @@ export class SavedPlaceService {
             throw new NotFoundException('Place not found');
         }
 
-        const alreadySaved = await this.savedPlaceModel.exists({ user: userId, place: placeId }).exec();
+        const alreadySaved = await this.exists(userId, placeId);
 
-        if (alreadySaved) {
+        if (alreadySaved.isSaved) {
             throw new BadRequestException('Place already saved');
         }
 
@@ -68,6 +68,22 @@ export class SavedPlaceService {
         }
 
         return SavedPlaceMapper.toDtoList(savedPlaces);
+    }
+
+    async exists(userId: string, id: string): Promise<PlaceIsSavedDto> {
+        const exists = await this.placeService.findOne(id);
+
+        if (!exists) {
+            throw new NotFoundException('Place not found');
+        }
+
+        const saved = await this.savedPlaceModel.exists({ user: userId, place: id }).exec();
+
+        if (!saved) {
+            return { isSaved: false };
+        }
+
+        return { id: saved._id.toHexString(), isSaved: true };
     }
 
     async addTag(userId: string, savedPlaceId: string, tagId: string): Promise<void> {
