@@ -8,22 +8,44 @@
 
 	const { Map, GeolocateControl } = mapbox;
 
-	export type Point = {
+	/**
+	 * Map point definition
+	 */
+	export interface Point {
+		/** Unique identifier for the point */
 		id: string;
+		/** Geographic coordinates [longitude, latitude] */
 		position: [number, number];
+		/** Function called when point is clicked */
 		onClick?: () => void;
-	};
+	}
 
-	type Props = {
+	/**
+	 * Component Props Interface
+	 */
+	interface MapProps {
+		/** Longitude coordinate for map center */
 		lng?: number;
+		/** Latitude coordinate for map center */
 		lat?: number;
+		/** Initial zoom level (0-22) */
 		zoom?: number;
+		/** Whether map should center on user's location */
 		centerOnUser?: boolean;
+		/** Whether map controls are enabled */
 		controls?: boolean;
-		sources?: { key: string; points: Point[] }[];
+		/** Data sources containing map points */
+		sources?: { 
+			/** Source identifier */ 
+			key: string; 
+			/** Points to display */
+			points: Point[] 
+		}[];
+		/** Slot for additional map UI elements */
 		children?: Snippet;
-	};
+	}
 
+	// Props with defaults
 	const {
 		lng,
 		lat,
@@ -32,8 +54,9 @@
 		controls = true,
 		sources = $bindable([]),
 		children
-	}: Props = $props();
+	}: MapProps = $props();
 
+	// Component state and references
 	let map: mapbox.Map;
 	let mapContainer: HTMLDivElement | string;
 	let loading = $state(centerOnUser);
