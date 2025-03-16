@@ -70,6 +70,12 @@
 		large: { toggle: 'h-8 w-16', dot: 'h-7 w-7' }
 	};
 
+	const toggleClass = {
+		small: 'translate-x-4',
+		medium: 'translate-x-6',
+		large: 'translate-x-8'
+	}
+
 	const toggleBoxBaseClass = twMerge(
 		'rounded-full transition-colors duration-300',
 		sizeClasses[size].toggle,
@@ -80,7 +86,8 @@
 	const toggleDotBaseClass = twMerge(
 		'toggle-dot m-0.5 transform rounded-full bg-white text-center shadow-md transition-all duration-300 ease-in-out',
 		sizeClasses[size].dot,
-		value ? sizeClasses[size].dot.split(' ').pop() : ''
+		sizeClasses[size].dot,
+		value && toggleClass[size]
 	);
 </script>
 
