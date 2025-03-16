@@ -95,6 +95,11 @@ export class PlaceService {
         return PlaceMapper.toDto(result);
     }
 
+    async search(query: string): Promise<PlaceDto[]> {
+        const result = await this.placeModel.find({ name: { $regex: query, $options: 'i' } }).exec();
+        return PlaceMapper.toDtoList(result);
+    }
+
     async findByName(name: string): Promise<PlaceDto> {
         const result = await this.placeModel.findOne({ name }).exec();
 
