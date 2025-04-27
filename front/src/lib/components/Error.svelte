@@ -82,7 +82,7 @@
                         type="button"
                         class="ml-4 text-white hover:text-gray-200 focus:outline-none"
                         aria-label="Dismiss"
-                        on:click={() => dismissError(i)}
+                        onclick={() => dismissError(i)}
                     >
                         ✕
                     </button>

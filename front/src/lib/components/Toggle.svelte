@@ -18,6 +18,10 @@
 		disabled?: boolean;
 		/** Size of the toggle */
 		size?: 'small' | 'medium' | 'large';
+		/** Color when unchecked */
+		uncheckedColor?: 'red' | 'green' | 'blue' | 'yellow' | 'purple' | 'pink' | 'orange';
+		/** Color when checked */
+		checkedColor?: 'red' | 'green' | 'blue' | 'yellow' | 'purple' | 'pink' | 'orange';
 	}
 
 	// DOM references
@@ -32,8 +36,47 @@
 		value = $bindable(false), 
 		onToggle,
 		disabled = false,
-		size = 'medium'
+		size = 'medium',
+		uncheckedColor = 'red',
+		checkedColor = 'green',
 	}: ToggleProps = $props();
+
+	const checkedBoxColorClasses = {
+		red: 'bg-red-200',
+		green: 'bg-green-200',
+		blue: 'bg-blue-200',
+		yellow: 'bg-yellow-200',
+		purple: 'bg-purple-200',
+		pink: 'bg-pink-200',
+		orange: 'bg-orange-200'
+	};
+	const checkedDotColorClasses = {
+		red: 'bg-red-900',
+		green: 'bg-green-900',
+		blue: 'bg-blue-900',
+		yellow: 'bg-yellow-900',
+		purple: 'bg-purple-900',
+		pink: 'bg-pink-900',
+		orange: 'bg-orange-900'
+	};
+	const uncheckedBoxColorClasses = {
+		red: 'bg-red-200',
+		green: 'bg-green-200',
+		blue: 'bg-blue-200',
+		yellow: 'bg-yellow-200',
+		purple: 'bg-purple-200',
+		pink: 'bg-pink-200',
+		orange: 'bg-orange-200'
+	};
+	const uncheckedDotColorClasses = {
+		red: 'bg-red-900',
+		green: 'bg-green-900',
+		blue: 'bg-blue-900',
+		yellow: 'bg-yellow-900',
+		purple: 'bg-purple-900',
+		pink: 'bg-pink-900',
+		orange: 'bg-orange-900'
+	};
 
 	/**
 	 * Handle toggle state changes
@@ -43,19 +86,23 @@
 			onToggle(toggle.checked);
 		}
 		if (size === 'small') {
-			toggleDot.classList.toggle('translate-x-4');
+			toggleDot.classList.toggle('translate-x-7');
 		} else if (size === 'medium') {
-			toggleDot.classList.toggle('translate-x-6');
+			toggleDot.classList.toggle('translate-x-9');
 		} else {
-			toggleDot.classList.toggle('translate-x-8');
+			toggleDot.classList.toggle('translate-x-11');
 		}
 
 		if (toggle.checked) {
-			toggleBox.classList.remove('bg-red-400');
-			toggleBox.classList.add('bg-green-400');
+			toggleBox.classList.remove(uncheckedBoxColorClasses[uncheckedColor]);
+			toggleBox.classList.add(checkedBoxColorClasses[checkedColor]);
+			toggleDot.classList.remove(uncheckedDotColorClasses[uncheckedColor]);
+			toggleDot.classList.add(checkedDotColorClasses[checkedColor]);
 		} else {
-			toggleBox.classList.remove('bg-green-400');
-			toggleBox.classList.add('bg-red-400');
+			toggleBox.classList.remove(checkedBoxColorClasses[checkedColor]);
+			toggleBox.classList.add(uncheckedBoxColorClasses[uncheckedColor]);
+			toggleDot.classList.remove(checkedDotColorClasses[checkedColor]);
+			toggleDot.classList.add(uncheckedDotColorClasses[uncheckedColor]);
 		}
 	};
 
@@ -65,28 +112,28 @@
 
 	// Size classes
 	const sizeClasses = {
-		small: { toggle: 'h-4 w-8', dot: 'h-3 w-3' },
-		medium: { toggle: 'h-6 w-12', dot: 'h-5 w-5' },
-		large: { toggle: 'h-8 w-16', dot: 'h-7 w-7' }
+		small: { toggle: 'h-8 w-16', dot: 'h-6 w-6' },
+		medium: { toggle: 'h-10 w-20', dot: 'h-8 w-8' },
+		large: { toggle: 'h-12 w-24', dot: 'h-10 w-10' }
 	};
 
 	const toggleClass = {
-		small: 'translate-x-4',
-		medium: 'translate-x-6',
-		large: 'translate-x-8'
+		small: 'translate-x-7',
+		medium: 'translate-x-9',
+		large: 'translate-x-11'
 	}
 
 	const toggleBoxBaseClass = twMerge(
-		'rounded-full transition-colors duration-300',
+		'rounded-full transition-colors duration-300 flex items-center px-1',
 		sizeClasses[size].toggle,
-		value ? 'bg-green-400' : 'bg-red-400',
+		value ? checkedBoxColorClasses[checkedColor] : uncheckedBoxColorClasses[uncheckedColor],
 		disabled && 'opacity-50 cursor-not-allowed'
 	);
 
 	const toggleDotBaseClass = twMerge(
-		'toggle-dot m-0.5 transform rounded-full bg-white text-center shadow-md transition-all duration-300 ease-in-out',
+		'toggle-dot m-0.5 transform rounded-full text-center shadow-md transition-all duration-300 ease-in-out',
 		sizeClasses[size].dot,
-		sizeClasses[size].dot,
+		value ? checkedDotColorClasses[checkedColor] : uncheckedDotColorClasses[uncheckedColor],
 		value && toggleClass[size]
 	);
 </script>

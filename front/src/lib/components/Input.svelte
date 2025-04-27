@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
 
 	/**
@@ -29,8 +30,12 @@
 		error?: string;
 		/** Whether the input is disabled */
 		disabled?: boolean;
+		/** Has border */
+		border?: boolean;
 		/** Function called on input event */
 		onInput?: (event: Event) => void;
+		/** Function called on keydown event */
+		onKeydown?: (event: KeyboardEvent) => void;
 	}
 
 	let {
@@ -46,7 +51,9 @@
 		required = false,
 		error,
 		disabled = false,
+		border = true,
 		onInput,
+		onKeydown,
 		...props
 	}: InputProps = $props();
 
@@ -56,11 +63,17 @@
 		large: 'px-6 py-3 text-lg'
 	};
 
-	const colorClasses = {
+	const colorClassesBordered = {
 		primary: 'border-primary focus:ring-primary focus:border-primary',
 		secondary: 'border-secondary focus:ring-secondary focus:border-secondary',
 		green: 'border-green-500 focus:ring-green-500 focus:border-green-500',
 		red: 'border-red-500 focus:ring-red-500 focus:border-red-500'
+	};
+	const colorClasses = {
+		primary: 'text-primary-900 placeholder-primary-500',
+		secondary: 'text-secondary-900 placeholder-secondary-500',
+		green: 'text-green-900 placeholder-green-500',
+		red: 'text-red-900 placeholder-red-500'
 	};
 
 	const roundedClasses = {
@@ -73,13 +86,14 @@
 	const inputId = `input-${Math.random().toString(36).substring(2, 9)}`;
 
 	const baseClasses = twMerge(
-		'border px-4 py-2 focus:outline-none focus:ring-2',
+		'px-4 py-2 focus:outline-none focus:ring-2',
+		border ? 'border' : 'border-0 focus:ring-0',
 		sizeClasses[size],
-		colorClasses[color],
+		border ? colorClassesBordered[color] : colorClasses[color],
 		roundedClasses[rounded],
 		fullwidth && 'w-full',
 		type === 'file' && 'file:hidden',
-		error && 'border-red-500 focus:ring-red-500 focus:border-red-500',
+		error ? border ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'text-red-500' : '',
 		disabled && 'bg-gray-100 cursor-not-allowed opacity-75',
 		className
 	);
@@ -106,6 +120,7 @@
 		{placeholder}
 		bind:value
 		oninput={onInput}
+		onkeydown={onKeydown}
 		aria-invalid={!!error}
 		{disabled}
 		{required}
@@ -120,6 +135,7 @@
 		type="number"
 		step="any"
 		oninput={onInput}
+		onkeydown={onKeydown}
 		aria-invalid={!!error}
 		{disabled}
 		{required}
@@ -133,6 +149,7 @@
 		bind:value
 		{type}
 		oninput={onInput}
+		onkeydown={onKeydown}
 		aria-invalid={!!error}
 		{disabled}
 		{required}
