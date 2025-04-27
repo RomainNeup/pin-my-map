@@ -7,7 +7,7 @@
 		removeTagFromSavedPlace,
 		toogleDoneSavedPlace
 	} from '$lib/api/savedPlace';
-	import type { Tag } from '$lib/api/tag';
+	import { createTag, type Tag } from '$lib/api/tag';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import Label from '$lib/components/Label.svelte';
@@ -89,9 +89,6 @@
 					<Title>{data.savedPlace.place.name}</Title>
 					<p>{data.savedPlace.place.description}</p>
 				</div>
-				<div>
-					<Toggle value={done} onToggle={toogleDone} />
-				</div>
 			</div>
 			<div>
 				<div class="h-32 overflow-hidden rounded-lg">
@@ -126,9 +123,12 @@
 					{:else}
 						<Label size="small" color="orange" prefix="🤔">To try</Label>
 					{/if}
+					<Toggle value={done} onToggle={toogleDone} size="small" uncheckedColor="orange" />
+				</div>
+				<div class="flex flex-wrap gap-1">
 					{#each savedPlaceTags as tag}
 						<button onclick={() => removeTag(tag)} class="inline-block">
-							<Label size="small" color="green" prefix={tag.emoji}>
+							<Label size="small" color="green" prefix={tag.emoji} className="hover:border-red-400">
 								{tag.name}
 							</Label>
 						</button>
@@ -142,6 +142,8 @@
 							.filter((name) => !savedPlaceTags?.find((tag) => tag.name === name))}
 						placeholder="Add tag"
 						onChange={onTagsChange}
+						onAddOption={(tagName, tagEmoji) => createTag({name: tagName, emoji: tagEmoji})}
+						newOptionPlaceholder="Add new tag (ENTER)"
 					/>
 				</div>
 			</div>
@@ -154,19 +156,20 @@
 						<Button rounded="lg" type="submit" prefix="💾">Save comment</Button>
 					</form>
 				{:else}
-					<button onclick={() => (editingComment = true)}>
-						<p class="rounded-lg border px-4 py-2 text-left">
-							{data.savedPlace.comment || comment}
-						</p>
+					<button
+						onclick={() => (editingComment = true)}
+						class="w-full rounded-lg border px-4 py-2 text-left"
+					>
+						<p>{data.savedPlace.comment || comment}</p>
 					</button>
 				{/if}
 			</div>
 		</div>
 
 		<div class="absolute bottom-0 w-full space-y-2">
-			<Button onClick={handleDelete} rounded="lg" color="red" fullwidth outline
-				>🗑️ Delete saved place</Button
-			>
+			<Button onClick={handleDelete} rounded="lg" color="red" fullwidth outline>
+				🗑️ Delete saved place
+			</Button>
 		</div>
 	{/if}
 </div>
