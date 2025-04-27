@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { searchPlaces, type Place } from '$lib/api/place';
+	import BackButton from '$lib/components/BackButton.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import Map from '$lib/components/Map.svelte';
@@ -20,7 +21,10 @@
 </script>
 
 <div class="flex min-h-full flex-col space-y-4">
-	<Title>Search</Title>
+	<div class="flex items-center justify-between">
+		<Title>Search</Title>
+		<BackButton href="/" color="green" text="Back to map" />
+	</div>
 	<Input placeholder="Search" bind:value={search} onInput={handleSearch} rounded="lg" fullwidth />
 	<div class="flex grow flex-col">
 		{#if searchResults === null}

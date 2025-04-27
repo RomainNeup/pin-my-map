@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { createSavedPlace, type IsSavedPlaceResponse } from '$lib/api/savedPlace';
+	import BackButton from '$lib/components/BackButton.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import Title from '$lib/components/Title.svelte';
@@ -19,6 +20,7 @@
 </script>
 
 <div class="relative min-h-full space-y-2">
+	<BackButton text="Back to search" color="green" />
 	{#if data.place}
 		<div class="flex items-center">
 			<div class="grow">
