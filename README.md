@@ -2,10 +2,10 @@
 
 Pin My Map is the easiest way to create your own personal map, filled with your favorite places in every city around the world.
 
-🎯 Save addresses you love.
-🗂️ Organise them by categories.
-✅ Track places you've already visited.
-✨ Plan the spots you want to check out next.
+- 🎯 Save addresses you love.
+- 🗂️ Organise them by categories.
+- ✅ Track places you've already visited.
+- ✨ Plan the spots you want to check out next.
 
 Accessible anywhere. Ultra-fast. 100% Open Source.
 
