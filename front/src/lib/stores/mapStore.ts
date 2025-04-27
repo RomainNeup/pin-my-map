@@ -1,6 +1,6 @@
 import * as mapbox from 'mapbox-gl';
-import { writable, get } from 'svelte/store';
-import { PUBLIC_MAPBOX_ACCESS_TOKEN } from '$env/static/public';
+import { writable } from 'svelte/store';
+import { env } from '$env/dynamic/public';
 
 export interface MapState {
   map: mapbox.Map | null;
@@ -21,7 +21,7 @@ const createMapStore = () => {
     init: (container: HTMLDivElement | string, options: Partial<mapbox.MapOptions> = {}) => {
       const map = new mapbox.Map({
         container,
-        accessToken: PUBLIC_MAPBOX_ACCESS_TOKEN,
+        accessToken: env.PUBLIC_MAPBOX_ACCESS_TOKEN,
         style: 'mapbox://styles/mapbox/outdoors-v11',
         attributionControl: false,
         ...options

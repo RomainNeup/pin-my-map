@@ -1,11 +1,11 @@
 import axios from "axios";
-import { PUBLIC_API_BASE_URL } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import { get } from "svelte/store";
 import { accessToken } from "$lib/store/user";
 import { setError } from "$lib/store/error";
 
 export const axiosInstance = axios.create({
-    baseURL: PUBLIC_API_BASE_URL,
+    baseURL: env.PUBLIC_API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
         "Authorization": `Bearer ${get(accessToken)}`
