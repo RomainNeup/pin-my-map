@@ -58,9 +58,9 @@
 	}: ButtonProps = $props();
 
 	const sizeClasses = {
-		small: iconOnly ? 'p-1 text-sm' : 'px-2 py-1 text-sm',
-		medium: iconOnly ? 'p-2 text-md' : 'px-4 py-2 text-md',
-		large: iconOnly ? 'p-3 text-lg' : 'px-6 py-3 text-lg'
+		small: iconOnly ? 'p-1 text-sm' : 'px-2 py-1 text-sm h-8',
+		medium: iconOnly ? 'p-2 text-md' : 'px-4 py-2 text-md h-10',
+		large: iconOnly ? 'p-3 text-lg' : 'px-6 py-3 text-lg h-12'
 	};
 
 	const colorClassesPlain = {
