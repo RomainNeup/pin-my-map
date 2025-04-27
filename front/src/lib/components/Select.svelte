@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { twMerge } from 'tailwind-merge';
 	import { slide } from 'svelte/transition';
 	import Button from './Button.svelte';
+	import Input from './Input.svelte';
+	import EmojiPicker from './EmojiPicker.svelte';
 
 	/**
 	 * Component Props Interface
@@ -23,6 +24,10 @@
 		prefix?: string;
 		/** Function called when selected values change */
 		onChange?: (values: string[]) => void;
+		/** New option placeholder */
+		newOptionPlaceholder?: string;
+		/** Function called when adding a new option */
+		onAddOption?: (option: string, optionEmoji: string) => void;
 	}
 
 	// Props with defaults
@@ -34,11 +39,15 @@
 		outline = false,
 		suffix,
 		prefix,
-		onChange
+		onChange,
+		newOptionPlaceholder = 'Add new option',
+		onAddOption
 	}: SelectProps = $props();
 
 	// Component state
 	let isOpen = $state(false);
+	let newOption = $state('');
+	let newOptionEmoji = $state('');
 
 	// Size variant classes
 	const sizeClasses = {
@@ -78,6 +87,27 @@
 					{option}
 				</Button>
 			{/each}
+			{#if onAddOption}
+				<div class="flex items-center border border-black rounded-full px-2">
+					<EmojiPicker bind:value={newOptionEmoji} />
+					<Input
+						border={false}
+						bind:value={newOption}
+						type="text"
+						placeholder={newOptionPlaceholder}
+						onKeydown={(e) => {
+							if (e.key === 'Enter') {
+								if (newOption) {
+									onAddOption(newOption, newOptionEmoji);
+									newOption = '';
+									newOptionEmoji = '';
+								}
+							}
+						}}
+						size="small"
+					/>
+				</div>
+			{/if}
 		</div>
 	</div>
 {/if}
