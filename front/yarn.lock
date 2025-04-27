@@ -470,12 +470,10 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.27.3.tgz#3721f601f973059bfeeb572992cf0dfc94ab2970"
   integrity sha512-vliZLrDmYKyaUoMzEbMTg2JkerfBjn03KmAw9CykO0Zzkzoyd7o3iZNam/TpyWNjNT+Cz2iO3P9Smv2wgrR+Eg==
 
-"@sveltejs/adapter-auto@^3.0.0":
-  version "3.3.1"
-  resolved "https://registry.yarnpkg.com/@sveltejs/adapter-auto/-/adapter-auto-3.3.1.tgz#57a3d9c402bea468f0899755758551e7e74deaae"
-  integrity sha512-5Sc7WAxYdL6q9j/+D0jJKjGREGlfIevDyHSQ2eNETHcB1TKlQWHcAo8AS8H1QdjNvSXpvOwNjykDUHPEAyGgdQ==
-  dependencies:
-    import-meta-resolve "^4.1.0"
+"@sveltejs/adapter-static@^3.0.8":
+  version "3.0.8"
+  resolved "https://registry.yarnpkg.com/@sveltejs/adapter-static/-/adapter-static-3.0.8.tgz#f23ee99a9678dbaec58b79d183bc3defbfe99f1a"
+  integrity sha512-YaDrquRpZwfcXbnlDsSrBQNCChVOT9MGuSg+dMAyfsAa1SmiAhrA5jUYUiIMC59G92kIbY/AaQOWcBdq+lh+zg==
 
 "@sveltejs/kit@^2.0.0":
   version "2.8.1"
