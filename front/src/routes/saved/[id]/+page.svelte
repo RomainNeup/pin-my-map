@@ -8,6 +8,7 @@
 		toogleDoneSavedPlace
 	} from '$lib/api/savedPlace';
 	import { createTag, type Tag } from '$lib/api/tag';
+	import BackButton from '$lib/components/BackButton.svelte';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import Label from '$lib/components/Label.svelte';
@@ -82,6 +83,7 @@
 </script>
 
 <div class="relative min-h-full space-y-6">
+	<BackButton text="Back to saved places" href="/saved/list" color="green" />
 	{#if data.savedPlace.place}
 		<div class="space-y-2">
 			<div class="flex items-center">

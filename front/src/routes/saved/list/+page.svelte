@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Button from '$lib/components/Button.svelte';
+	import BackButton from '$lib/components/BackButton.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import Title from '$lib/components/Title.svelte';
 	import type { PageData } from './$types';
@@ -12,8 +13,9 @@
 </script>
 
 <div class="flex min-h-full flex-col space-y-4">
-	<div class="flex items-center">
+	<div class="flex items-center justify-between">
 		<Title>My saved places</Title>
+		<BackButton href="/" color="green" text="Map view" />
 	</div>
 	<div class="flex grow flex-col">
 		{#if !!data.savedPlaces && data.savedPlaces.length === 0}
