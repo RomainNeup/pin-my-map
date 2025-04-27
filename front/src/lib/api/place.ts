@@ -39,7 +39,7 @@ export function searchPlaces(query: string): Promise<Place[]> {
 }
 
 export function createPlace(place: CreatePlaceRequest): Promise<void> {
-    return axiosInstance.post("/place", place, { headers: { "Content-Type": "application/json" } });
+    return axiosInstance.post("/place", place);
 }
 
 export function updatePlace(place: Place): Promise<void> {
