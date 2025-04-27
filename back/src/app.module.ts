@@ -7,7 +7,7 @@ import { SavedPlaceModule } from './saved/saved.module';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost/pin-my-map'),
+    MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost/pin-my-map'),
     AuthModule,
     PlaceModule,
     TagModule,

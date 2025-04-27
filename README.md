@@ -81,6 +81,8 @@ PUBLIC_API_BASE_URL=http://localhost:3000
 MONGODB_URI=mongodb://localhost:27017/pin-my-map
 JWT_SECRET=your_jwt_secret
 PORT=3000
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+NODE_ENV=development
 ```
 
 ### Installation and Setup
