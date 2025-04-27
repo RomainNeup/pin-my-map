@@ -13,7 +13,15 @@
         /** Optional CSS class name */
         className?: string;
         /** Text color */
-        color?: "primary" | "secondary" | "default";
+        color?: "primary" | "secondary" | "green" | "red" | "yellow" | "blue" | "indigo" | "purple" | "pink" | "orange" | "default";
+        /** Whether title is bold */
+        bold?: boolean;
+        /** Font weight */
+        weight?: 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold' | 'black';
+        /** Whether title should take full width */
+        fullwidth?: boolean;
+        /** Text alignment */
+        align?: 'left' | 'center' | 'right';
     }
 
     const { 
@@ -21,12 +29,24 @@
         level = 1,
         className = "",
         color = "primary",
+        bold = true,
+        weight = "black",
+        fullwidth = false,
+        align = "left",
         ...props 
     }: TitleProps = $props();
 
     const colorClasses = {
         primary: "text-primary",
         secondary: "text-secondary",
+        green: "text-green-600",
+        red: "text-red-600",
+        yellow: "text-yellow-600",
+        blue: "text-blue-600",
+        indigo: "text-indigo-600",
+        purple: "text-purple-600",
+        pink: "text-pink-600",
+        orange: "text-orange-600",
         default: "text-gray-900"
     };
     
@@ -39,10 +59,27 @@
         6: "text-sm md:text-md"
     };
 
+    const weightClasses = {
+        normal: "font-normal",
+        medium: "font-medium",
+        semibold: "font-semibold",
+        bold: "font-bold",
+        extrabold: "font-extrabold",
+        black: "font-black"
+    };
+
+    const alignClasses = {
+        left: "text-left",
+        center: "text-center",
+        right: "text-right"
+    };
+
     const baseClasses = twMerge(
-        "font-black",
+        bold ? "font-black" : weightClasses[weight],
         sizeClasses[level],
         colorClasses[color],
+        alignClasses[align],
+        fullwidth && "w-full",
         className
     );
 </script>

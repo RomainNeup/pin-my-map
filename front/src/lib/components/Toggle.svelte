@@ -19,9 +19,13 @@
 		/** Size of the toggle */
 		size?: 'small' | 'medium' | 'large';
 		/** Color when unchecked */
-		uncheckedColor?: 'red' | 'green' | 'blue' | 'yellow' | 'purple' | 'pink' | 'orange';
+		uncheckedColor?: 'primary' | 'secondary' | 'green' | 'red' | 'yellow' | 'blue' | 'indigo' | 'purple' | 'pink' | 'orange';
 		/** Color when checked */
-		checkedColor?: 'red' | 'green' | 'blue' | 'yellow' | 'purple' | 'pink' | 'orange';
+		checkedColor?: 'primary' | 'secondary' | 'green' | 'red' | 'yellow' | 'blue' | 'indigo' | 'purple' | 'pink' | 'orange';
+		/** Whether toggle should take full width */
+		fullwidth?: boolean;
+		/** Additional CSS classes */
+		className?: string;
 	}
 
 	// DOM references
@@ -39,40 +43,54 @@
 		size = 'medium',
 		uncheckedColor = 'red',
 		checkedColor = 'green',
+		fullwidth = false,
+		className = '',
 	}: ToggleProps = $props();
 
 	const checkedBoxColorClasses = {
-		red: 'bg-red-200',
+		primary: 'bg-primary-200',
+		secondary: 'bg-secondary-200',
 		green: 'bg-green-200',
-		blue: 'bg-blue-200',
+		red: 'bg-red-200',
 		yellow: 'bg-yellow-200',
+		blue: 'bg-blue-200',
+		indigo: 'bg-indigo-200',
 		purple: 'bg-purple-200',
 		pink: 'bg-pink-200',
 		orange: 'bg-orange-200'
 	};
 	const checkedDotColorClasses = {
-		red: 'bg-red-900',
+		primary: 'bg-primary-900',
+		secondary: 'bg-secondary-900',
 		green: 'bg-green-900',
-		blue: 'bg-blue-900',
+		red: 'bg-red-900',
 		yellow: 'bg-yellow-900',
+		blue: 'bg-blue-900',
+		indigo: 'bg-indigo-900',
 		purple: 'bg-purple-900',
 		pink: 'bg-pink-900',
 		orange: 'bg-orange-900'
 	};
 	const uncheckedBoxColorClasses = {
-		red: 'bg-red-200',
+		primary: 'bg-primary-200',
+		secondary: 'bg-secondary-200',
 		green: 'bg-green-200',
-		blue: 'bg-blue-200',
+		red: 'bg-red-200',
 		yellow: 'bg-yellow-200',
+		blue: 'bg-blue-200',
+		indigo: 'bg-indigo-200',
 		purple: 'bg-purple-200',
 		pink: 'bg-pink-200',
 		orange: 'bg-orange-200'
 	};
 	const uncheckedDotColorClasses = {
-		red: 'bg-red-900',
+		primary: 'bg-primary-900',
+		secondary: 'bg-secondary-900',
 		green: 'bg-green-900',
-		blue: 'bg-blue-900',
+		red: 'bg-red-900',
 		yellow: 'bg-yellow-900',
+		blue: 'bg-blue-900',
+		indigo: 'bg-indigo-900',
 		purple: 'bg-purple-900',
 		pink: 'bg-pink-900',
 		orange: 'bg-orange-900'
@@ -127,7 +145,9 @@
 		'rounded-full transition-colors duration-300 flex items-center px-1',
 		sizeClasses[size].toggle,
 		value ? checkedBoxColorClasses[checkedColor] : uncheckedBoxColorClasses[uncheckedColor],
-		disabled && 'opacity-50 cursor-not-allowed'
+		disabled && 'opacity-50 cursor-not-allowed',
+		fullwidth && 'w-full',
+		className
 	);
 
 	const toggleDotBaseClass = twMerge(
@@ -138,7 +158,7 @@
 	);
 </script>
 
-<div>
+<div class={twMerge(fullwidth && 'w-full')}>
 	<input
 		type="checkbox"
 		class="sr-only"
@@ -151,7 +171,7 @@
 	/>
 	<label 
 		for={id} 
-		class={twMerge("flex cursor-pointer items-center", disabled && "cursor-not-allowed")}
+		class={twMerge("flex cursor-pointer items-center", disabled && "cursor-not-allowed", fullwidth && "w-full")}
 		aria-hidden="true"
 	>
 		<div class={toggleBoxBaseClass} bind:this={toggleBox}>

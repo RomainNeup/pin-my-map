@@ -21,7 +21,7 @@
         /** Whether to use outline style */
 		outline?: boolean;
         /** Color theme for the button */
-		color?: 'primary' | 'secondary' | 'green' | 'red';
+		color?: 'primary' | 'secondary' | 'green' | 'red' | 'yellow' | 'blue' | 'indigo' | 'purple' | 'pink' | 'orange';
         /** Border radius style */
 		rounded?: 'full' | 'lg' | 'none';
         /** HTML button type */
@@ -67,14 +67,26 @@
 		primary: 'bg-primary border-primary text-white hover:bg-primary-700 focus:bg-primary-700',
 		secondary: 'bg-secondary border-secondary text-white hover:bg-secondary-700 focus:bg-secondary-700',
 		green: 'bg-green-500 border-green-500 text-white hover:bg-green-700 focus:bg-green-700',
-		red: 'bg-red-500 border-red-500 text-white hover:bg-red-700 focus:bg-red-700'
+		red: 'bg-red-500 border-red-500 text-white hover:bg-red-700 focus:bg-red-700',
+		yellow: 'bg-yellow-500 border-yellow-500 text-white hover:bg-yellow-700 focus:bg-yellow-700',
+		blue: 'bg-blue-500 border-blue-500 text-white hover:bg-blue-700 focus:bg-blue-700',
+		indigo: 'bg-indigo-500 border-indigo-500 text-white hover:bg-indigo-700 focus:bg-indigo-700',
+		purple: 'bg-purple-500 border-purple-500 text-white hover:bg-purple-700 focus:bg-purple-700',
+		pink: 'bg-pink-500 border-pink-500 text-white hover:bg-pink-700 focus:bg-pink-700',
+		orange: 'bg-orange-500 border-orange-500 text-white hover:bg-orange-700 focus:bg-orange-700'
 	};
 
 	const colorClassesOutline = {
 		primary: 'border-primary text-primary hover:bg-primary hover:text-white focus:bg-primary focus:text-white',
 		secondary: 'border-secondary text-secondary hover:bg-secondary hover:text-white focus:bg-secondary focus:text-white',
 		green: 'border-green-500 text-green-500 hover:bg-green-500 hover:text-white focus:bg-green-500 focus:text-white',
-		red: 'border-red-500 text-red-500 hover:bg-red-500 hover:text-white focus:bg-red-500 focus:text-white'
+		red: 'border-red-500 text-red-500 hover:bg-red-500 hover:text-white focus:bg-red-500 focus:text-white',
+		yellow: 'border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-white focus:bg-yellow-500 focus:text-white',
+		blue: 'border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white focus:bg-blue-500 focus:text-white',
+		indigo: 'border-indigo-500 text-indigo-500 hover:bg-indigo-500 hover:text-white focus:bg-indigo-500 focus:text-white',
+		purple: 'border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white focus:bg-purple-500 focus:text-white',
+		pink: 'border-pink-500 text-pink-500 hover:bg-pink-500 hover:text-white focus:bg-pink-500 focus:text-white',
+		orange: 'border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white focus:bg-orange-500 focus:text-white'
 	};
 
 	const roundedClasses = {
