@@ -6,6 +6,7 @@
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import SkeletonCard from '$lib/components/ui/SkeletonCard.svelte';
 	import Check from 'lucide-svelte/icons/check';
+	import Download from 'lucide-svelte/icons/download';
 	import MapPinIcon from 'lucide-svelte/icons/map-pin';
 	import Search from 'lucide-svelte/icons/search';
 	import type { PageData } from './$types';
@@ -18,6 +19,7 @@
 </script>
 
 {#snippet searchPrefix()}<Search class="h-4 w-4" />{/snippet}
+{#snippet importPrefix()}<Download class="h-4 w-4" />{/snippet}
 {#snippet mapPinIcon()}<MapPinIcon class="h-6 w-6" />{/snippet}
 {#snippet doneChipPrefix()}<Check class="h-3 w-3" />{/snippet}
 
@@ -30,9 +32,12 @@
 <div class="mx-auto w-full max-w-6xl px-4 py-4 md:py-6">
 	<div class="mb-6 flex items-center justify-between gap-3">
 		<h1 class="text-2xl font-semibold text-fg md:text-[28px]">Saved places</h1>
-		<Button variant="soft" tone="accent" href="/place/search" prefix={searchPrefix}>
-			Find new places
-		</Button>
+		<div class="flex gap-2">
+			<Button variant="ghost" tone="neutral" href="/import" prefix={importPrefix}>Import</Button>
+			<Button variant="soft" tone="accent" href="/place/search" prefix={searchPrefix}>
+				Find new places
+			</Button>
+		</div>
 	</div>
 
 	{#if data.savedPlaces === undefined}
