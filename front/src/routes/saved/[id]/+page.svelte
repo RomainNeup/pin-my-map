@@ -1,23 +1,29 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import {
 		addCommentToSavedPlace,
 		addRatingToSavedPlace,
 		addTagToSavedPlace,
 		deleteSavedPlace,
 		removeTagFromSavedPlace,
-		toogleDoneSavedPlace
+		toggleDoneSavedPlace
 	} from '$lib/api/savedPlace';
 	import { createTag, type Tag } from '$lib/api/tag';
-	import BackButton from '$lib/components/BackButton.svelte';
-	import Button from '$lib/components/Button.svelte';
-	import Input from '$lib/components/Input.svelte';
-	import Label from '$lib/components/Label.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import Select from '$lib/components/Select.svelte';
 	import StarRating from '$lib/components/StarRating.svelte';
-	import Title from '$lib/components/Title.svelte';
 	import Toggle from '$lib/components/Toggle.svelte';
-	import { setError } from '$lib/store/error';
+	import Chip from '$lib/components/ui/Chip.svelte';
+	import IconButton from '$lib/components/ui/IconButton.svelte';
+	import Popover from '$lib/components/ui/Popover.svelte';
+	import { confirm } from '$lib/stores/confirm';
+	import { toast } from '$lib/stores/toast';
+	import Check from 'lucide-svelte/icons/check';
+	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
+	import MapPinIcon from 'lucide-svelte/icons/map-pin';
+	import MoreHorizontal from 'lucide-svelte/icons/more-horizontal';
+	import Trash2 from 'lucide-svelte/icons/trash-2';
+	import { tick } from 'svelte';
 	import type { PageData } from './$types';
 
 	type Props = {
@@ -25,75 +31,140 @@
 	};
 
 	let { data }: Props = $props();
-	let comment = $state(data.savedPlace?.comment);
-	let rating = $state(data.savedPlace?.rating);
-	let editingComment = $state(!data.savedPlace?.comment);
-	let savedPlaceTags = $state(data.savedPlace?.tags);
-	let done = $state(data.savedPlace?.done);
 
-	const onTagsChange = (tags: string[]) => {
+	let comment = $state(data.savedPlace?.comment ?? '');
+	let savedComment = $state(data.savedPlace?.comment ?? '');
+	let rating = $state(data.savedPlace?.rating ?? 0);
+	let editingComment = $state(false);
+	let savedPlaceTags = $state<Tag[]>(data.savedPlace?.tags ?? []);
+	let done = $state(!!data.savedPlace?.done);
+	let menuOpen = $state(false);
+	let commentRef: HTMLTextAreaElement | null = $state(null);
+
+	const availableTagNames = $derived(
+		data.tags.map((t) => t.name).filter((name) => !savedPlaceTags.find((t) => t.name === name))
+	);
+
+	const onTagsChange = (names: string[]) => {
 		const tagsToAdd = data.tags.filter(
-			(tag) => tags.includes(tag.name) && !savedPlaceTags?.find((t) => t.name === tag.name)
+			(tag) => names.includes(tag.name) && !savedPlaceTags.find((t) => t.name === tag.name)
 		);
-		if (tagsToAdd) {
-			tagsToAdd.forEach(addTag);
+		tagsToAdd.forEach(addTag);
+	};
+
+	const addTag = async (tag: Tag) => {
+		await addTagToSavedPlace(data.savedPlace.id, tag.id);
+		savedPlaceTags = [...savedPlaceTags, tag];
+	};
+
+	const removeTag = async (tag: Tag) => {
+		await removeTagFromSavedPlace(data.savedPlace.id, tag.id);
+		savedPlaceTags = savedPlaceTags.filter((t) => t.id !== tag.id);
+	};
+
+	const enterCommentEdit = async () => {
+		editingComment = true;
+		await tick();
+		commentRef?.focus();
+	};
+
+	const saveComment = async () => {
+		if (comment === savedComment) {
+			editingComment = false;
+			return;
 		}
+		await addCommentToSavedPlace(data.savedPlace.id, comment);
+		savedComment = comment;
+		editingComment = false;
+		toast('Comment saved', 'success');
 	};
 
-	const addTag = (tag: Tag) => {
-		addTagToSavedPlace(data.savedPlace.id, tag.id);
-		savedPlaceTags?.push(tag);
-	};
-
-	const removeTag = (tag: Tag) => {
-		removeTagFromSavedPlace(data.savedPlace.id, tag.id);
-		savedPlaceTags = savedPlaceTags?.filter((t) => t.id !== tag.id);
-	};
-
-	const saveComment = () => {
-		if (comment) {
-			addCommentToSavedPlace(data.savedPlace.id, comment);
-			data.savedPlace.comment = comment;
+	const handleCommentKey = (e: KeyboardEvent) => {
+		if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+			e.preventDefault();
+			saveComment();
+		} else if (e.key === 'Escape') {
+			comment = savedComment;
 			editingComment = false;
 		}
 	};
 
-	const toogleDone = () => {
-		toogleDoneSavedPlace(data.savedPlace.id);
-		done = !done;
+	const handleCommentBlur = () => {
+		if (comment !== savedComment) {
+			saveComment();
+		} else {
+			editingComment = false;
+		}
 	};
 
-	const handleRating = (value: number) => {
-		addRatingToSavedPlace(data.savedPlace.id, value);
+	const toggleDone = async () => {
+		done = !done;
+		await toggleDoneSavedPlace(data.savedPlace.id);
+	};
+
+	const handleRating = async (value: number) => {
 		rating = value;
+		await addRatingToSavedPlace(data.savedPlace.id, value);
+		toast('Rating saved', 'success');
 	};
 
 	const handleDelete = async () => {
-		if (
-			confirm(
-				'Are you sure you want to delete this saved place? All tags and comments will be lost.'
-			)
-		) {
-			await deleteSavedPlace(data.savedPlace.id);
-			window.location.href = '/';
+		menuOpen = false;
+		const ok = await confirm({
+			title: 'Delete saved place?',
+			message: 'All tags, comments, and rating will be lost.',
+			confirmLabel: 'Delete',
+			tone: 'danger'
+		});
+		if (!ok) return;
+		await deleteSavedPlace(data.savedPlace.id);
+		toast('Saved place deleted', 'success');
+		goto('/saved/list');
+	};
+
+	const goBack = () => {
+		if (typeof history !== 'undefined' && history.length > 1) {
+			history.back();
 		} else {
-			setError('Could not delete saved place');
+			goto('/saved/list');
 		}
 	};
 </script>
 
-<div class="relative min-h-full space-y-6">
-	<BackButton text="Back to saved places" href="/saved/list" color="green" />
-	{#if data.savedPlace.place}
-		<div class="space-y-2">
-			<div class="flex items-center">
-				<div class="grow">
-					<Title>{data.savedPlace.place.name}</Title>
-					<p>{data.savedPlace.place.description}</p>
-				</div>
-			</div>
-			<div>
-				<div class="h-32 overflow-hidden rounded-lg">
+{#snippet backIcon()}<ChevronLeft class="h-5 w-5" />{/snippet}
+{#snippet menuIcon()}<MoreHorizontal class="h-5 w-5" />{/snippet}
+{#snippet doneChipPrefix()}<Check class="h-3 w-3" />{/snippet}
+
+<div class="mx-auto w-full max-w-6xl px-4 py-4 md:py-6">
+	<div class="mb-4 flex items-center justify-between">
+		<IconButton label="Go back" variant="ghost" tone="neutral" onclick={goBack} icon={backIcon} />
+
+		<div class="relative">
+			<IconButton
+				label="More options"
+				variant="ghost"
+				tone="neutral"
+				onclick={() => (menuOpen = !menuOpen)}
+				icon={menuIcon}
+			/>
+			<Popover bind:open={menuOpen} placement="bottom-end">
+				<button
+					type="button"
+					class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-danger hover:bg-danger-soft"
+					onclick={handleDelete}
+					role="menuitem"
+				>
+					<Trash2 class="h-4 w-4" />
+					<span>Delete saved place</span>
+				</button>
+			</Popover>
+		</div>
+	</div>
+
+	{#if data.savedPlace?.place}
+		<div class="grid gap-6 lg:grid-cols-[1fr_380px] lg:items-start">
+			<div class="space-y-4">
+				<div class="h-48 overflow-hidden rounded-xl md:h-80">
 					<Map
 						sources={[
 							{
@@ -114,64 +185,91 @@
 						zoom={14}
 					/>
 				</div>
-				<p>{data.savedPlace.place?.address}</p>
-			</div>
-		</div>
-		<div class="space-y-4">
-			<div class="space-y-2">
-				<div class="flex flex-wrap gap-1">
-					{#if done}
-						<Label size="small" color="green" prefix="✅">Done</Label>
-					{:else}
-						<Label size="small" color="orange" prefix="🤔">To try</Label>
-					{/if}
-					<Toggle value={done} onToggle={toogleDone} size="small" uncheckedColor="orange" />
-				</div>
-				<div class="flex flex-wrap gap-1">
-					{#each savedPlaceTags as tag}
-						<button onclick={() => removeTag(tag)} class="inline-block">
-							<Label size="small" color="green" prefix={tag.emoji} className="hover:border-red-400">
-								{tag.name}
-							</Label>
-						</button>
-					{/each}
-					<Select
-						size="small"
-						outline
-						prefix="➕"
-						options={data.tags
-							.map((tag) => tag.name)
-							.filter((name) => !savedPlaceTags?.find((tag) => tag.name === name))}
-						placeholder="Add tag"
-						onChange={onTagsChange}
-						onAddOption={(tagName, tagEmoji) => createTag({name: tagName, emoji: tagEmoji})}
-						newOptionPlaceholder="Add new tag (ENTER)"
-					/>
-				</div>
-			</div>
-			<div class="space-y-2">
-				<h3 class="font-bold">My rating</h3>
-				<StarRating onChange={handleRating} rating={data.savedPlace.rating} />
-				{#if editingComment}
-					<form class="flex flex-col space-y-2" onsubmit={saveComment}>
-						<Input rounded="lg" bind:value={comment} placeholder="Comment" type="textarea" />
-						<Button rounded="lg" type="submit" prefix="💾">Save comment</Button>
-					</form>
-				{:else}
-					<button
-						onclick={() => (editingComment = true)}
-						class="w-full rounded-lg border px-4 py-2 text-left"
-					>
-						<p>{data.savedPlace.comment || comment}</p>
-					</button>
-				{/if}
-			</div>
-		</div>
 
-		<div class="absolute bottom-0 w-full space-y-2">
-			<Button onClick={handleDelete} rounded="lg" color="red" fullwidth outline>
-				🗑️ Delete saved place
-			</Button>
+				<div class="space-y-2">
+					<h1 class="text-2xl font-semibold leading-7 text-fg md:text-[28px]">
+						{data.savedPlace.place.name}
+					</h1>
+					{#if data.savedPlace.place.description}
+						<p class="text-fg-muted">{data.savedPlace.place.description}</p>
+					{/if}
+					{#if data.savedPlace.place.address}
+						<div class="flex items-start gap-2 text-sm text-fg-muted">
+							<MapPinIcon class="mt-0.5 h-4 w-4 shrink-0" />
+							<span>{data.savedPlace.place.address}</span>
+						</div>
+					{/if}
+				</div>
+			</div>
+
+			<div class="space-y-6">
+				<!-- Done toggle -->
+				<div
+					class="flex items-center justify-between rounded-lg border border-border bg-bg-elevated p-4"
+				>
+					{#if done}
+						<Chip prefix={doneChipPrefix} size="sm">Done</Chip>
+					{:else}
+						<Chip size="sm">To try</Chip>
+					{/if}
+					<Toggle value={done} onToggle={toggleDone} size="md" />
+				</div>
+
+				<!-- Tags -->
+				<div class="space-y-2">
+					<h3 class="text-sm font-medium text-fg">Tags</h3>
+					<div class="flex flex-wrap items-center gap-2">
+						{#each savedPlaceTags as tag (tag.id)}
+							<Chip prefix={tag.emoji} size="sm" onRemove={() => removeTag(tag)}>
+								{tag.name}
+							</Chip>
+						{/each}
+						<Select
+							size="sm"
+							options={availableTagNames}
+							placeholder="+ Add tag"
+							onChange={onTagsChange}
+							onAddOption={(tagName, tagEmoji) => createTag({ name: tagName, emoji: tagEmoji })}
+							newOptionPlaceholder="Add new tag (ENTER)"
+						/>
+					</div>
+				</div>
+
+				<!-- Rating -->
+				<div class="space-y-2">
+					<h3 class="text-sm font-medium text-fg">My rating</h3>
+					<StarRating {rating} onChange={handleRating} />
+				</div>
+
+				<!-- Comment -->
+				<div class="space-y-2">
+					<h3 class="text-sm font-medium text-fg">Comment</h3>
+					{#if editingComment}
+						<textarea
+							bind:value={comment}
+							bind:this={commentRef}
+							placeholder="Add a comment..."
+							onkeydown={handleCommentKey}
+							onblur={handleCommentBlur}
+							rows="3"
+							class="block min-h-[80px] w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
+						></textarea>
+						<p class="text-xs text-fg-subtle">Press Cmd/Ctrl+Enter to save · Esc to cancel</p>
+					{:else}
+						<button
+							type="button"
+							onclick={enterCommentEdit}
+							class="block w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-left text-sm transition-colors hover:bg-bg-muted"
+						>
+							{#if savedComment}
+								<span class="whitespace-pre-wrap text-fg">{savedComment}</span>
+							{:else}
+								<span class="text-fg-subtle">Add a comment...</span>
+							{/if}
+						</button>
+					{/if}
+				</div>
+			</div>
 		</div>
 	{/if}
 </div>

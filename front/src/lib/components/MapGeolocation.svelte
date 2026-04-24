@@ -3,43 +3,44 @@
 	import { onMount } from 'svelte';
 	import { CustomGeolocation } from '$lib/utils/geolocation';
 
-	export let map: mapbox.Map;
-	export let trackUser: boolean = false;
-	export let showUser: boolean = true;
-    export let onGeolocate: () => void;
-	
+	interface Props {
+		map: mapbox.Map;
+		trackUser?: boolean;
+		showUser?: boolean;
+		onGeolocate?: () => void;
+	}
+
+	const { map, trackUser = false, showUser = true, onGeolocate }: Props = $props();
+
 	onMount(() => {
-		const geolocateControl = new mapbox.GeolocateControl({
+		const control = new mapbox.GeolocateControl({
 			trackUserLocation: trackUser,
 			showUserLocation: showUser,
-			positionOptions: {
-				enableHighAccuracy: true
-			},
+			positionOptions: { enableHighAccuracy: true },
 			geolocation: new CustomGeolocation()
 		});
 
-		map.addControl(geolocateControl, 'bottom-right');
-		
-		geolocateControl.on('geolocate', () => {
-			onGeolocate();
-		});
+		map.addControl(control, 'bottom-right');
+		control.on('geolocate', () => onGeolocate?.());
 
-		// Trigger geolocation if needed
 		if (trackUser || showUser) {
-			const loadHandler = () => {
-				geolocateControl.trigger();
-				map.off('load', loadHandler);
-			};
-			
-			if (map.isStyleLoaded()) {
-				geolocateControl.trigger();
-			} else {
-				map.on('load', loadHandler);
+			const trigger = () => control.trigger();
+			if (map.isStyleLoaded()) trigger();
+			else {
+				const handler = () => {
+					trigger();
+					map.off('load', handler);
+				};
+				map.on('load', handler);
 			}
 		}
 
 		return () => {
-			map.removeControl(geolocateControl);
+			try {
+				map.removeControl(control);
+			} catch {
+				// Map may already be destroyed
+			}
 		};
 	});
 </script>

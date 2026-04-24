@@ -1,48 +1,33 @@
 <script lang="ts">
-	import { twMerge } from 'tailwind-merge';
+	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
 	import Button from './Button.svelte';
 
-	/**
-	 * Props interface for BackButton component
-	 */
 	interface BackButtonProps {
-		/** URL to navigate to when clicked */
 		href?: string;
-		/** Text to display next to the back arrow */
 		text?: string;
-		/** Function called when button is clicked */
 		onClick?: () => void;
-		/** Color theme for the button */
-		color?: 'primary' | 'secondary' | 'green' | 'red' | 'yellow' | 'blue' | 'indigo' | 'purple' | 'pink' | 'orange';
-		/** Whether to use outline style */
-		outline?: boolean;
-		/** Size of the button */
-		size?: 'small' | 'medium' | 'large';
-		/** Additional CSS classes */
-		className?: string;
+		class?: string;
 	}
 
-	// Props with defaults
-	const {
-		href = '/',
-		text = 'Back',
-		onClick,
-		color = 'primary',
-		outline = true,
-		size = 'small',
-		className = ''
-	}: BackButtonProps = $props();
+	const { href = '/', text = 'Back', onClick, class: className }: BackButtonProps = $props();
 </script>
 
-<Button
-	{href}
-	{onClick}
-	{color}
-	{outline}
-	{size}
-	prefix="←"
-	rounded="lg"
-	className={twMerge('mb-2', className)}
->
+{#snippet label()}
 	{text}
+{/snippet}
+
+{#snippet prefixIcon()}
+	<ChevronLeft class="h-4 w-4" />
+{/snippet}
+
+<Button
+	variant="ghost"
+	tone="neutral"
+	size="sm"
+	{href}
+	onclick={onClick}
+	class={className}
+	prefix={prefixIcon}
+>
+	{@render label()}
 </Button>

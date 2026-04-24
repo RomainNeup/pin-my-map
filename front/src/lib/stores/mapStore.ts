@@ -1,50 +1,75 @@
 import * as mapbox from 'mapbox-gl';
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { env } from '$env/dynamic/public';
+import { theme } from './theme';
 
 export interface MapState {
-  map: mapbox.Map | null;
-  isLoaded: boolean;
+	map: mapbox.Map | null;
+	isLoaded: boolean;
 }
 
-// Create a writable store with initial state
+export function styleForTheme(resolved: 'light' | 'dark'): string {
+	return resolved === 'dark'
+		? 'mapbox://styles/mapbox/dark-v11'
+		: 'mapbox://styles/mapbox/streets-v12';
+}
+
 const createMapStore = () => {
-  const { subscribe, set, update } = writable<MapState>({
-    map: null,
-    isLoaded: false
-  });
+	const { subscribe, set, update } = writable<MapState>({
+		map: null,
+		isLoaded: false
+	});
 
-  return {
-    subscribe,
+	let themeUnsub: (() => void) | null = null;
 
-    // Initialize map instance
-    init: (container: HTMLDivElement | string, options: Partial<mapbox.MapOptions> = {}) => {
-      const map = new mapbox.Map({
-        container,
-        accessToken: env.PUBLIC_MAPBOX_ACCESS_TOKEN,
-        style: 'mapbox://styles/mapbox/outdoors-v11',
-        attributionControl: false,
-        ...options
-      });
+	return {
+		subscribe,
 
-      map.on('load', () => {
-        update(state => ({ ...state, isLoaded: true }));
-      });
+		init(container: HTMLDivElement | string, options: Partial<mapbox.MapOptions> = {}) {
+			const resolved = theme.resolved();
+			const map = new mapbox.Map({
+				container,
+				accessToken: env.PUBLIC_MAPBOX_ACCESS_TOKEN,
+				style: styleForTheme(resolved),
+				attributionControl: false,
+				...options
+			});
 
-      set({ map, isLoaded: false });
-      return map;
-    },
+			map.on('load', () => {
+				update((state) => ({ ...state, isLoaded: true }));
+			});
 
-    // Clean up map instance
-    destroy: () => {
-      update(state => {
-        if (state.map) {
-          state.map.remove();
-        }
-        return { map: null, isLoaded: false };
-      });
-    }
-  };
+			// Subscribe to theme changes and swap style
+			themeUnsub = theme.subscribe(() => {
+				const r = theme.resolved();
+				if (map && map.getStyle()) {
+					const current = map.getStyle()?.sprite ?? '';
+					const wantsDark = r === 'dark';
+					if (wantsDark !== current.includes('dark')) {
+						map.setStyle(styleForTheme(r));
+					}
+				}
+			});
+
+			set({ map, isLoaded: false });
+			return map;
+		},
+
+		destroy() {
+			if (themeUnsub) {
+				themeUnsub();
+				themeUnsub = null;
+			}
+			update((state) => {
+				if (state.map) state.map.remove();
+				return { map: null, isLoaded: false };
+			});
+		},
+
+		get() {
+			return get({ subscribe }).map;
+		}
+	};
 };
 
 export const mapStore = createMapStore();

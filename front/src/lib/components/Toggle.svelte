@@ -1,184 +1,65 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { twMerge } from 'tailwind-merge';
 
-	/**
-	 * Props interface for Toggle component
-	 */
 	interface ToggleProps {
-		/** Display label for the toggle */
 		label?: string;
-		/** Unique identifier for the toggle */
 		id?: string;
-		/** Current state of the toggle */
 		value?: boolean;
-		/** Function called when toggle state changes */
 		onToggle?: (value: boolean) => void;
-		/** Whether the toggle is disabled */
 		disabled?: boolean;
-		/** Size of the toggle */
-		size?: 'small' | 'medium' | 'large';
-		/** Color when unchecked */
-		uncheckedColor?: 'primary' | 'secondary' | 'green' | 'red' | 'yellow' | 'blue' | 'indigo' | 'purple' | 'pink' | 'orange';
-		/** Color when checked */
-		checkedColor?: 'primary' | 'secondary' | 'green' | 'red' | 'yellow' | 'blue' | 'indigo' | 'purple' | 'pink' | 'orange';
-		/** Whether toggle should take full width */
-		fullwidth?: boolean;
-		/** Additional CSS classes */
-		className?: string;
+		size?: 'sm' | 'md' | 'lg';
+		class?: string;
 	}
 
-	// DOM references
-	let toggle: HTMLInputElement;
-	let toggleDot: HTMLDivElement;
-	let toggleBox: HTMLDivElement;
-
-	// Props with defaults
-	let { 
-		label, 
-		id = 'toggle', 
-		value = $bindable(false), 
+	let {
+		label,
+		id = `toggle-${Math.random().toString(36).slice(2, 9)}`,
+		value = $bindable(false),
 		onToggle,
 		disabled = false,
-		size = 'medium',
-		uncheckedColor = 'red',
-		checkedColor = 'green',
-		fullwidth = false,
-		className = '',
+		size = 'md',
+		class: className
 	}: ToggleProps = $props();
 
-	const checkedBoxColorClasses = {
-		primary: 'bg-primary-200',
-		secondary: 'bg-secondary-200',
-		green: 'bg-green-200',
-		red: 'bg-red-200',
-		yellow: 'bg-yellow-200',
-		blue: 'bg-blue-200',
-		indigo: 'bg-indigo-200',
-		purple: 'bg-purple-200',
-		pink: 'bg-pink-200',
-		orange: 'bg-orange-200'
-	};
-	const checkedDotColorClasses = {
-		primary: 'bg-primary-900',
-		secondary: 'bg-secondary-900',
-		green: 'bg-green-900',
-		red: 'bg-red-900',
-		yellow: 'bg-yellow-900',
-		blue: 'bg-blue-900',
-		indigo: 'bg-indigo-900',
-		purple: 'bg-purple-900',
-		pink: 'bg-pink-900',
-		orange: 'bg-orange-900'
-	};
-	const uncheckedBoxColorClasses = {
-		primary: 'bg-primary-200',
-		secondary: 'bg-secondary-200',
-		green: 'bg-green-200',
-		red: 'bg-red-200',
-		yellow: 'bg-yellow-200',
-		blue: 'bg-blue-200',
-		indigo: 'bg-indigo-200',
-		purple: 'bg-purple-200',
-		pink: 'bg-pink-200',
-		orange: 'bg-orange-200'
-	};
-	const uncheckedDotColorClasses = {
-		primary: 'bg-primary-900',
-		secondary: 'bg-secondary-900',
-		green: 'bg-green-900',
-		red: 'bg-red-900',
-		yellow: 'bg-yellow-900',
-		blue: 'bg-blue-900',
-		indigo: 'bg-indigo-900',
-		purple: 'bg-purple-900',
-		pink: 'bg-pink-900',
-		orange: 'bg-orange-900'
+	const dims = {
+		sm: { track: 'h-5 w-9', dot: 'h-4 w-4', on: 'translate-x-4' },
+		md: { track: 'h-6 w-11', dot: 'h-5 w-5', on: 'translate-x-5' },
+		lg: { track: 'h-7 w-14', dot: 'h-6 w-6', on: 'translate-x-7' }
 	};
 
-	/**
-	 * Handle toggle state changes
-	 */
-	const handleChange = () => {
-		if (onToggle) {
-			onToggle(toggle.checked);
-		}
-		if (size === 'small') {
-			toggleDot.classList.toggle('translate-x-7');
-		} else if (size === 'medium') {
-			toggleDot.classList.toggle('translate-x-9');
-		} else {
-			toggleDot.classList.toggle('translate-x-11');
-		}
-
-		if (toggle.checked) {
-			toggleBox.classList.remove(uncheckedBoxColorClasses[uncheckedColor]);
-			toggleBox.classList.add(checkedBoxColorClasses[checkedColor]);
-			toggleDot.classList.remove(uncheckedDotColorClasses[uncheckedColor]);
-			toggleDot.classList.add(checkedDotColorClasses[checkedColor]);
-		} else {
-			toggleBox.classList.remove(checkedBoxColorClasses[checkedColor]);
-			toggleBox.classList.add(uncheckedBoxColorClasses[uncheckedColor]);
-			toggleDot.classList.remove(checkedDotColorClasses[checkedColor]);
-			toggleDot.classList.add(uncheckedDotColorClasses[uncheckedColor]);
-		}
+	const handleClick = () => {
+		if (disabled) return;
+		value = !value;
+		onToggle?.(value);
 	};
-
-	onMount(() => {
-		toggle.addEventListener('change', handleChange);
-	});
-
-	// Size classes
-	const sizeClasses = {
-		small: { toggle: 'h-8 w-16', dot: 'h-6 w-6' },
-		medium: { toggle: 'h-10 w-20', dot: 'h-8 w-8' },
-		large: { toggle: 'h-12 w-24', dot: 'h-10 w-10' }
-	};
-
-	const toggleClass = {
-		small: 'translate-x-7',
-		medium: 'translate-x-9',
-		large: 'translate-x-11'
-	}
-
-	const toggleBoxBaseClass = twMerge(
-		'rounded-full transition-colors duration-300 flex items-center px-1',
-		sizeClasses[size].toggle,
-		value ? checkedBoxColorClasses[checkedColor] : uncheckedBoxColorClasses[uncheckedColor],
-		disabled && 'opacity-50 cursor-not-allowed',
-		fullwidth && 'w-full',
-		className
-	);
-
-	const toggleDotBaseClass = twMerge(
-		'toggle-dot m-0.5 transform rounded-full text-center shadow-md transition-all duration-300 ease-in-out',
-		sizeClasses[size].dot,
-		value ? checkedDotColorClasses[checkedColor] : uncheckedDotColorClasses[uncheckedColor],
-		value && toggleClass[size]
-	);
 </script>
 
-<div class={twMerge(fullwidth && 'w-full')}>
-	<input
-		type="checkbox"
-		class="sr-only"
-		bind:this={toggle}
-		id={id}
-		bind:checked={value}
+<label for={id} class={twMerge('inline-flex cursor-pointer items-center gap-2.5', className)}>
+	<button
+		{id}
+		type="button"
+		role="switch"
 		aria-checked={value}
-		aria-label={label || 'Toggle'}
+		aria-label={label}
 		{disabled}
-	/>
-	<label 
-		for={id} 
-		class={twMerge("flex cursor-pointer items-center", disabled && "cursor-not-allowed", fullwidth && "w-full")}
-		aria-hidden="true"
+		onclick={handleClick}
+		class={twMerge(
+			'relative inline-flex shrink-0 items-center rounded-full transition-colors duration-150',
+			'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+			dims[size].track,
+			value ? 'bg-accent' : 'bg-bg-inset',
+			disabled && 'cursor-not-allowed opacity-60'
+		)}
 	>
-		<div class={toggleBoxBaseClass} bind:this={toggleBox}>
-			<div class={toggleDotBaseClass} bind:this={toggleDot}></div>
-		</div>
-		{#if label}
-			<div class="ml-3 font-medium text-gray-700">{label}</div>
-		{/if}
-	</label>
-</div>
+		<span
+			class={twMerge(
+				'inline-block transform rounded-full bg-white shadow-sm transition-transform duration-150',
+				dims[size].dot,
+				value ? dims[size].on : 'translate-x-0.5'
+			)}
+		></span>
+	</button>
+	{#if label}
+		<span class="text-sm text-fg">{label}</span>
+	{/if}
+</label>

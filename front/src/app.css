@@ -1,3 +1,128 @@
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
-@import 'tailwindcss/utilities'
+@import 'tailwindcss/utilities';
+
+/* Design tokens — light theme (default) */
+:root {
+	color-scheme: light;
+
+	--c-bg: #ffffff;
+	--c-bg-elevated: #ffffff;
+	--c-bg-muted: #f5f5f4;
+	--c-bg-inset: #e7e5e4;
+	--c-border: #e7e5e4;
+	--c-border-strong: #d6d3d1;
+	--c-fg: #0c0a09;
+	--c-fg-muted: #57534e;
+	--c-fg-subtle: #a8a29e;
+
+	--c-accent: #0d9488;
+	--c-accent-fg: #ffffff;
+	--c-accent-hover: #0f766e;
+	--c-accent-soft: #ccfbf1;
+	--c-accent-soft-fg: #134e4a;
+
+	--c-success: #16a34a;
+	--c-warning: #d97706;
+	--c-danger: #dc2626;
+	--c-danger-soft: #fee2e2;
+	--c-info: #0ea5e9;
+
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+	--shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+	--shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.18);
+
+	--glass-bg: rgba(255, 255, 255, 0.78);
+	--glass-border: rgba(0, 0, 0, 0.06);
+}
+
+.dark {
+	color-scheme: dark;
+
+	--c-bg: #0c0a09;
+	--c-bg-elevated: #1c1917;
+	--c-bg-muted: #1c1917;
+	--c-bg-inset: #292524;
+	--c-border: #292524;
+	--c-border-strong: #44403c;
+	--c-fg: #fafaf9;
+	--c-fg-muted: #a8a29e;
+	--c-fg-subtle: #78716c;
+
+	--c-accent: #2dd4bf;
+	--c-accent-fg: #042f2e;
+	--c-accent-hover: #5eead4;
+	--c-accent-soft: #134e4a;
+	--c-accent-soft-fg: #ccfbf1;
+
+	--c-success: #22c55e;
+	--c-warning: #f59e0b;
+	--c-danger: #ef4444;
+	--c-danger-soft: #450a0a;
+	--c-info: #38bdf8;
+
+	--glass-bg: rgba(28, 25, 23, 0.72);
+	--glass-border: rgba(255, 255, 255, 0.06);
+}
+
+@layer base {
+	html,
+	body {
+		background-color: var(--c-bg);
+		color: var(--c-fg);
+	}
+
+	body {
+		font-feature-settings: 'cv11', 'ss01', 'ss03';
+		-webkit-font-smoothing: antialiased;
+	}
+
+	/* Default border color for Tailwind's `border` utility */
+	*,
+	::before,
+	::after {
+		border-color: var(--c-border);
+	}
+
+	::selection {
+		background-color: var(--c-accent);
+		color: var(--c-accent-fg);
+	}
+}
+
+@layer utilities {
+	.glass {
+		background-color: var(--glass-bg);
+		backdrop-filter: saturate(1.4) blur(12px);
+		-webkit-backdrop-filter: saturate(1.4) blur(12px);
+		border: 1px solid var(--glass-border);
+	}
+
+	.no-scrollbar::-webkit-scrollbar {
+		display: none;
+	}
+	.no-scrollbar {
+		scrollbar-width: none;
+	}
+}
+
+/* Mapbox overrides — blend attribution with theme */
+.mapboxgl-ctrl-attrib {
+	background: var(--glass-bg) !important;
+	color: var(--c-fg-muted) !important;
+}
+.mapboxgl-ctrl-attrib a {
+	color: var(--c-fg-muted) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	::before,
+	::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}

@@ -1,29 +1,29 @@
-import axios from "axios";
+import axios from 'axios';
 import { env } from '$env/dynamic/public';
-import { get } from "svelte/store";
-import { accessToken } from "$lib/store/user";
-import { setError } from "$lib/store/error";
+import { get } from 'svelte/store';
+import { accessToken } from '$lib/stores/user';
+import { toast } from '$lib/stores/toast';
 
 export const axiosInstance = axios.create({
-    baseURL: env.PUBLIC_API_BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-        "Authorization": `Bearer ${get(accessToken)}`
-    },
+	baseURL: env.PUBLIC_API_BASE_URL,
+	headers: {
+		'Content-Type': 'application/json',
+		Authorization: `Bearer ${get(accessToken)}`
+	}
+});
+
+accessToken.subscribe((token) => {
+	axiosInstance.defaults.headers.common['Authorization'] = token ? `Bearer ${token}` : '';
 });
 
 axiosInstance.interceptors.response.use(
-    response => response,
-    error => {
-        if (error.response.status === 401) {
-            accessToken.update(() => null);
-        }
-        if (error.response && error.response.data && error.response.data.message) {
-            setError(error.response.data.message);
-            return Promise.reject({ error: error.response.data.message, status: error.response.status });
-        }
-        setError("An error occurred");
-        console.error(error);
-        return Promise.reject({error: "An error occurred", status: 500});
-    }
+	(response) => response,
+	(error) => {
+		if (error.response?.status === 401) {
+			accessToken.update(() => null);
+		}
+		const message = error.response?.data?.message || error.message || 'An error occurred';
+		toast(message, 'error');
+		return Promise.reject({ error: message, status: error.response?.status ?? 0 });
+	}
 );

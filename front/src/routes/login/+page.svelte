@@ -1,43 +1,91 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import MapPin from 'lucide-svelte/icons/map-pin';
 	import { login } from '$lib/api/auth';
+	import { accessToken } from '$lib/stores/user';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
-	import { setError } from '$lib/store/error';
-	import { accessToken } from '$lib/store/user';
-	import { onMount } from 'svelte';
+	import Field from '$lib/components/ui/Field.svelte';
 
-	let email = '';
-	let password = '';
-    let token = $accessToken;
+	let email = $state('');
+	let password = $state('');
+	let emailError = $state('');
+	let passwordError = $state('');
+	let submitting = $state(false);
 
-	const handleLogin = () => {
-        if (!email || !password) {
-            let missingFields = [];
-            if (!email) missingFields.push('email');
-            if (!password) missingFields.push('password');
-            setError(`The following fields are required: ${missingFields.join(', ')}`);
-            return;
-        }
-		login(email, password)
-			.then((response) => {
-                window.location.href = '/';
-			})
-			.catch((error) => {
-                setError(error.response.data.message);
-            });
-	}
+	const handleLogin = async (event: Event) => {
+		event.preventDefault();
+		emailError = email ? '' : 'Email is required';
+		passwordError = password ? '' : 'Password is required';
+		if (emailError || passwordError) return;
 
-    onMount(() => {
-        token && (window.location.href = '/');
-    });
+		submitting = true;
+		try {
+			await login(email, password);
+			goto('/');
+		} catch {
+			// axios interceptor toasts the error
+		} finally {
+			submitting = false;
+		}
+	};
+
+	onMount(() => {
+		if ($accessToken) goto('/');
+	});
 </script>
 
-<div class="flex flex-col space-y-4">
-	<h1 class="text-2xl font-bold">Login</h1>
-    <form class="flex flex-col space-y-4" on:submit|preventDefault={handleLogin}>
-        <Input placeholder="Email" type="email" bind:value={email} />
-        <Input placeholder="Password" type="password" bind:value={password} />
-        <Button type="submit">Login</Button>
-        <a href="/register" class="text-blue-500">Don't have an account?</a>
-    </form>
+<div class="space-y-6">
+	<div class="flex flex-col items-center gap-2 text-center">
+		<span
+			class="flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-accent-fg shadow-md"
+		>
+			<MapPin class="h-6 w-6" />
+		</span>
+		<h1 class="text-2xl font-semibold">Welcome back</h1>
+		<p class="text-sm text-fg-muted">Sign in to continue pinning your map.</p>
+	</div>
+
+	<div class="rounded-2xl border border-border bg-bg-elevated p-6 shadow-lg">
+		<form class="space-y-4" onsubmit={handleLogin}>
+			<Field label="Email" required error={emailError}>
+				{#snippet children({ id })}
+					<Input
+						{id}
+						type="email"
+						placeholder="you@example.com"
+						autocomplete="email"
+						bind:value={email}
+						error={!!emailError}
+					/>
+				{/snippet}
+			</Field>
+			<Field label="Password" required error={passwordError}>
+				{#snippet children({ id })}
+					<Input
+						{id}
+						type="password"
+						placeholder="Your password"
+						autocomplete="current-password"
+						bind:value={password}
+						error={!!passwordError}
+					/>
+				{/snippet}
+			</Field>
+			<Button type="submit" fullwidth loading={submitting}>Sign in</Button>
+		</form>
+
+		<div class="my-4 flex items-center gap-3">
+			<hr class="flex-1 border-border" />
+			<span class="text-xs text-fg-subtle">or</span>
+			<hr class="flex-1 border-border" />
+		</div>
+		<Button variant="outline" tone="neutral" fullwidth disabled>Continue with Google</Button>
+	</div>
+
+	<p class="text-center text-sm text-fg-muted">
+		Don't have an account?
+		<a href="/register" class="font-medium text-accent hover:underline">Create one</a>
+	</p>
 </div>

@@ -1,30 +1,40 @@
-import { userLocation } from "$lib/store/user";
+import { userLocation } from '$lib/stores/user';
 
 export class CustomGeolocation implements Geolocation {
+	private savePosition(position: GeolocationPosition) {
+		userLocation.set(position);
+	}
 
-    private savePosition(position: GeolocationPosition) {
-        userLocation.set(position);
-    }
+	public getCurrentPosition(
+		successCallback: PositionCallback,
+		errorCallback?: PositionErrorCallback,
+		options?: PositionOptions
+	) {
+		userLocation.subscribe((value) => {
+			if (value !== null) {
+				successCallback(value);
+			}
+		});
 
-    public getCurrentPosition(successCallback: PositionCallback, errorCallback?: PositionErrorCallback, options?: PositionOptions) {
-        userLocation.subscribe((value) => {
-            if (value !== null) {
-                successCallback(value);
-            }
-        });
+		navigator.geolocation.getCurrentPosition(this.savePosition, errorCallback, options);
+	}
 
-        navigator.geolocation.getCurrentPosition(this.savePosition, errorCallback, options);
-    }
+	public watchPosition(
+		successCallback: PositionCallback,
+		errorCallback: PositionErrorCallback,
+		options: PositionOptions
+	) {
+		return navigator.geolocation.watchPosition(
+			(position) => {
+				this.savePosition(position);
+				successCallback(position);
+			},
+			errorCallback,
+			options
+		);
+	}
 
-    public watchPosition(successCallback: PositionCallback, errorCallback: PositionErrorCallback, options: PositionOptions) {
-        return navigator.geolocation.watchPosition((position) => {
-            this.savePosition(position);
-            successCallback(position);
-        }, errorCallback, options);
-    }
-
-    public clearWatch(watchId: number) {
-        navigator.geolocation.clearWatch(watchId);
-    }
-
+	public clearWatch(watchId: number) {
+		navigator.geolocation.clearWatch(watchId);
+	}
 }

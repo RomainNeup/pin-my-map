@@ -4,20 +4,17 @@
 	interface EmojiPickerProps {
 		/** Function to dispatch the selected emoji */
 		onChange?: (emoji: string) => void;
-        /** Selected emoji */
-        value?: string;
+		/** Selected emoji */
+		value?: string;
 	}
 
-	let {
-        onChange,
-        value = $bindable(''),
-    }: EmojiPickerProps = $props();
+	let { onChange, value = $bindable('') }: EmojiPickerProps = $props();
 
-	const picker = new EmojiButton({style: 'native', zIndex: 1000});
+	const picker = new EmojiButton({ style: 'native', zIndex: 1000 });
 	let trigger: HTMLButtonElement;
 
 	picker.on('emoji', (selection) => {
-        value = selection.emoji;
+		value = selection.emoji;
 		if (onChange) {
 			onChange(selection.emoji);
 		}
@@ -29,5 +26,5 @@
 </script>
 
 <button bind:this={trigger} onclick={togglePicker}>
-    {value || '😀'}
+	{value || '😀'}
 </button>

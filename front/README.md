@@ -11,7 +11,6 @@ This is a simple app to save your favorite places on a map.
 
 ### Backend
 
-
 ## How to run
 
 ### Frontend
@@ -29,4 +28,3 @@ cd back
 yarn install
 yarn start
 ```
-

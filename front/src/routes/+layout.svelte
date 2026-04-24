@@ -1,31 +1,36 @@
 <script lang="ts">
-	import Error from '$lib/components/Error.svelte';
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import '../app.css';
-	import { accessToken } from '$lib/store/user';
+	import { accessToken } from '$lib/stores/user';
+	import AppShell from '$lib/components/shell/AppShell.svelte';
+	import Toast from '$lib/components/ui/Toast.svelte';
+	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 
 	let { children } = $props();
-	let token = $accessToken;
+
+	const AUTH_ROUTES = ['/login', '/register'];
+	const STYLEGUIDE_ROUTES = ['/__styleguide'];
+
+	const pathname = $derived($page.url.pathname);
+	const isAuth = $derived(AUTH_ROUTES.some((p) => pathname.startsWith(p)));
+	const isStyleguide = $derived(STYLEGUIDE_ROUTES.some((p) => pathname.startsWith(p)));
+	const skipShell = $derived(isAuth || isStyleguide);
 
 	onMount(() => {
-		if (
-			!token &&
-			window.location.pathname !== '/login' &&
-			window.location.pathname !== '/register'
-		) {
-			window.location.href = '/login';
-			return;
+		if (!$accessToken && !AUTH_ROUTES.some((p) => pathname.startsWith(p))) {
+			goto('/login');
 		}
 	});
 </script>
 
-<div class="flex min-h-screen justify-center">
-	<div class="w-full">
-		<div class="flex h-full flex-col">
-			<div class="absolute bottom-0 right-0 z-20 flex flex-col space-y-2 p-4">
-				<Error />
-			</div>
-			{@render children()}
-		</div>
-	</div>
-</div>
+{#if skipShell}
+	{@render children()}
+	<Toast />
+	<ConfirmDialog />
+{:else}
+	<AppShell>
+		{@render children()}
+	</AppShell>
+{/if}
