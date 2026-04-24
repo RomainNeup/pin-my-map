@@ -130,15 +130,13 @@
 		if (map.isStyleLoaded()) addEverything();
 		else map.once('load', addEverything);
 
-		// Re-add on style swap
-		const onStyleData = () => {
-			// setStyle removes our source/layers; re-add once style is loaded
-			if (map.isStyleLoaded() && !map.getSource(sourceKey)) addEverything();
-		};
-		map.on('styledata', onStyleData);
+		// setStyle (theme swap) drops all sources/layers. `style.load` fires exactly
+		// once per style swap, after the new style is ready to accept them again.
+		const onStyleLoad = () => addEverything();
+		map.on('style.load', onStyleLoad);
 
 		return () => {
-			map.off('styledata', onStyleData);
+			map.off('style.load', onStyleLoad);
 			try {
 				removeEverything();
 			} catch {

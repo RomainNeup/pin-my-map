@@ -76,7 +76,10 @@
 			{#if hasPin}
 				A pin was dropped on the map — fill in the details below.
 			{:else}
-				Long-press the map from the home screen to drop a pin, or enter coordinates manually.
+				<a class="text-accent underline-offset-2 hover:underline" href="/place/pick">
+					Pick a location on the map
+				</a>
+				or enter coordinates manually below.
 			{/if}
 		</p>
 	</header>
@@ -124,7 +127,8 @@
 		{/if}
 
 		<div
-			class="bg-bg-elevated/80 sticky bottom-0 -mx-4 border-t border-border px-4 py-3 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0"
+			class="bg-bg-elevated/80 sticky -mx-4 border-t border-border px-4 py-3 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0"
+			style="bottom: var(--tabbar-h);"
 		>
 			<div class="flex gap-2">
 				<Button variant="ghost" tone="neutral" href="/" fullwidth>Cancel</Button>

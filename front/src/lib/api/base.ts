@@ -1,19 +1,21 @@
 import axios from 'axios';
 import { env } from '$env/dynamic/public';
-import { get } from 'svelte/store';
 import { accessToken } from '$lib/stores/user';
 import { toast } from '$lib/stores/toast';
 
 export const axiosInstance = axios.create({
 	baseURL: env.PUBLIC_API_BASE_URL,
 	headers: {
-		'Content-Type': 'application/json',
-		Authorization: `Bearer ${get(accessToken)}`
+		'Content-Type': 'application/json'
 	}
 });
 
 accessToken.subscribe((token) => {
-	axiosInstance.defaults.headers.common['Authorization'] = token ? `Bearer ${token}` : '';
+	if (token) {
+		axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+	} else {
+		delete axiosInstance.defaults.headers.common['Authorization'];
+	}
 });
 
 axiosInstance.interceptors.response.use(

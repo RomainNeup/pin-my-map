@@ -20,6 +20,7 @@
 	let loading = $state(false);
 	let filterOpen = $state(false);
 	let selectedTagIds = $state<string[]>([]);
+	let filterAnchor = $state<HTMLElement | null>(null);
 
 	let debounceHandle: ReturnType<typeof setTimeout> | null = null;
 
@@ -107,7 +108,7 @@
 			{/if}
 		</div>
 
-		<div class="relative">
+		<div class="relative" bind:this={filterAnchor}>
 			<IconButton
 				label="Filters"
 				variant="outline"
@@ -115,7 +116,12 @@
 				onclick={() => (filterOpen = !filterOpen)}
 				icon={filterIcon}
 			/>
-			<Popover bind:open={filterOpen} placement="bottom-end" class="min-w-[240px] p-3">
+			<Popover
+				bind:open={filterOpen}
+				anchor={filterAnchor}
+				placement="bottom-end"
+				class="min-w-[240px] p-3"
+			>
 				<h4 class="mb-2 text-sm font-medium text-fg">Filter by tag</h4>
 				{#if $tags && $tags.length > 0}
 					<div class="flex flex-wrap gap-1.5">

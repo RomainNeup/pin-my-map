@@ -15,9 +15,9 @@ export class TagController {
     @Private()
     @Post()
     @HttpCode(201)
-    @ApiResponse({ status: 201, description: 'The tag has been successfully created.' })
+    @ApiResponse({ status: 201, type: TagDto, description: 'The tag has been successfully created.' })
     @ApiResponse({ status: 400, description: 'Bad request. Invalid input data.' })
-    async createTag(@Body() tagDto: CreateTagRequestDto, @User("id") userId: string): Promise<void> {
+    async createTag(@Body() tagDto: CreateTagRequestDto, @User("id") userId: string): Promise<TagDto> {
         return await this.tagService.create(userId, tagDto);
     }
 

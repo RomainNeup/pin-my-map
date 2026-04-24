@@ -12,11 +12,13 @@
 
 	const AUTH_ROUTES = ['/login', '/register'];
 	const STYLEGUIDE_ROUTES = ['/__styleguide'];
+	const FULLSCREEN_ROUTES = ['/place/pick'];
 
 	const pathname = $derived($page.url.pathname);
 	const isAuth = $derived(AUTH_ROUTES.some((p) => pathname.startsWith(p)));
 	const isStyleguide = $derived(STYLEGUIDE_ROUTES.some((p) => pathname.startsWith(p)));
-	const skipShell = $derived(isAuth || isStyleguide);
+	const isFullscreen = $derived(FULLSCREEN_ROUTES.some((p) => pathname.startsWith(p)));
+	const skipShell = $derived(isAuth || isStyleguide || isFullscreen);
 
 	onMount(() => {
 		if (!$accessToken && !AUTH_ROUTES.some((p) => pathname.startsWith(p))) {

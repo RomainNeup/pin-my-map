@@ -55,7 +55,7 @@
 					href={`/saved/${savedPlace.id}`}
 					class="group flex flex-col overflow-hidden rounded-xl border border-border bg-bg-elevated shadow-sm transition-shadow hover:shadow-md sm:flex-row"
 				>
-					<div class="h-32 w-full shrink-0 sm:h-24 sm:w-24">
+					<div class="h-32 w-full shrink-0 sm:h-auto sm:min-h-[8rem] sm:w-36 sm:self-stretch">
 						<Map
 							sources={[
 								{

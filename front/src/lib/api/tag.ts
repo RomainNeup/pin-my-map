@@ -18,6 +18,6 @@ export function getTags() {
 	return axiosInstance.get<Tag[]>('/tag').then((response) => response.data);
 }
 
-export function createTag(tag: CreateTagRequest) {
-	return axiosInstance.post('/tag', tag);
+export function createTag(tag: CreateTagRequest): Promise<Tag> {
+	return axiosInstance.post<Tag>('/tag', tag).then((response) => response.data);
 }

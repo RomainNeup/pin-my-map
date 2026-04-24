@@ -21,7 +21,7 @@
 
 <header
 	class={twMerge(
-		'sticky top-0 z-overlay flex h-14 items-center gap-2 border-b px-3 md:px-6',
+		'sticky top-0 z-overlay hidden h-14 items-center gap-2 border-b px-3 md:flex md:px-6',
 		transparent ? 'glass border-transparent' : 'border-border bg-bg-elevated'
 	)}
 >

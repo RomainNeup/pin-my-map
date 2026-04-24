@@ -11,14 +11,14 @@ export class TagService {
         @InjectModel(Tag.name) private tagModel: Model<Tag>
     ) {}
 
-    async create(userId: string, tag: CreateTagRequestDto): Promise<void> {
+    async create(userId: string, tag: CreateTagRequestDto): Promise<TagDto> {
         const newTag = new this.tagModel({
             name: tag.name,
             emoji: tag.emoji,
             owner: userId
         });
         const result = await newTag.save();
-        return;
+        return TagMapper.toDto(result);
     }
 
     async findAll(userId: string): Promise<TagDto[]> {

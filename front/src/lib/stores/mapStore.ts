@@ -39,15 +39,19 @@ const createMapStore = () => {
 				update((state) => ({ ...state, isLoaded: true }));
 			});
 
-			// Subscribe to theme changes and swap style
+			// Subscribe to theme changes and swap style (skip initial synchronous fire)
+			let firstFire = true;
 			themeUnsub = theme.subscribe(() => {
+				if (firstFire) {
+					firstFire = false;
+					return;
+				}
+				if (!map.isStyleLoaded()) return;
 				const r = theme.resolved();
-				if (map && map.getStyle()) {
-					const current = map.getStyle()?.sprite ?? '';
-					const wantsDark = r === 'dark';
-					if (wantsDark !== current.includes('dark')) {
-						map.setStyle(styleForTheme(r));
-					}
+				const current = map.getStyle()?.sprite ?? '';
+				const wantsDark = r === 'dark';
+				if (wantsDark !== current.includes('dark')) {
+					map.setStyle(styleForTheme(r));
 				}
 			});
 

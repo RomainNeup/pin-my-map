@@ -10,13 +10,14 @@
 	} from '$lib/api/savedPlace';
 	import { createTag, type Tag } from '$lib/api/tag';
 	import Map from '$lib/components/Map.svelte';
-	import Select from '$lib/components/Select.svelte';
 	import StarRating from '$lib/components/StarRating.svelte';
+	import TagPicker from '$lib/components/TagPicker.svelte';
 	import Toggle from '$lib/components/Toggle.svelte';
 	import Chip from '$lib/components/ui/Chip.svelte';
 	import IconButton from '$lib/components/ui/IconButton.svelte';
 	import Popover from '$lib/components/ui/Popover.svelte';
 	import { confirm } from '$lib/stores/confirm';
+	import { tags } from '$lib/stores/tags';
 	import { toast } from '$lib/stores/toast';
 	import Check from 'lucide-svelte/icons/check';
 	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
@@ -39,20 +40,15 @@
 	let savedPlaceTags = $state<Tag[]>(data.savedPlace?.tags ?? []);
 	let done = $state(!!data.savedPlace?.done);
 	let menuOpen = $state(false);
+	let menuAnchor = $state<HTMLElement | null>(null);
 	let commentRef: HTMLTextAreaElement | null = $state(null);
 
-	const availableTagNames = $derived(
-		data.tags.map((t) => t.name).filter((name) => !savedPlaceTags.find((t) => t.name === name))
+	const availableTags = $derived(
+		($tags ?? []).filter((t) => !savedPlaceTags.some((st) => st.id === t.id))
 	);
 
-	const onTagsChange = (names: string[]) => {
-		const tagsToAdd = data.tags.filter(
-			(tag) => names.includes(tag.name) && !savedPlaceTags.find((t) => t.name === tag.name)
-		);
-		tagsToAdd.forEach(addTag);
-	};
-
 	const addTag = async (tag: Tag) => {
+		if (savedPlaceTags.some((t) => t.id === tag.id)) return;
 		await addTagToSavedPlace(data.savedPlace.id, tag.id);
 		savedPlaceTags = [...savedPlaceTags, tag];
 	};
@@ -60,6 +56,12 @@
 	const removeTag = async (tag: Tag) => {
 		await removeTagFromSavedPlace(data.savedPlace.id, tag.id);
 		savedPlaceTags = savedPlaceTags.filter((t) => t.id !== tag.id);
+	};
+
+	const handleCreateTag = async (name: string, emoji: string): Promise<Tag> => {
+		const created = await createTag({ name, emoji });
+		tags.update((list) => [...(list ?? []), created]);
+		return created;
 	};
 
 	const enterCommentEdit = async () => {
@@ -139,7 +141,7 @@
 	<div class="mb-4 flex items-center justify-between">
 		<IconButton label="Go back" variant="ghost" tone="neutral" onclick={goBack} icon={backIcon} />
 
-		<div class="relative">
+		<div class="relative" bind:this={menuAnchor}>
 			<IconButton
 				label="More options"
 				variant="ghost"
@@ -147,7 +149,7 @@
 				onclick={() => (menuOpen = !menuOpen)}
 				icon={menuIcon}
 			/>
-			<Popover bind:open={menuOpen} placement="bottom-end">
+			<Popover bind:open={menuOpen} anchor={menuAnchor} placement="bottom-end">
 				<button
 					type="button"
 					class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-danger hover:bg-danger-soft"
@@ -218,21 +220,13 @@
 				<!-- Tags -->
 				<div class="space-y-2">
 					<h3 class="text-sm font-medium text-fg">Tags</h3>
-					<div class="flex flex-wrap items-center gap-2">
-						{#each savedPlaceTags as tag (tag.id)}
-							<Chip prefix={tag.emoji} size="sm" onRemove={() => removeTag(tag)}>
-								{tag.name}
-							</Chip>
-						{/each}
-						<Select
-							size="sm"
-							options={availableTagNames}
-							placeholder="+ Add tag"
-							onChange={onTagsChange}
-							onAddOption={(tagName, tagEmoji) => createTag({ name: tagName, emoji: tagEmoji })}
-							newOptionPlaceholder="Add new tag (ENTER)"
-						/>
-					</div>
+					<TagPicker
+						selected={savedPlaceTags}
+						available={availableTags}
+						onAdd={addTag}
+						onRemove={removeTag}
+						onCreate={handleCreateTag}
+					/>
 				</div>
 
 				<!-- Rating -->

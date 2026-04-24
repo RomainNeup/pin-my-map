@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { goto } from '$app/navigation';
 	import Sun from 'lucide-svelte/icons/sun';
 	import Moon from 'lucide-svelte/icons/moon';
@@ -10,7 +11,18 @@
 	import { theme, type ThemeMode } from '$lib/stores/theme';
 	import { accessToken } from '$lib/stores/user';
 
+	interface UserMenuProps {
+		placement?: 'bottom-end' | 'bottom-start' | 'top-end' | 'top-start';
+		trigger?: Snippet<[{ toggle: () => void; open: boolean }]>;
+		class?: string;
+	}
+
+	const { placement = 'bottom-end', trigger, class: className = '' }: UserMenuProps = $props();
+
 	let open = $state(false);
+	let triggerEl = $state<HTMLElement | null>(null);
+
+	const toggle = () => (open = !open);
 
 	const setTheme = (mode: ThemeMode) => {
 		theme.set(mode);
@@ -23,21 +35,24 @@
 		goto('/login');
 	};
 
-	// For initials — in lieu of a real user profile, use a placeholder
 	const name = 'You';
 </script>
 
-<div class="relative">
-	<button
-		type="button"
-		class="flex items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
-		onclick={() => (open = !open)}
-		aria-label="Open menu"
-		aria-expanded={open}
-	>
-		<Avatar {name} size="md" />
-	</button>
-	<Popover bind:open>
+<div class="relative {className}" bind:this={triggerEl}>
+	{#if trigger}
+		{@render trigger({ toggle, open })}
+	{:else}
+		<button
+			type="button"
+			class="flex items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+			onclick={toggle}
+			aria-label="Open menu"
+			aria-expanded={open}
+		>
+			<Avatar {name} size="md" />
+		</button>
+	{/if}
+	<Popover bind:open anchor={triggerEl} {placement}>
 		<div class="px-1 pb-1">
 			<p class="px-2 pb-1 pt-1 text-xs font-medium text-fg-muted">Theme</p>
 			<button

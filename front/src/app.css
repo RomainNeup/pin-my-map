@@ -6,6 +6,8 @@
 :root {
 	color-scheme: light;
 
+	--tabbar-h: calc(56px + env(safe-area-inset-bottom, 0px));
+
 	--c-bg: #ffffff;
 	--c-bg-elevated: #ffffff;
 	--c-bg-muted: #f5f5f4;

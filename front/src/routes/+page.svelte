@@ -14,15 +14,12 @@
 	import SearchBar from '$lib/components/map/SearchBar.svelte';
 	import TagFilterChips from '$lib/components/map/TagFilterChips.svelte';
 	import PlaceSheet from '$lib/components/map/PlaceSheet.svelte';
-	import DropPinSheet from '$lib/components/map/DropPinSheet.svelte';
 
 	let loading = $state(true);
 	let selectedTagIds = $state<string[]>([]);
 
 	let sheetOpen = $state(false);
-	let sheetMode = $state<'place' | 'drop' | null>(null);
 	let selectedPlace = $state<SavedPlace | null>(null);
-	let dropCoords = $state<{ lat: number; lng: number } | null>(null);
 
 	const source = $derived<MapSource>({
 		key: 'saved-places',
@@ -38,21 +35,12 @@
 
 	const openPlace = (sp: SavedPlace) => {
 		selectedPlace = sp;
-		sheetMode = 'place';
-		sheetOpen = true;
-	};
-
-	const handleMapClick = ({ lat, lng }: { lat: number; lng: number }) => {
-		dropCoords = { lat, lng };
-		sheetMode = 'drop';
 		sheetOpen = true;
 	};
 
 	const closeSheet = () => {
 		sheetOpen = false;
 		selectedPlace = null;
-		dropCoords = null;
-		sheetMode = null;
 	};
 
 	onMount(async () => {
@@ -69,9 +57,10 @@
 
 <div class="relative h-[100dvh] w-full overflow-hidden">
 	{#snippet plusIcon()}<Plus class="h-6 w-6" />{/snippet}
-	<Map centerOnUser sources={[source]} onMapClick={handleMapClick}>
+	<Map centerOnUser sources={[source]}>
 		<div
-			class="pointer-events-none absolute inset-x-0 top-14 z-overlay flex flex-col gap-2 px-3 pt-3 md:px-6"
+			class="pointer-events-none absolute inset-x-0 top-0 z-overlay flex flex-col gap-2 px-3 pt-3 md:top-16 md:px-6"
+			style="padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));"
 		>
 			<div class="pointer-events-auto w-full max-w-md self-center md:self-start">
 				<SearchBar />
@@ -87,7 +76,7 @@
 			{/if}
 		</div>
 
-		<Fab icon={plusIcon} label="Add place" href="/place/create" offset={72} />
+		<Fab icon={plusIcon} label="Add place" href="/place/pick" offset={72} />
 
 		{#if loading}
 			<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -105,26 +94,23 @@
 			>
 				<EmptyState
 					title="No places pinned yet"
-					description="Long-press the map to drop a pin, or add one from search."
+					description="Tap the + button to pick a location or search."
 				>
 					{#snippet icon()}<MapPin class="h-5 w-5" />{/snippet}
 					{#snippet action()}
-						<Button href="/place/search" variant="soft">Search places</Button>
+						<div class="flex gap-2">
+							<Button href="/place/pick">Add a place</Button>
+							<Button href="/place/search" variant="soft">Search</Button>
+						</div>
 					{/snippet}
 				</EmptyState>
 			</div>
 		</div>
 	{/if}
 
-	<Sheet
-		bind:open={sheetOpen}
-		onClose={closeSheet}
-		title={sheetMode === 'drop' ? 'New place' : undefined}
-	>
-		{#if sheetMode === 'place' && selectedPlace}
+	<Sheet bind:open={sheetOpen} onClose={closeSheet}>
+		{#if selectedPlace}
 			<PlaceSheet savedPlace={selectedPlace} />
-		{:else if sheetMode === 'drop' && dropCoords}
-			<DropPinSheet lat={dropCoords.lat} lng={dropCoords.lng} onCancel={closeSheet} />
 		{/if}
 	</Sheet>
 </div>

@@ -17,7 +17,7 @@
 
 <div class="flex min-h-dvh flex-col bg-bg text-fg">
 	<AppHeader transparent={isHome} />
-	<main class="flex-1 {isHome ? '-mt-14' : ''}">
+	<main class="flex-1 pb-[var(--tabbar-h)] md:pb-0 {isHome ? 'md:-mt-14' : ''}">
 		{@render children()}
 	</main>
 	<BottomNav />

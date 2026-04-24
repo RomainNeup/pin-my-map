@@ -4,7 +4,9 @@
 	import Bookmark from 'lucide-svelte/icons/bookmark';
 	import Plus from 'lucide-svelte/icons/plus';
 	import Search from 'lucide-svelte/icons/search';
+	import User from 'lucide-svelte/icons/user';
 	import { twMerge } from 'tailwind-merge';
+	import UserMenu from './UserMenu.svelte';
 
 	const isActive = (path: string) => $page.url.pathname === path;
 
@@ -40,13 +42,21 @@
 		<Search class="h-5 w-5" />
 		Search
 	</a>
-	<a
-		href="/saved/list"
-		class={itemCls(false)}
-		aria-label="Profile placeholder"
-		style="visibility: hidden;"
-	>
-		<Bookmark class="h-5 w-5" />
-		You
-	</a>
+	<UserMenu placement="top-end" class="flex-1">
+		{#snippet trigger({ toggle, open })}
+			<button
+				type="button"
+				class={twMerge(
+					'flex w-full flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors',
+					open ? 'text-accent' : 'text-fg-muted hover:text-fg'
+				)}
+				onclick={toggle}
+				aria-label="Open menu"
+				aria-expanded={open}
+			>
+				<User class="h-5 w-5" />
+				You
+			</button>
+		{/snippet}
+	</UserMenu>
 </nav>
