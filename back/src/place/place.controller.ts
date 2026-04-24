@@ -14,11 +14,10 @@ export class PlaceController {
     @Private()
     @Post()
     @HttpCode(201)
-    @ApiResponse({ status: 201, description: 'Place successfully created.' })
+    @ApiResponse({ status: 201, type: PlaceDto, description: 'Place successfully created.' })
     @ApiResponse({ status: 400, description: 'Failed to create place.' })
-    async createPlace(@Body() placeDto: CreatePlaceRequestDto): Promise<void> {
-        await this.placeService.create(placeDto);
-        return;
+    async createPlace(@Body() placeDto: CreatePlaceRequestDto): Promise<PlaceDto> {
+        return await this.placeService.create(placeDto);
     }
 
     @Private()

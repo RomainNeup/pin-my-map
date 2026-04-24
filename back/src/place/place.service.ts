@@ -11,7 +11,7 @@ export class PlaceService {
         @InjectModel(Place.name) private placeModel: Model<Place>
     ) { }
 
-    async create(createPlaceDto: CreatePlaceRequestDto): Promise<void> {
+    async create(createPlaceDto: CreatePlaceRequestDto): Promise<PlaceDto> {
         if ((!createPlaceDto.location) || (createPlaceDto.location.lat < -90 || createPlaceDto.location.lat > 90) || (createPlaceDto.location.lng < -180 || createPlaceDto.location.lng > 180)) {
             throw new BadRequestException('Invalid latitude');
         }
@@ -38,7 +38,7 @@ export class PlaceService {
             throw new BadRequestException('Failed to create place');
         }
 
-        return;
+        return PlaceMapper.toDto(result);
     }
 
     async update(id: string, updatePlaceDto: CreatePlaceRequestDto): Promise<PlaceDto> {
