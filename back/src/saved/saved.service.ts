@@ -1,171 +1,206 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { InjectModel } from "@nestjs/mongoose";
-import { SavedPlace } from "./saved.entity";
-import { Model } from "mongoose";
-import { PlaceIsSavedDto, SavedPlaceDto } from "./saved.dto";
-import { SavedPlaceMapper } from "./saved.mapper";
-import { PlaceService } from "src/place/place.service";
-import { TagService } from "src/tag/tag.service";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { SavedPlace } from './saved.entity';
+import { Model } from 'mongoose';
+import { PlaceIsSavedDto, SavedPlaceDto } from './saved.dto';
+import { SavedPlaceMapper } from './saved.mapper';
+import { PlaceService } from 'src/place/place.service';
+import { TagService } from 'src/tag/tag.service';
 
 @Injectable()
 export class SavedPlaceService {
-    constructor(
-        @InjectModel(SavedPlace.name) private savedPlaceModel: Model<SavedPlace>,
-        private placeService: PlaceService,
-        private tagService: TagService
-    ) { }
+  constructor(
+    @InjectModel(SavedPlace.name) private savedPlaceModel: Model<SavedPlace>,
+    private placeService: PlaceService,
+    private tagService: TagService,
+  ) {}
 
-    async create(userId: string, placeId: string): Promise<void> {
-        const exists = await this.placeService.findOne(placeId);
+  async create(userId: string, placeId: string): Promise<void> {
+    const exists = await this.placeService.findOne(placeId);
 
-        if (!exists) {
-            throw new NotFoundException('Place not found');
-        }
-
-        const alreadySaved = await this.exists(userId, placeId);
-
-        if (alreadySaved.isSaved) {
-            throw new BadRequestException('Place already saved');
-        }
-
-        await this.savedPlaceModel.create({ user: userId, place: placeId });
-
-        return;
+    if (!exists) {
+      throw new NotFoundException('Place not found');
     }
 
-    async delete(userId: string, savedPlaceId: string): Promise<void> {
-        const exists = await this.savedPlaceModel.exists({ user: userId, _id: savedPlaceId }).exec();
+    const alreadySaved = await this.exists(userId, placeId);
 
-        if (!exists) {
-            throw new NotFoundException('Saved place not found');
-        }
-
-        await this.savedPlaceModel.deleteOne({ user: userId, _id: savedPlaceId }).exec();
-
-        return;
+    if (alreadySaved.isSaved) {
+      throw new BadRequestException('Place already saved');
     }
 
-    async findOne(userId: string, savedPlaceId: string): Promise<SavedPlaceDto> {
-        const savedPlace = await this.savedPlaceModel
-            .findOne({ user: userId, _id: savedPlaceId })
-            .populate(['place', 'tags'])
-            .exec();
+    await this.savedPlaceModel.create({ user: userId, place: placeId });
 
-        if (!savedPlace) {
-            throw new NotFoundException('Saved place not found');
-        }
+    return;
+  }
 
-        return SavedPlaceMapper.toDto(savedPlace);
+  async delete(userId: string, savedPlaceId: string): Promise<void> {
+    const exists = await this.savedPlaceModel
+      .exists({ user: userId, _id: savedPlaceId })
+      .exec();
+
+    if (!exists) {
+      throw new NotFoundException('Saved place not found');
     }
 
-    async findAll(userId: string): Promise<SavedPlaceDto[]> {
-        const savedPlaces = await this.savedPlaceModel
-            .find({ user: userId })
-            .populate(['place', 'tags'])
-            .exec();
-        if (!savedPlaces) {
-            return [];
-        }
+    await this.savedPlaceModel
+      .deleteOne({ user: userId, _id: savedPlaceId })
+      .exec();
 
-        return SavedPlaceMapper.toDtoList(savedPlaces);
+    return;
+  }
+
+  async findOne(userId: string, savedPlaceId: string): Promise<SavedPlaceDto> {
+    const savedPlace = await this.savedPlaceModel
+      .findOne({ user: userId, _id: savedPlaceId })
+      .populate(['place', 'tags'])
+      .exec();
+
+    if (!savedPlace) {
+      throw new NotFoundException('Saved place not found');
     }
 
-    async exists(userId: string, id: string): Promise<PlaceIsSavedDto> {
-        const exists = await this.placeService.findOne(id);
+    return SavedPlaceMapper.toDto(savedPlace);
+  }
 
-        if (!exists) {
-            throw new NotFoundException('Place not found');
-        }
-
-        const saved = await this.savedPlaceModel.exists({ user: userId, place: id }).exec();
-
-        if (!saved) {
-            return { isSaved: false };
-        }
-
-        return { id: saved._id.toHexString(), isSaved: true };
+  async findAll(userId: string): Promise<SavedPlaceDto[]> {
+    const savedPlaces = await this.savedPlaceModel
+      .find({ user: userId })
+      .populate(['place', 'tags'])
+      .exec();
+    if (!savedPlaces) {
+      return [];
     }
 
-    async addTag(userId: string, savedPlaceId: string, tagId: string): Promise<void> {
-        const place = await this.findOne(userId, savedPlaceId);
-        const tag = await this.tagService.findOne(userId, tagId);
-        const tagExists = place.tags.find(t => t.id === tagId);
+    return SavedPlaceMapper.toDtoList(savedPlaces);
+  }
 
-        if (!place) {
-            throw new NotFoundException('Saved place not found');
-        }
+  async exists(userId: string, id: string): Promise<PlaceIsSavedDto> {
+    const exists = await this.placeService.findOne(id);
 
-        if (!tag) {
-            throw new NotFoundException('Tag not found');
-        }
-
-        if (tagExists) {
-            throw new BadRequestException('Tag already linked');
-        }
-
-        await this.savedPlaceModel.updateOne({ _id: savedPlaceId }, { $push: { tags: tagId } });
-
-        return;
+    if (!exists) {
+      throw new NotFoundException('Place not found');
     }
 
-    async removeTag(userId: string, savedPlaceId: string, tagId: string): Promise<void> {
-        const place = await this.findOne(userId, savedPlaceId);
-        const tag = place.tags.find(t => t.id === tagId);
+    const saved = await this.savedPlaceModel
+      .exists({ user: userId, place: id })
+      .exec();
 
-        if (!place) {
-            throw new NotFoundException('Saved place not found');
-        }
-
-        if (!tag) {
-            throw new BadRequestException('Tag not linked');
-        }
-
-        await this.savedPlaceModel.updateOne({ _id: savedPlaceId }, { $pull: { tags: tagId } });
-
-        return;
+    if (!saved) {
+      return { isSaved: false };
     }
 
-    async addComment(userId: string, savedPlaceId: string, comment: string): Promise<SavedPlaceDto> {
-        const place = await this.findOne(userId, savedPlaceId);
+    return { id: saved._id.toHexString(), isSaved: true };
+  }
 
-        if (!place) {
-            throw new NotFoundException('Saved place not found');
-        }
+  async addTag(
+    userId: string,
+    savedPlaceId: string,
+    tagId: string,
+  ): Promise<void> {
+    const place = await this.findOne(userId, savedPlaceId);
+    const tag = await this.tagService.findOne(userId, tagId);
+    const tagExists = place.tags.find((t) => t.id === tagId);
 
-        if (!comment || !comment.trim()) {
-            throw new BadRequestException('Comment cannot be empty');
-        }
-
-        await this.savedPlaceModel.updateOne({ _id: savedPlaceId }, { comment });
-
-        return this.findOne(userId, savedPlaceId);
+    if (!place) {
+      throw new NotFoundException('Saved place not found');
     }
 
-    async addRating(userId: string, savedPlaceId: string, rating: number): Promise<SavedPlaceDto> {
-        const place = await this.findOne(userId, savedPlaceId);
-
-        if (!place) {
-            throw new NotFoundException('Saved place not found');
-        }
-
-        if (rating < 0 || rating > 5) {
-            throw new BadRequestException('Rating must be between 0 and 5');
-        }
-
-        await this.savedPlaceModel.updateOne({ _id: savedPlaceId }, { rating });
-
-        return this.findOne(userId, savedPlaceId);
+    if (!tag) {
+      throw new NotFoundException('Tag not found');
     }
 
-    async toogleDone(userId: string, savedPlaceId: string): Promise<void> {
-        const place = await this.findOne(userId, savedPlaceId);
-
-        if (!place) {
-            throw new NotFoundException('Saved place not found');
-        }
-
-        await this.savedPlaceModel.updateOne({ _id: savedPlaceId }, { done: !place.done });
-
-        return;
+    if (tagExists) {
+      throw new BadRequestException('Tag already linked');
     }
+
+    await this.savedPlaceModel.updateOne(
+      { _id: savedPlaceId },
+      { $push: { tags: tagId } },
+    );
+
+    return;
+  }
+
+  async removeTag(
+    userId: string,
+    savedPlaceId: string,
+    tagId: string,
+  ): Promise<void> {
+    const place = await this.findOne(userId, savedPlaceId);
+    const tag = place.tags.find((t) => t.id === tagId);
+
+    if (!place) {
+      throw new NotFoundException('Saved place not found');
+    }
+
+    if (!tag) {
+      throw new BadRequestException('Tag not linked');
+    }
+
+    await this.savedPlaceModel.updateOne(
+      { _id: savedPlaceId },
+      { $pull: { tags: tagId } },
+    );
+
+    return;
+  }
+
+  async addComment(
+    userId: string,
+    savedPlaceId: string,
+    comment: string,
+  ): Promise<SavedPlaceDto> {
+    const place = await this.findOne(userId, savedPlaceId);
+
+    if (!place) {
+      throw new NotFoundException('Saved place not found');
+    }
+
+    if (!comment || !comment.trim()) {
+      throw new BadRequestException('Comment cannot be empty');
+    }
+
+    await this.savedPlaceModel.updateOne({ _id: savedPlaceId }, { comment });
+
+    return this.findOne(userId, savedPlaceId);
+  }
+
+  async addRating(
+    userId: string,
+    savedPlaceId: string,
+    rating: number,
+  ): Promise<SavedPlaceDto> {
+    const place = await this.findOne(userId, savedPlaceId);
+
+    if (!place) {
+      throw new NotFoundException('Saved place not found');
+    }
+
+    if (rating < 0 || rating > 5) {
+      throw new BadRequestException('Rating must be between 0 and 5');
+    }
+
+    await this.savedPlaceModel.updateOne({ _id: savedPlaceId }, { rating });
+
+    return this.findOne(userId, savedPlaceId);
+  }
+
+  async toogleDone(userId: string, savedPlaceId: string): Promise<void> {
+    const place = await this.findOne(userId, savedPlaceId);
+
+    if (!place) {
+      throw new NotFoundException('Saved place not found');
+    }
+
+    await this.savedPlaceModel.updateOne(
+      { _id: savedPlaceId },
+      { done: !place.done },
+    );
+
+    return;
+  }
 }

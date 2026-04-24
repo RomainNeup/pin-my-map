@@ -1,25 +1,25 @@
-import { ApiProperty, ApiResponseProperty, ApiSchema } from "@nestjs/swagger";
+import { ApiProperty, ApiResponseProperty, ApiSchema } from '@nestjs/swagger';
 
-@ApiSchema({name: "Register Request"})
+@ApiSchema({ name: 'Register Request' })
 export class RegisterRequestDto {
-    @ApiProperty()
-    name: string;
-    @ApiProperty()
-    email: string;
-    @ApiProperty()
-    password: string;
+  @ApiProperty()
+  name: string;
+  @ApiProperty()
+  email: string;
+  @ApiProperty()
+  password: string;
 }
 
-@ApiSchema({name: "Login Response"})
+@ApiSchema({ name: 'Login Response' })
 export class LoginResponseDto {
-    @ApiResponseProperty()
-    accessToken: string;
+  @ApiResponseProperty()
+  accessToken: string;
 }
 
-@ApiSchema({name: "Login Request"})
+@ApiSchema({ name: 'Login Request' })
 export class LoginRequestDto {
-    @ApiProperty({ required: true })
-    email: string;
-    @ApiProperty({ required: true })
-    password: string;
+  @ApiProperty({ required: true })
+  email: string;
+  @ApiProperty({ required: true })
+  password: string;
 }

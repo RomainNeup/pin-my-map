@@ -6,10 +6,9 @@ import * as dotenv from 'dotenv';
 async function main() {
   // Load environment variables
   dotenv.config();
-  
-  const app = await NestFactory
-    .create(AppModule);
-    
+
+  const app = await NestFactory.create(AppModule);
+
   // Only enable Swagger in development environment
   if (process.env.NODE_ENV === 'development') {
     const config = new DocumentBuilder()
@@ -24,17 +23,16 @@ async function main() {
   }
 
   // Parse CORS allowed origins from environment variable
-  const corsAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS 
+  const corsAllowedOrigins = process.env.CORS_ALLOWED_ORIGINS
     ? process.env.CORS_ALLOWED_ORIGINS.split(',')
     : ['http://localhost:5173'];
 
-  app.enableCors({ 
+  app.enableCors({
     origin: corsAllowedOrigins,
-    credentials: true 
+    credentials: true,
   });
 
-  await app
-    .listen(8080);
+  await app.listen(8080);
 }
 
 main();
