@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Button from '$lib/components/Button.svelte';
-	import Map from '$lib/components/Map.svelte';
+	import StaticMapThumb from '$lib/components/StaticMapThumb.svelte';
 	import StarRating from '$lib/components/StarRating.svelte';
 	import Chip from '$lib/components/ui/Chip.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
@@ -61,22 +61,10 @@
 					class="group flex flex-col overflow-hidden rounded-xl border border-border bg-bg-elevated shadow-sm transition-shadow hover:shadow-md sm:flex-row"
 				>
 					<div class="h-32 w-full shrink-0 sm:h-auto sm:min-h-[8rem] sm:w-36 sm:self-stretch">
-						<Map
-							sources={[
-								{
-									key: savedPlace.place.name,
-									points: [
-										{
-											id: savedPlace.place.id,
-											position: [savedPlace.place.location.lng, savedPlace.place.location.lat]
-										}
-									]
-								}
-							]}
+						<StaticMapThumb
 							lat={savedPlace.place.location.lat}
 							lng={savedPlace.place.location.lng}
-							zoom={14}
-							controls={false}
+							alt={savedPlace.place.name}
 						/>
 					</div>
 					<div class="flex min-w-0 flex-1 flex-col gap-1.5 p-3">
