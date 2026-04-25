@@ -68,3 +68,9 @@ export function addCommentToSavedPlace(savedPlaceId: string, comment: string): P
 export function addRatingToSavedPlace(savedPlaceId: string, rating: number): Promise<void> {
 	return axiosInstance.put(`/saved/${savedPlaceId}/rating`, { rating });
 }
+
+export function exportCsv(): Promise<Blob> {
+	return axiosInstance
+		.get('/saved/export.csv', { responseType: 'blob' })
+		.then(({ data }) => data as Blob);
+}
