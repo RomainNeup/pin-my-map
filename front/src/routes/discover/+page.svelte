@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { discoverPublicMaps, type PublicMapSummary } from '$lib/api/publicMap';
 	import Input from '$lib/components/Input.svelte';
+	import UserSearch from '$lib/components/user/UserSearch.svelte';
 	import Globe from 'lucide-svelte/icons/globe';
 	import Users from 'lucide-svelte/icons/users';
 	import MapPin from 'lucide-svelte/icons/map-pin';
@@ -37,6 +38,11 @@
 		<h1 class="text-2xl font-semibold text-fg">Discover public maps</h1>
 		<p class="text-sm text-fg-muted">Find what other explorers have pinned.</p>
 	</header>
+
+	<section class="space-y-2">
+		<h2 class="text-sm font-medium text-fg-muted">Find a user</h2>
+		<UserSearch />
+	</section>
 
 	<Input bind:value={query} placeholder="Search by name or slug…" {onInput} />
 
