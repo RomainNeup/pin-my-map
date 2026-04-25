@@ -3,7 +3,7 @@ import {
   BadRequestException,
   Injectable,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JoseService } from './jose.service';
 import { UserService } from '../user/user.service';
 import {
   LoginRequestDto,
@@ -16,7 +16,7 @@ import * as bcrypt from 'bcrypt';
 export class AuthService {
   constructor(
     private userService: UserService,
-    private jwtService: JwtService,
+    private joseService: JoseService,
   ) {}
 
   async login(loginDto: LoginRequestDto): Promise<LoginResponseDto> {
@@ -45,10 +45,11 @@ export class AuthService {
     }
 
     return {
-      accessToken: await this.jwtService.signAsync({
+      accessToken: await this.joseService.signAsync({
         name: user.name,
         email: user.email,
         id: user.id,
+        role: user.role ?? 'user',
       }),
     };
   }
@@ -77,11 +78,13 @@ export class AuthService {
 
     const salt = await bcrypt.genSalt(10);
     const password = await bcrypt.hash(registerDto.password, salt);
+    const existingCount = await this.userService.count();
     const user = await this.userService.create({
       name: registerDto.name,
       email: registerDto.email,
       password: password,
       salt: salt,
+      role: existingCount === 0 ? 'admin' : 'user',
     });
 
     if (!user) {

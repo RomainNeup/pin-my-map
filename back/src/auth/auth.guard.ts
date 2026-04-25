@@ -1,18 +1,19 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { IS_PRIVATE_KEY } from './auth.decorator';
+import { IS_ADMIN_KEY, IS_PRIVATE_KEY } from './auth.decorator';
 import { Reflector } from '@nestjs/core';
+import { JoseService } from './jose.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
-    private jwtService: JwtService,
+    private joseService: JoseService,
     private reflector: Reflector,
   ) {}
 
@@ -21,8 +22,12 @@ export class AuthGuard implements CanActivate {
       IS_PRIVATE_KEY,
       [context.getHandler(), context.getClass()],
     );
+    const isAdmin = this.reflector.getAllAndOverride<boolean>(IS_ADMIN_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
-    if (!isPrivate) {
+    if (!isPrivate && !isAdmin) {
       return true;
     }
 
@@ -32,13 +37,16 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
     try {
-      const payload = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET || 'secret',
-      });
+      const payload = await this.joseService.verifyAsync(token);
       request['user'] = payload;
     } catch {
       throw new UnauthorizedException();
     }
+
+    if (isAdmin && request['user']?.role !== 'admin') {
+      throw new ForbiddenException('Admin access required');
+    }
+
     return true;
   }
 
