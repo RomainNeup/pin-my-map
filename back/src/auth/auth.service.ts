@@ -2,21 +2,39 @@ import {
   UnauthorizedException,
   BadRequestException,
   Injectable,
+  Logger,
 } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { createHash, randomBytes } from 'crypto';
+import * as bcrypt from 'bcrypt';
 import { JoseService } from './jose.service';
 import { UserService } from '../user/user.service';
+import { User } from '../user/user.entity';
+import { AuditService } from '../audit/audit.service';
+import { MailerService } from '../mailer/mailer.service';
 import {
   LoginRequestDto,
   LoginResponseDto,
   RegisterRequestDto,
 } from 'src/auth/auth.dto';
-import * as bcrypt from 'bcrypt';
+
+const TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+function sha256(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private userService: UserService,
     private joseService: JoseService,
+    @InjectModel(User.name) private userModel: Model<User>,
+    private auditService: AuditService,
+    private mailerService: MailerService,
   ) {}
 
   async login(loginDto: LoginRequestDto): Promise<LoginResponseDto> {
@@ -63,5 +81,82 @@ export class AuthService {
     }
 
     return;
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    // Always returns 204 — never reveal whether the account exists.
+    const user = await this.userModel.findOne({ email }).exec();
+    if (!user) {
+      return;
+    }
+
+    const plainToken = randomBytes(32).toString('hex'); // 64 hex chars
+    const tokenHash = sha256(plainToken);
+    const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
+
+    user.passwordResetTokenHash = tokenHash;
+    user.passwordResetExpiresAt = expiresAt;
+    await user.save();
+
+    const appUrl = process.env.APP_URL ?? 'http://localhost:5173';
+    const resetLink = `${appUrl}/reset-password?token=${plainToken}`;
+
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Reset your Pin My Map password',
+      html: `<p>Click the link below to reset your password. This link expires in 1 hour.</p><p><a href="${resetLink}">${resetLink}</a></p>`,
+      text: `Reset your password: ${resetLink}\n\nThis link expires in 1 hour.`,
+    });
+
+    try {
+      await this.auditService.log({
+        actor: (user._id as object).toString(),
+        action: 'auth.password_reset_requested',
+        targetType: 'user',
+        targetId: (user._id as object).toString(),
+      });
+    } catch (err) {
+      this.logger.warn(`Failed to audit password_reset_requested: ${err}`);
+    }
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const tokenHash = sha256(token);
+
+    const user = await this.userModel
+      .findOne({ passwordResetTokenHash: tokenHash })
+      .exec();
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    if (
+      !user.passwordResetExpiresAt ||
+      user.passwordResetExpiresAt < new Date()
+    ) {
+      // Clear the stale token before throwing
+      user.passwordResetTokenHash = undefined;
+      user.passwordResetExpiresAt = undefined;
+      await user.save();
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    user.password = hashed;
+    user.passwordResetTokenHash = undefined;
+    user.passwordResetExpiresAt = undefined;
+    await user.save();
+
+    try {
+      await this.auditService.log({
+        actor: (user._id as object).toString(),
+        action: 'auth.password_reset_completed',
+        targetType: 'user',
+        targetId: (user._id as object).toString(),
+      });
+    } catch (err) {
+      this.logger.warn(`Failed to audit password_reset_completed: ${err}`);
+    }
   }
 }
