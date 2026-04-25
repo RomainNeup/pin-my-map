@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { env } from '$env/dynamic/public';
+import { axiosInstance } from './base';
 import type { Place } from './place';
 
 export interface PublicTag {
@@ -22,6 +23,8 @@ export interface PublicMapOwner {
 	userId?: string;
 	name: string;
 	publicSlug?: string;
+	points?: number;
+	level?: number;
 }
 
 export interface PublicMap {
@@ -40,6 +43,14 @@ export interface PublicMapSummary {
 	publicSlug: string;
 	savedCount: number;
 	followerCount: number;
+	points?: number;
+	level?: number;
+}
+
+export interface PublicMapStatsDto {
+	savedCount: number;
+	doneCount: number;
+	tagCount: number;
 }
 
 export function discoverPublicMaps(query?: string): Promise<PublicMapSummary[]> {
@@ -79,4 +90,14 @@ export function getPublicSavedPlaceByToken(
 			`/public/token/${encodeURIComponent(token)}/place/${encodeURIComponent(savedPlaceId)}`
 		)
 		.then(({ data }) => data);
+}
+
+export function getPublicMapStats(slug: string): Promise<PublicMapStatsDto> {
+	return client
+		.get<PublicMapStatsDto>(`/public/slug/${encodeURIComponent(slug)}/stats`)
+		.then(({ data }) => data);
+}
+
+export function getFollowingPublicMaps(): Promise<PublicMapSummary[]> {
+	return axiosInstance.get<PublicMapSummary[]>('/public/following').then(({ data }) => data);
 }
