@@ -3,11 +3,20 @@ import { HydratedDocument } from 'mongoose';
 
 export type UserRole = 'user' | 'admin';
 
+export type UserStatus = 'active' | 'pending' | 'rejected' | 'suspended';
+
+export const USER_STATUSES: UserStatus[] = [
+  'active',
+  'pending',
+  'rejected',
+  'suspended',
+];
+
 export type UserDocument = HydratedDocument<User>;
 
-@Schema()
+@Schema({ timestamps: true })
 export class User {
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   name: string;
   @Prop({ required: true })
   email: string;
@@ -15,6 +24,10 @@ export class User {
   password: string;
   @Prop({ required: true, default: 'user', enum: ['user', 'admin'] })
   role: UserRole;
+  @Prop({ required: true, default: 'active', enum: USER_STATUSES })
+  status: UserStatus;
+  @Prop({ required: false })
+  rejectionReason?: string;
   @Prop({
     required: false,
     lowercase: true,
