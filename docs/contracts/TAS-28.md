@@ -1,6 +1,6 @@
 # TAS-28 — Follow / Unfollow (gap-fill)
 
-**Epic:** User  •  **Priority:** Nice  •  **Status:** draft
+**Epic:** User  •  **Priority:** Nice  •  **Status:** back-ready
 **Branch:** `tas-28-follow`
 
 Most of this exists. TAS-28 adds the missing affordances:
