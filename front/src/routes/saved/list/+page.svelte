@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { untrack } from 'svelte';
 	import { getSavedPlaces, type SavedPlace } from '$lib/api/savedPlace';
 	import Button from '$lib/components/Button.svelte';
@@ -126,9 +127,13 @@
 	{:else}
 		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 			{#each items as savedPlace (savedPlace.id)}
-				<a
-					href={`/saved/${savedPlace.id}`}
-					class="group flex flex-col overflow-hidden rounded-xl border border-border bg-bg-elevated shadow-sm transition-shadow hover:shadow-md sm:flex-row"
+				<div
+					class="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-bg-elevated shadow-sm transition-shadow hover:shadow-md sm:flex-row"
+					onclick={() => goto(`/saved/${savedPlace.id}`)}
+					onkeydown={(e) => e.key === 'Enter' && goto(`/saved/${savedPlace.id}`)}
+					tabindex="0"
+					role="link"
+					aria-label={savedPlace.place.name}
 				>
 					<div class="h-32 w-full shrink-0 sm:h-auto sm:min-h-32 sm:w-36 sm:self-stretch">
 						<StaticMapThumb
@@ -164,8 +169,17 @@
 								<StarRating rating={savedPlace.rating} disabled size="0.9rem" />
 							</div>
 						{/if}
+						<div class="mt-auto pt-1">
+							<a
+								href={`/place/${savedPlace.place.id}`}
+								onclick={(e) => e.stopPropagation()}
+								class="text-xs font-medium text-accent hover:underline"
+							>
+								View place →
+							</a>
+						</div>
 					</div>
-				</a>
+				</div>
 			{/each}
 			{#if loading && !done}
 				{#each Array(3) as _u, i (`skeleton-${i}`)}
