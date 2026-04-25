@@ -21,3 +21,11 @@ export function getMe(): Promise<CurrentUser> {
 		return data;
 	});
 }
+
+export function forgotPassword(email: string) {
+	return axiosInstance.post('/auth/forgot-password', { email });
+}
+
+export function resetPassword(token: string, newPassword: string) {
+	return axiosInstance.post('/auth/reset-password', { token, newPassword });
+}
