@@ -20,20 +20,20 @@ Required runtime: Node.js 18+, Yarn (Classic). The backend must be reachable at 
 
 See [`.env.example`](.env.example). Both variables must be `PUBLIC_`-prefixed so SvelteKit exposes them to client code.
 
-| Variable | Description |
-| --- | --- |
-| `PUBLIC_API_BASE_URL` | Backend origin, e.g. `http://localhost:8080` |
-| `PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox GL JS access token |
+| Variable                     | Description                                  |
+| ---------------------------- | -------------------------------------------- |
+| `PUBLIC_API_BASE_URL`        | Backend origin, e.g. `http://localhost:8080` |
+| `PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox GL JS access token                    |
 
 ## Commands
 
-| Command | Description |
-| --- | --- |
-| `yarn start:dev` | Vite dev server on `:5173` |
-| `yarn build` / `yarn preview` | Production build / local preview |
-| `yarn check` | `svelte-kit sync` + `svelte-check` (type check; use this instead of `tsc`) |
-| `yarn lint` | `prettier --check .` + `eslint .` |
-| `yarn format` | `prettier --write .` |
+| Command                       | Description                                                                |
+| ----------------------------- | -------------------------------------------------------------------------- |
+| `yarn start:dev`              | Vite dev server on `:5173`                                                 |
+| `yarn build` / `yarn preview` | Production build / local preview                                           |
+| `yarn check`                  | `svelte-kit sync` + `svelte-check` (type check; use this instead of `tsc`) |
+| `yarn lint`                   | `prettier --check .` + `eslint .`                                          |
+| `yarn format`                 | `prettier --write .`                                                       |
 
 No test runner is configured.
 
