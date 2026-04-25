@@ -50,4 +50,18 @@ export class PublicMapSummaryDto {
   savedCount: number;
   @ApiProperty()
   followerCount: number;
+  @ApiProperty()
+  points: number;
+  @ApiProperty()
+  level: number;
+}
+
+@ApiSchema({ name: 'Public Map Stats' })
+export class PublicMapStatsDto {
+  @ApiProperty()
+  savedCount: number;
+  @ApiProperty()
+  doneCount: number;
+  @ApiProperty()
+  tagCount: number;
 }
