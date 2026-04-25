@@ -2,7 +2,7 @@ import { Controller, Delete, Get, HttpCode, Param, Post } from '@nestjs/common';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Private } from 'src/auth/auth.decorator';
 import { User } from 'src/user/user.decorator';
-import { FollowStatsDto, FollowUserDto } from './follow.dto';
+import { FollowStatsDto, FollowUserDto, IsFollowingDto } from './follow.dto';
 import { FollowService } from './follow.service';
 
 @Controller('follow')
@@ -57,5 +57,16 @@ export class FollowController {
     @Param('userId') userId: string,
   ): Promise<FollowStatsDto> {
     return this.followService.getStats(me, userId);
+  }
+
+  @Private()
+  @Get(':userId/is-following')
+  @HttpCode(200)
+  @ApiResponse({ status: 200, type: IsFollowingDto })
+  async isFollowing(
+    @User('id') me: string,
+    @Param('userId') userId: string,
+  ): Promise<IsFollowingDto> {
+    return this.followService.isFollowing(me, userId);
   }
 }
