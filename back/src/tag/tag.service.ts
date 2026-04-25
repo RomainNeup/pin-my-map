@@ -2,12 +2,16 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Tag } from './tag.entity';
 import { Model } from 'mongoose';
-import { CreateTagRequestDto, TagDto } from './tag.dto';
+import { CreateTagRequestDto, TagDto, UpdateTagRequestDto } from './tag.dto';
 import { TagMapper } from './tag.mapper';
+import { SavedPlace } from 'src/saved/saved.entity';
 
 @Injectable()
 export class TagService {
-  constructor(@InjectModel(Tag.name) private tagModel: Model<Tag>) {}
+  constructor(
+    @InjectModel(Tag.name) private tagModel: Model<Tag>,
+    @InjectModel(SavedPlace.name) private savedPlaceModel: Model<SavedPlace>,
+  ) {}
 
   async create(userId: string, tag: CreateTagRequestDto): Promise<TagDto> {
     const newTag = new this.tagModel({
@@ -41,5 +45,39 @@ export class TagService {
     }
 
     return TagMapper.toDto(result);
+  }
+
+  async update(
+    userId: string,
+    id: string,
+    dto: UpdateTagRequestDto,
+  ): Promise<TagDto> {
+    const result = await this.tagModel
+      .findOneAndUpdate(
+        { _id: id, owner: userId },
+        { name: dto.name, emoji: dto.emoji },
+        { new: true },
+      )
+      .exec();
+
+    if (!result) {
+      throw new NotFoundException('Tag not found');
+    }
+
+    return TagMapper.toDto(result);
+  }
+
+  async delete(userId: string, id: string): Promise<void> {
+    const result = await this.tagModel
+      .findOneAndDelete({ _id: id, owner: userId })
+      .exec();
+
+    if (!result) {
+      throw new NotFoundException('Tag not found');
+    }
+
+    await this.savedPlaceModel
+      .updateMany({ user: userId, tags: id }, { $pull: { tags: id } })
+      .exec();
   }
 }
