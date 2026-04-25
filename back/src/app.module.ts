@@ -14,6 +14,7 @@ import { PublicMapModule } from './public-map/public-map.module';
 import { FollowModule } from './follow/follow.module';
 import { PlaceCommentModule } from './place-comment/place-comment.module';
 import { McpModule } from './mcp/mcp.module';
+import { ConfigModule } from './config/config.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { McpModule } from './mcp/mcp.module';
       process.env.MONGODB_URI || 'mongodb://localhost/pin-my-map',
     ),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
+    ConfigModule,
     AuthModule,
     PlaceModule,
     TagModule,

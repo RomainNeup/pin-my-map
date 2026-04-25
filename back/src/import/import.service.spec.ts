@@ -7,6 +7,10 @@ const PLACE_TOKEN = getModelToken('Place');
 const TAG_TOKEN = getModelToken('Tag');
 const SAVED_TOKEN = getModelToken('SavedPlace');
 
+const mockGamificationService = {
+  recompute: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('extractLeadingEmoji', () => {
   it('splits a leading simple emoji', () => {
     expect(extractLeadingEmoji('🍺 Beer')).toEqual({
@@ -89,10 +93,7 @@ describe('ImportService', () => {
         { provide: PLACE_TOKEN, useValue: placeModel },
         { provide: TAG_TOKEN, useValue: tagModel },
         { provide: SAVED_TOKEN, useValue: savedPlaceModel },
-        {
-          provide: GamificationService,
-          useValue: { award: jest.fn().mockResolvedValue({}) },
-        },
+        { provide: GamificationService, useValue: mockGamificationService },
       ],
     })
       .compile()

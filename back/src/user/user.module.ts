@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuditModule } from 'src/audit/audit.module';
+import {
+  UserGamification,
+  UserGamificationSchema,
+} from 'src/gamification/gamification.entity';
 import { UserController } from 'src/user/user.controller';
 import { User, UserSchema } from 'src/user/user.entity';
 import { UserMapper } from 'src/user/user.mapper';
@@ -8,7 +12,10 @@ import { UserService } from 'src/user/user.service';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: UserGamification.name, schema: UserGamificationSchema },
+    ]),
     AuditModule,
   ],
   controllers: [UserController],
