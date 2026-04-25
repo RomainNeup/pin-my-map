@@ -1,106 +1,275 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Trophy from 'lucide-svelte/icons/trophy';
 	import Lock from 'lucide-svelte/icons/lock';
+	import Globe from 'lucide-svelte/icons/globe';
+	import Pencil from 'lucide-svelte/icons/pencil';
+	import Check from 'lucide-svelte/icons/check';
+	import X from 'lucide-svelte/icons/x';
 	import { gamificationProfile, loadGamificationProfile } from '$lib/stores/gamification';
 	import { currentUser } from '$lib/stores/user';
 	import { listMine, type Suggestion } from '$lib/api/suggestion';
+	import { updateMe } from '$lib/api/user';
+	import { toast } from '$lib/stores/toast';
+	import Button from '$lib/components/Button.svelte';
+	import Input from '$lib/components/Input.svelte';
+	import IdentityCard from '$lib/components/profile/IdentityCard.svelte';
+	import StatsSummary from '$lib/components/profile/StatsSummary.svelte';
+	import DangerZone from '$lib/components/profile/DangerZone.svelte';
 
-	let mySuggestions = $state<Suggestion[]>([]);
-	let suggestionsLoading = $state(false);
-
-	onMount(() => {
+	// ── load gamification ──────────────────────────────────────────────
+	onMount(async () => {
 		loadGamificationProfile({ silent: true }).catch(() => {});
-		suggestionsLoading = true;
-		listMine()
-			.then((data) => {
-				mySuggestions = data;
-			})
-			.catch(() => {})
-			.finally(() => {
-				suggestionsLoading = false;
-			});
+		loadMySuggestions();
 	});
 
-	const stats = $derived($gamificationProfile?.stats);
+	// ── derived ───────────────────────────────────────────────────────
 	const achievements = $derived($gamificationProfile?.achievements ?? []);
 	const unlocked = $derived(achievements.filter((a) => a.unlocked));
 	const locked = $derived(achievements.filter((a) => !a.unlocked));
+
+	// ── edit name ─────────────────────────────────────────────────────
+	let editingName = $state(false);
+	let nameValue = $state('');
+	let nameSaving = $state(false);
+
+	const startEditName = () => {
+		nameValue = $currentUser?.name ?? '';
+		editingName = true;
+	};
+
+	const cancelEditName = () => {
+		editingName = false;
+		nameValue = '';
+	};
+
+	const saveName = async () => {
+		if (!nameValue.trim() || nameValue.trim() === $currentUser?.name) {
+			cancelEditName();
+			return;
+		}
+		nameSaving = true;
+		try {
+			const updated = await updateMe({ name: nameValue.trim() });
+			currentUser.update((u) => (u ? { ...u, name: updated.name } : u));
+			toast('Name updated.', 'success');
+			editingName = false;
+		} catch {
+			toast('Failed to update name.', 'error');
+		} finally {
+			nameSaving = false;
+		}
+	};
+
+	// ── edit email ────────────────────────────────────────────────────
+	let emailFormOpen = $state(false);
+	let emailValue = $state('');
+	let emailPassword = $state('');
+	let emailSaving = $state(false);
+	let emailError = $state('');
+
+	const openEmailForm = () => {
+		emailValue = $currentUser?.email ?? '';
+		emailPassword = '';
+		emailError = '';
+		emailFormOpen = true;
+	};
+
+	const cancelEmailForm = () => {
+		emailFormOpen = false;
+		emailValue = '';
+		emailPassword = '';
+		emailError = '';
+	};
+
+	const saveEmail = async () => {
+		emailError = '';
+		emailSaving = true;
+		try {
+			const updated = await updateMe({ email: emailValue.trim(), currentPassword: emailPassword });
+			currentUser.update((u) => (u ? { ...u, email: updated.email } : u));
+			toast('Email updated.', 'success');
+			cancelEmailForm();
+		} catch (err: unknown) {
+			const status = (err as { response?: { status?: number } })?.response?.status;
+			if (status === 401) emailError = 'Password is incorrect.';
+			else if (status === 409) emailError = 'This email is already taken.';
+			else emailError = 'Failed to update email.';
+		} finally {
+			emailSaving = false;
+		}
+	};
+
+	// ── my suggestions ────────────────────────────────────────────────
+	let mySuggestions = $state<Suggestion[]>([]);
+	let suggestionsLoading = $state(false);
+
+	const loadMySuggestions = async () => {
+		suggestionsLoading = true;
+		try {
+			mySuggestions = await listMine();
+		} catch {
+			// silently ignored
+		} finally {
+			suggestionsLoading = false;
+		}
+	};
+
+	const statusLabel: Record<string, string> = {
+		pending: 'Pending',
+		approved: 'Approved',
+		rejected: 'Rejected'
+	};
+
+	const statusCls: Record<string, string> = {
+		pending: 'bg-bg-muted text-fg-muted',
+		approved: 'bg-accent-soft text-accent',
+		rejected: 'bg-danger-soft text-danger'
+	};
 </script>
 
 <div class="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
-	<header class="flex items-start gap-4">
-		<div
-			class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent"
-		>
-			<Trophy class="h-8 w-8" />
-		</div>
-		<div class="flex-1">
-			<h1 class="text-2xl font-semibold">{$currentUser?.name ?? 'Your profile'}</h1>
-			{#if $gamificationProfile}
-				<p class="text-sm text-fg-muted">
-					Level {$gamificationProfile.level} · {$gamificationProfile.points} points
-				</p>
-				<div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-bg-muted">
-					<div
-						class="h-full rounded-full bg-accent transition-all"
-						style="width: {Math.round($gamificationProfile.progress * 100)}%"
-					></div>
+	<!-- 1. Identity card -->
+	{#if $currentUser}
+		<IdentityCard user={$currentUser} profile={$gamificationProfile} />
+	{/if}
+
+	<!-- 2. Editable profile -->
+	<section class="rounded-xl border border-border bg-bg p-5">
+		<h2 class="mb-4 text-lg font-semibold">Profile</h2>
+
+		<!-- Name -->
+		<div class="mb-4">
+			<p class="mb-1 text-xs font-medium text-fg-muted">Display name</p>
+			{#if editingName}
+				<div class="flex items-center gap-2">
+					<Input bind:value={nameValue} placeholder="Your name" class="max-w-xs" />
+					<Button
+						variant="ghost"
+						tone="accent"
+						size="sm"
+						onclick={saveName}
+						loading={nameSaving}
+						ariaLabel="Save name"
+					>
+						{#snippet prefix()}<Check class="h-4 w-4" />{/snippet}
+						Save
+					</Button>
+					<Button variant="ghost" tone="neutral" size="sm" onclick={cancelEditName} ariaLabel="Cancel">
+						{#snippet prefix()}<X class="h-4 w-4" />{/snippet}
+						Cancel
+					</Button>
 				</div>
-				<p class="mt-1 text-xs text-fg-muted">
-					{$gamificationProfile.pointsInLevel} / {$gamificationProfile.pointsForNextLevel}
-					to level {$gamificationProfile.level + 1}
-				</p>
 			{:else}
-				<p class="text-sm text-fg-muted">Loading…</p>
+				<div class="flex items-center gap-2">
+					<span class="text-sm font-medium">{$currentUser?.name}</span>
+					<Button variant="ghost" tone="neutral" size="sm" onclick={startEditName} ariaLabel="Edit name">
+						{#snippet prefix()}<Pencil class="h-3.5 w-3.5" />{/snippet}
+						Edit
+					</Button>
+				</div>
 			{/if}
 		</div>
-	</header>
 
-	{#if stats}
-		<section>
-			<h2 class="mb-3 text-lg font-semibold">Stats</h2>
-			<div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-				<div class="rounded-lg border border-border bg-bg p-3">
-					<p class="text-xs text-fg-muted">Saved places</p>
-					<p class="text-2xl font-semibold">{stats.savedCount}</p>
+		<!-- Email -->
+		<div>
+			<div class="flex items-center justify-between">
+				<div>
+					<p class="text-xs font-medium text-fg-muted">Email</p>
+					<p class="text-sm font-medium">{$currentUser?.email}</p>
 				</div>
-				<div class="rounded-lg border border-border bg-bg p-3">
-					<p class="text-xs text-fg-muted">Visited (done)</p>
-					<p class="text-2xl font-semibold">{stats.doneCount}</p>
-				</div>
-				<div class="rounded-lg border border-border bg-bg p-3">
-					<p class="text-xs text-fg-muted">Ratings</p>
-					<p class="text-2xl font-semibold">{stats.ratedCount}</p>
-				</div>
-				<div class="rounded-lg border border-border bg-bg p-3">
-					<p class="text-xs text-fg-muted">5-star ratings</p>
-					<p class="text-2xl font-semibold">{stats.fiveStarCount}</p>
-				</div>
-				<div class="rounded-lg border border-border bg-bg p-3">
-					<p class="text-xs text-fg-muted">Comments</p>
-					<p class="text-2xl font-semibold">{stats.commentedCount}</p>
-				</div>
-				<div class="rounded-lg border border-border bg-bg p-3">
-					<p class="text-xs text-fg-muted">Tags created</p>
-					<p class="text-2xl font-semibold">{stats.tagsCreated}</p>
-				</div>
-				<div class="rounded-lg border border-border bg-bg p-3">
-					<p class="text-xs text-fg-muted">Places created</p>
-					<p class="text-2xl font-semibold">{stats.placesCreated}</p>
-				</div>
-				<div class="rounded-lg border border-border bg-bg p-3">
-					<p class="text-xs text-fg-muted">Suggestions</p>
-					<p class="text-2xl font-semibold">{stats.suggestionsSubmitted}</p>
-				</div>
-				<div class="rounded-lg border border-border bg-bg p-3">
-					<p class="text-xs text-fg-muted">Tags applied</p>
-					<p class="text-2xl font-semibold">{stats.uniqueTagsApplied}</p>
-				</div>
+				{#if !emailFormOpen}
+					<Button variant="outline" tone="neutral" size="sm" onclick={openEmailForm}>
+						{#snippet prefix()}<Pencil class="h-3.5 w-3.5" />{/snippet}
+						Change
+					</Button>
+				{/if}
 			</div>
+
+			{#if emailFormOpen}
+				<form
+					class="mt-3 space-y-3"
+					onsubmit={(e) => {
+						e.preventDefault();
+						saveEmail();
+					}}
+				>
+					<div>
+						<label class="mb-1 block text-xs font-medium" for="email-new">New email</label>
+						<Input id="email-new" bind:value={emailValue} type="email" required autocomplete="email" />
+					</div>
+					<div>
+						<label class="mb-1 block text-xs font-medium" for="email-password">Current password</label>
+						<Input
+							id="email-password"
+							bind:value={emailPassword}
+							type="password"
+							required
+							autocomplete="current-password"
+							error={emailError === 'Password is incorrect.'}
+						/>
+					</div>
+					{#if emailError}
+						<p class="text-sm text-danger">{emailError}</p>
+					{/if}
+					<div class="flex gap-2">
+						<Button type="submit" tone="accent" loading={emailSaving}>Save email</Button>
+						<Button variant="ghost" tone="neutral" onclick={cancelEmailForm}>Cancel</Button>
+					</div>
+				</form>
+			{/if}
+		</div>
+	</section>
+
+	<!-- 3. Public map settings -->
+	<section class="rounded-xl border border-border bg-bg p-5">
+		<div class="flex items-center justify-between">
+			<div>
+				<h2 class="text-lg font-semibold">Public map</h2>
+				<p class="text-sm text-fg-muted">Share your map publicly with a slug or private token.</p>
+			</div>
+			<Button href="/settings/public-map" variant="outline" tone="neutral" size="sm">
+				{#snippet prefix()}<Globe class="h-4 w-4" />{/snippet}
+				Manage
+			</Button>
+		</div>
+	</section>
+
+	<!-- 4. Stats summary -->
+	<StatsSummary stats={$gamificationProfile?.stats ?? null} />
+
+	<!-- 5. My suggestions -->
+	{#if mySuggestions.length > 0 || suggestionsLoading}
+		<section>
+			<h2 class="mb-3 text-lg font-semibold">My suggestions</h2>
+			{#if suggestionsLoading}
+				<div class="space-y-2">
+					{#each [1, 2] as i (i)}
+						<div class="h-14 animate-pulse rounded-lg bg-bg-muted"></div>
+					{/each}
+				</div>
+			{:else}
+				<div class="space-y-2">
+					{#each mySuggestions as s (s.id)}
+						<div class="flex items-start gap-3 rounded-lg border border-border bg-bg p-3">
+							<div class="flex-1 min-w-0">
+								<p class="truncate text-sm font-medium">{s.place?.name ?? s.placeId}</p>
+								{#if s.note}
+									<p class="truncate text-xs text-fg-muted">{s.note}</p>
+								{/if}
+							</div>
+							<span
+								class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium {statusCls[s.status] ?? 'bg-bg-muted text-fg-muted'}"
+							>
+								{statusLabel[s.status] ?? s.status}
+							</span>
+						</div>
+					{/each}
+				</div>
+			{/if}
 		</section>
 	{/if}
 
+	<!-- 6. Achievements -->
 	{#if achievements.length > 0}
 		<section>
 			<h2 class="mb-3 text-lg font-semibold">
@@ -158,45 +327,6 @@
 		</section>
 	{/if}
 
-	<!-- My suggestions -->
-	<section>
-		<h2 class="mb-3 text-lg font-semibold">My suggestions</h2>
-
-		{#if suggestionsLoading}
-			<p class="text-sm text-fg-muted">Loading…</p>
-		{:else if mySuggestions.length === 0}
-			<p class="text-sm text-fg-muted">You haven't submitted any suggestions yet.</p>
-		{:else}
-			<ul class="space-y-3">
-				{#each mySuggestions as s (s.id)}
-					<li class="rounded-lg border border-border bg-bg p-3">
-						<div class="flex flex-wrap items-start justify-between gap-2">
-							<div class="flex-1">
-								<p class="text-sm font-medium">
-									{s.place?.name ?? `Place ${s.placeId}`}
-								</p>
-								<p class="text-xs text-fg-muted">
-									{new Date(s.createdAt).toLocaleString()}
-								</p>
-							</div>
-							<span
-								class="rounded-full px-2 py-0.5 text-xs"
-								class:bg-accent-soft={s.status === 'pending'}
-								class:text-accent={s.status === 'pending'}
-								class:bg-success-soft={s.status === 'approved'}
-								class:text-success={s.status === 'approved'}
-								class:bg-danger-soft={s.status === 'rejected'}
-								class:text-danger={s.status === 'rejected'}
-							>
-								{s.status}
-							</span>
-						</div>
-						{#if s.status === 'rejected' && s.reviewReason}
-							<p class="mt-1 text-xs text-fg-muted">Reason: {s.reviewReason}</p>
-						{/if}
-					</li>
-				{/each}
-			</ul>
-		{/if}
-	</section>
+	<!-- 7. Danger zone -->
+	<DangerZone />
 </div>
