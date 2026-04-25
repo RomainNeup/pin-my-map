@@ -131,4 +131,15 @@ export class PlaceDto {
   enrichment?: PlaceEnrichmentDto;
   @ApiProperty({ required: false })
   enrichedAt?: Date;
+  @ApiProperty({
+    required: false,
+    description: 'User id of the place creator (when known).',
+  })
+  createdBy?: string;
+  @ApiProperty({
+    required: false,
+    description:
+      'Human-readable one-liner derived from enrichment, e.g. "$$ • 4.6 ★ (1.2k)".',
+  })
+  summary?: string;
 }

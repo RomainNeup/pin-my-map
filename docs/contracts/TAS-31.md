@@ -1,6 +1,6 @@
 # TAS-31 — Place details enhancement
 
-**Epic:** Place-saved  •  **Priority:** Nice  •  **Status:** draft
+**Epic:** Place-saved  •  **Priority:** Nice  •  **Status:** back-ready
 **Branch:** `tas-30-31-place-edit-details`
 
 ## Goal

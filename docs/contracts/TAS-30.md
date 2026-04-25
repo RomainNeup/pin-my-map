@@ -1,6 +1,6 @@
 # TAS-30 — Edit a place
 
-**Epic:** Place-general  •  **Priority:** Nice  •  **Status:** draft
+**Epic:** Place-general  •  **Priority:** Nice  •  **Status:** back-ready
 **Branch:** `tas-30-31-place-edit-details`
 
 ## Background
