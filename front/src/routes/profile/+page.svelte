@@ -3,7 +3,6 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import Lock from 'lucide-svelte/icons/lock';
-	import Globe from 'lucide-svelte/icons/globe';
 	import Pencil from 'lucide-svelte/icons/pencil';
 	import Check from 'lucide-svelte/icons/check';
 	import X from 'lucide-svelte/icons/x';
