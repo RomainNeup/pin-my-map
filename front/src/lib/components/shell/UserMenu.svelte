@@ -106,21 +106,21 @@
 		</div>
 		<hr class="my-1 border-border" />
 		<a
-			href="/saved/list"
+			href="/profile?tab=saved"
 			class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-bg-muted"
 			onclick={() => (open = false)}
 		>
 			<Bookmark class="h-4 w-4" /> My saved places
 		</a>
 		<a
-			href="/tags/list"
+			href="/profile?tab=tags"
 			class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-bg-muted"
 			onclick={() => (open = false)}
 		>
 			<Tag class="h-4 w-4" /> My tags
 		</a>
 		<a
-			href="/settings/public-map"
+			href="/profile?tab=public-map"
 			class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-bg-muted"
 			onclick={() => (open = false)}
 		>
@@ -134,7 +134,7 @@
 			<Compass class="h-4 w-4" /> Discover
 		</a>
 		<a
-			href="/following"
+			href="/profile?tab=following"
 			class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-bg-muted"
 			onclick={() => (open = false)}
 		>
