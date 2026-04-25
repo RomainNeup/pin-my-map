@@ -17,12 +17,21 @@ import { AuditService } from 'src/audit/audit.service';
 import { ParseObjectIdPipe } from 'src/common/parse-object-id.pipe';
 import { User } from 'src/user/user.decorator';
 import {
+  ChangePasswordDto,
+  DeleteMeDto,
+  InviteUserDto,
+  InviteUserResponseDto,
   PublicMapSettingsDto,
+  PublicUserDto,
+  RejectUserRequestDto,
   SlugAvailabilityDto,
+  SuspendUserRequestDto,
+  UpdateMeDto,
   UpdatePublicMapDto,
   UpdateUserRoleDto,
   UserProfileDto,
 } from 'src/user/user.dto';
+import { USER_STATUSES, UserStatus } from 'src/user/user.entity';
 import { UserService } from 'src/user/user.service';
 
 @Controller('user')
@@ -40,17 +49,51 @@ export class UserController {
   @HttpCode(200)
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'offset', required: false, type: Number })
+  @ApiQuery({ name: 'q', required: false, type: String })
+  @ApiQuery({ name: 'status', required: false, enum: USER_STATUSES })
   @ApiResponse({ status: 200, type: [UserProfileDto] })
   async list(
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('q') q?: string,
+    @Query('status') status?: string,
   ): Promise<UserProfileDto[]> {
     const parsedLimit = limit !== undefined ? Number(limit) : undefined;
     const parsedOffset = offset !== undefined ? Number(offset) : undefined;
+    let parsedStatus: UserStatus | undefined;
+    if (status !== undefined && status !== '') {
+      if (!USER_STATUSES.includes(status as UserStatus)) {
+        throw new BadRequestException('Invalid status filter');
+      }
+      parsedStatus = status as UserStatus;
+    }
     return this.userService.listProfiles({
       limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
       offset: Number.isFinite(parsedOffset) ? parsedOffset : undefined,
+      q,
+      status: parsedStatus,
     });
+  }
+
+  @Private()
+  @Get('search')
+  @HttpCode(200)
+  @ApiQuery({ name: 'q', required: true, type: String })
+  @ApiResponse({ status: 200, type: [PublicUserDto] })
+  async search(
+    @Query('q') q: string,
+    @User('id') userId: string,
+  ): Promise<PublicUserDto[]> {
+    if (!q) throw new BadRequestException('q query param required');
+    return this.userService.search(q, userId);
+  }
+
+  @Admin()
+  @Get('pending')
+  @HttpCode(200)
+  @ApiResponse({ status: 200, type: [UserProfileDto] })
+  async listPending(): Promise<UserProfileDto[]> {
+    return this.userService.listPending();
   }
 
   @Private()
@@ -89,6 +132,43 @@ export class UserController {
   }
 
   @Private()
+  @Patch('me')
+  @HttpCode(200)
+  @ApiResponse({ status: 200, type: UserProfileDto })
+  async updateMe(
+    @User('id') userId: string,
+    @Body() body: UpdateMeDto,
+  ): Promise<UserProfileDto> {
+    return this.userService.updateMe(userId, body);
+  }
+
+  @Private()
+  @Post('me/change-password')
+  @HttpCode(200)
+  @ApiResponse({ status: 200, description: 'Password changed' })
+  async changePassword(
+    @User('id') userId: string,
+    @Body() body: ChangePasswordDto,
+  ): Promise<void> {
+    await this.userService.changePassword(
+      userId,
+      body.currentPassword,
+      body.newPassword,
+    );
+  }
+
+  @Private()
+  @Delete('me')
+  @HttpCode(204)
+  @ApiResponse({ status: 204, description: 'Account soft-deleted' })
+  async deleteMe(
+    @User('id') userId: string,
+    @Body() body: DeleteMeDto,
+  ): Promise<void> {
+    await this.userService.softDeleteMe(userId, body.password);
+  }
+
+  @Private()
   @Get('check-slug')
   @HttpCode(200)
   @ApiResponse({ status: 200, type: SlugAvailabilityDto })
@@ -101,6 +181,145 @@ export class UserController {
     }
     const available = await this.userService.isSlugAvailable(slug, userId);
     return { available };
+  }
+
+  @Admin()
+  @Post()
+  @HttpCode(201)
+  @ApiResponse({ status: 201, type: InviteUserResponseDto })
+  async invite(
+    @Body() body: InviteUserDto,
+    @User('id') actorId: string,
+  ): Promise<InviteUserResponseDto> {
+    const { user, tempPassword } = await this.userService.invite(
+      body.name,
+      body.email,
+      body.role,
+    );
+    try {
+      await this.auditService.log({
+        actor: actorId,
+        action: 'user.create',
+        targetType: 'user',
+        targetId: user.id,
+        after: { name: user.name, email: user.email, role: user.role },
+      });
+    } catch (err) {
+      this.logger.warn(`audit log failed: ${(err as Error).message}`);
+    }
+    // TODO(post-Wave-2): switch to mailer-driven password reset; drop tempPassword from response.
+    return { user, tempPassword };
+  }
+
+  @Admin()
+  @Post(':id/approve')
+  @HttpCode(200)
+  @ApiResponse({ status: 200, type: UserProfileDto })
+  async approve(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @User('id') actorId: string,
+  ): Promise<UserProfileDto> {
+    const before = await this.userService.findProfile(id);
+    const updated = await this.userService.approve(id);
+    try {
+      await this.auditService.log({
+        actor: actorId,
+        action: 'user.approve',
+        targetType: 'user',
+        targetId: id,
+        before: { status: before.status },
+        after: { status: updated.status },
+      });
+    } catch (err) {
+      this.logger.warn(`audit log failed: ${(err as Error).message}`);
+    }
+    return updated;
+  }
+
+  @Admin()
+  @Post(':id/reject')
+  @HttpCode(200)
+  @ApiResponse({ status: 200, type: UserProfileDto })
+  async reject(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() body: RejectUserRequestDto,
+    @User('id') actorId: string,
+  ): Promise<UserProfileDto> {
+    const before = await this.userService.findProfile(id);
+    const updated = await this.userService.reject(id, body.reason);
+    try {
+      await this.auditService.log({
+        actor: actorId,
+        action: 'user.reject',
+        targetType: 'user',
+        targetId: id,
+        before: { status: before.status },
+        after: {
+          status: updated.status,
+          rejectionReason: updated.rejectionReason,
+        },
+      });
+    } catch (err) {
+      this.logger.warn(`audit log failed: ${(err as Error).message}`);
+    }
+    return updated;
+  }
+
+  @Admin()
+  @Post(':id/suspend')
+  @HttpCode(200)
+  @ApiResponse({ status: 200, type: UserProfileDto })
+  async suspend(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() body: SuspendUserRequestDto,
+    @User('id') actorId: string,
+  ): Promise<UserProfileDto> {
+    if (id === actorId) {
+      throw new BadRequestException('Cannot suspend your own account');
+    }
+    const before = await this.userService.findProfile(id);
+    const updated = await this.userService.suspend(id, body.reason);
+    try {
+      await this.auditService.log({
+        actor: actorId,
+        action: 'user.suspend',
+        targetType: 'user',
+        targetId: id,
+        before: { status: before.status },
+        after: {
+          status: updated.status,
+          rejectionReason: updated.rejectionReason,
+        },
+      });
+    } catch (err) {
+      this.logger.warn(`audit log failed: ${(err as Error).message}`);
+    }
+    return updated;
+  }
+
+  @Admin()
+  @Post(':id/unsuspend')
+  @HttpCode(200)
+  @ApiResponse({ status: 200, type: UserProfileDto })
+  async unsuspend(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @User('id') actorId: string,
+  ): Promise<UserProfileDto> {
+    const before = await this.userService.findProfile(id);
+    const updated = await this.userService.unsuspend(id);
+    try {
+      await this.auditService.log({
+        actor: actorId,
+        action: 'user.unsuspend',
+        targetType: 'user',
+        targetId: id,
+        before: { status: before.status },
+        after: { status: updated.status },
+      });
+    } catch (err) {
+      this.logger.warn(`audit log failed: ${(err as Error).message}`);
+    }
+    return updated;
   }
 
   @Admin()
