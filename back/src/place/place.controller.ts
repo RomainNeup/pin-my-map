@@ -169,7 +169,12 @@ export class PlaceController {
       return;
     }
     try {
-      const upstream = await fetch(url, { redirect: 'follow' });
+      const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+      const headers: Record<string, string> = {};
+      if (apiKey && url.startsWith('https://places.googleapis.com/')) {
+        headers['X-Goog-Api-Key'] = apiKey;
+      }
+      const upstream = await fetch(url, { redirect: 'follow', headers });
       if (!upstream.ok || !upstream.body) {
         res.status(upstream.status || 502).end();
         return;

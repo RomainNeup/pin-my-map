@@ -417,9 +417,5 @@ function loadExisting(
 }
 
 function resolvePhotoFetchUrl(persistedUrl: string): string {
-  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
-  if (!apiKey) return persistedUrl;
-  return persistedUrl.includes('?')
-    ? `${persistedUrl}&key=${apiKey}`
-    : `${persistedUrl}?key=${apiKey}`;
+  return persistedUrl;
 }
