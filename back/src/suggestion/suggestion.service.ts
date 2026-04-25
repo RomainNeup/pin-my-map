@@ -94,6 +94,13 @@ export class SuggestionService {
       .findById(created._id)
       .populate(['user', 'place'])
       .exec();
+
+    try {
+      await this.gamificationService.award(userId, 'suggestion');
+    } catch {
+      // never let gamification break the primary action
+    }
+
     return SuggestionMapper.toDto(populated!);
   }
 
@@ -181,15 +188,6 @@ export class SuggestionService {
     entity.reviewedBy = new Types.ObjectId(adminId);
     entity.reviewedAt = new Date();
     await entity.save();
-
-    try {
-      await this.gamificationService.award(
-        entity.user.toString(),
-        'suggestion',
-      );
-    } catch {
-      // never let gamification break the primary action
-    }
 
     await this.auditService.log({
       actor: adminId,
