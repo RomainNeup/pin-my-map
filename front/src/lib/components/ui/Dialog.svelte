@@ -74,6 +74,11 @@
 </dialog>
 
 <style>
+	dialog {
+		/* Browsers that reset <dialog> margin (e.g. via Tailwind preflight) lose the
+		   UA-stylesheet centering that showModal() normally provides. Explicitly restore it. */
+		margin: auto;
+	}
 	dialog[open] {
 		animation: dialog-in 150ms ease-out;
 	}
