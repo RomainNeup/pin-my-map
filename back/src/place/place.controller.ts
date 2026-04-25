@@ -17,7 +17,13 @@ import type { Response } from 'express';
 import { Admin, Private } from 'src/auth/auth.decorator';
 import { ParseObjectIdPipe } from 'src/common/parse-object-id.pipe';
 import { PlaceService } from './place.service';
-import { CreatePlaceRequestDto, PlaceDto, RejectPlaceDto } from './place.dto';
+import {
+  BulkEnrichDto,
+  BulkEnrichSummaryDto,
+  CreatePlaceRequestDto,
+  PlaceDto,
+  RejectPlaceDto,
+} from './place.dto';
 import { User } from 'src/user/user.decorator';
 
 @Controller('place')
@@ -88,6 +94,21 @@ export class PlaceController {
   })
   async listPending(): Promise<PlaceDto[]> {
     return await this.placeService.listPending();
+  }
+
+  @Admin()
+  @Post('bulk-enrich')
+  @HttpCode(200)
+  @ApiResponse({
+    status: 200,
+    type: BulkEnrichSummaryDto,
+    description: 'Bulk enrichment summary.',
+  })
+  async bulkEnrich(
+    @Body() dto: BulkEnrichDto,
+    @User('id') adminId: string,
+  ): Promise<BulkEnrichSummaryDto> {
+    return await this.placeService.bulkEnrich(dto, adminId);
   }
 
   @Admin()

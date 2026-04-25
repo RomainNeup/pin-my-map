@@ -9,7 +9,12 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Place, PlaceDocument } from './place.entity';
 import { Model, Types } from 'mongoose';
-import { CreatePlaceRequestDto, PlaceDto } from './place.dto';
+import {
+  BulkEnrichDto,
+  BulkEnrichSummaryDto,
+  CreatePlaceRequestDto,
+  PlaceDto,
+} from './place.dto';
 import { PlaceMapper } from './place.mapper';
 import { EnrichmentService } from 'src/enrichment/enrichment.service';
 import { GamificationService } from 'src/gamification/gamification.service';
@@ -348,6 +353,87 @@ export class PlaceService implements OnModuleInit {
     return PlaceMapper.toDto(place);
   }
 
+  async bulkEnrich(
+    dto: BulkEnrichDto,
+    adminId: string,
+  ): Promise<BulkEnrichSummaryDto> {
+    const onlyMissing = dto.onlyMissing ?? true;
+    const limit = dto.limit ?? 100;
+    const delayMs = dto.delayMs ?? 250;
+
+    const filter = onlyMissing ? { enrichedAt: { $exists: false } } : {};
+    const places = await this.placeModel
+      .find(filter)
+      .sort({ _id: 1 })
+      .limit(limit)
+      .exec();
+
+    const summary: BulkEnrichSummaryDto = {
+      scanned: places.length,
+      enriched: 0,
+      skipped: 0,
+      failed: 0,
+      errors: [],
+    };
+
+    for (let i = 0; i < places.length; i++) {
+      const place = places[i];
+      const placeId = place._id.toHexString();
+
+      try {
+        const result = await this.enrichmentService.enrich({
+          name: place.name,
+          location: [place.location[0], place.location[1]],
+          address: place.address,
+        });
+
+        if (result) {
+          place.externalId = result.externalId;
+          place.externalProvider = result.providerName;
+          place.enrichment = result;
+          place.enrichedAt = result.fetchedAt;
+          await place.save();
+          summary.enriched++;
+        } else {
+          summary.skipped++;
+        }
+      } catch (err) {
+        summary.failed++;
+        summary.errors.push({ placeId, message: (err as Error).message });
+        this.logger.warn(
+          `bulkEnrich failed for place ${placeId}: ${(err as Error).message}`,
+        );
+      }
+
+      // Throttle between calls (skip sleep after last item)
+      if (delayMs > 0 && i < places.length - 1) {
+        await delay(delayMs);
+      }
+    }
+
+    try {
+      await this.auditService.log({
+        actor: adminId,
+        action: 'place.bulk_enrich',
+        targetType: 'Place',
+        meta: {
+          scanned: summary.scanned,
+          enriched: summary.enriched,
+          skipped: summary.skipped,
+          failed: summary.failed,
+          onlyMissing,
+          limit,
+        },
+      });
+    } catch (err) {
+      this.logger.warn(
+        `audit log failed for place.bulk_enrich: ${(err as Error).message}`,
+      );
+    }
+
+    return summary;
+  }
+
   private async runEnrichment(
     place: PlaceDocument,
     refresh = false,
@@ -418,4 +504,8 @@ function loadExisting(
 
 function resolvePhotoFetchUrl(persistedUrl: string): string {
   return persistedUrl;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }

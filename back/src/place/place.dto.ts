@@ -1,6 +1,8 @@
 import { ApiProperty, ApiSchema } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
+  IsInt,
   IsLatitude,
   IsLongitude,
   IsNotEmpty,
@@ -126,6 +128,55 @@ export class RejectPlaceDto {
   @IsString()
   @MaxLength(500)
   reason?: string;
+}
+
+@ApiSchema({ name: 'Bulk Enrich Request' })
+export class BulkEnrichDto {
+  @ApiProperty({ required: false, default: true })
+  @IsOptional()
+  @IsBoolean()
+  onlyMissing?: boolean = true;
+
+  @ApiProperty({ required: false, default: 100 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(500)
+  limit?: number = 100;
+
+  @ApiProperty({ required: false, default: 250 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(10000)
+  delayMs?: number = 250;
+}
+
+@ApiSchema({ name: 'Bulk Enrich Error' })
+export class BulkEnrichErrorDto {
+  @ApiProperty()
+  placeId: string;
+
+  @ApiProperty()
+  message: string;
+}
+
+@ApiSchema({ name: 'Bulk Enrich Summary' })
+export class BulkEnrichSummaryDto {
+  @ApiProperty()
+  scanned: number;
+
+  @ApiProperty()
+  enriched: number;
+
+  @ApiProperty()
+  skipped: number;
+
+  @ApiProperty()
+  failed: number;
+
+  @ApiProperty({ type: [BulkEnrichErrorDto] })
+  errors: BulkEnrichErrorDto[];
 }
 
 @ApiSchema({ name: 'Place' })
