@@ -1,6 +1,6 @@
 # TAS-11 — Bulk import places
 
-**Epic:** Place-general  •  **Priority:** Nice  •  **Status:** draft
+**Epic:** Place-general  •  **Priority:** Nice  •  **Status:** back-ready
 **Branch:** `tas-11-13-import`
 
 ## Goal

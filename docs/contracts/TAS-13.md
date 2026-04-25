@@ -1,6 +1,6 @@
 # TAS-13 — Import from Google Maps
 
-**Epic:** Place-saved  •  **Priority:** Should  •  **Status:** draft
+**Epic:** Place-saved  •  **Priority:** Should  •  **Status:** back-ready
 **Branch:** `tas-11-13-import`
 
 ## Goal
