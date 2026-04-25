@@ -1,6 +1,6 @@
 # TAS-4 — Create tag (finish)
 
-**Epic:** Tags  •  **Priority:** Must  •  **Status:** draft
+**Epic:** Tags  •  **Priority:** Must  •  **Status:** back-ready
 **Branch:** `tas-4-5-tag-colors` (shared with TAS-5)
 
 ## Goal

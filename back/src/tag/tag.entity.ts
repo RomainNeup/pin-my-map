@@ -10,6 +10,8 @@ export class Tag {
   name: string;
   @Prop({ required: false })
   emoji: string;
+  @Prop({ required: false })
+  color?: string;
   @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   owner: User;
 }

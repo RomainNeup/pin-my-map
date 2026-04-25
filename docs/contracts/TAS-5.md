@@ -1,6 +1,6 @@
 # TAS-5 — Add colors to tags
 
-**Epic:** Tags  •  **Priority:** Nice  •  **Status:** draft
+**Epic:** Tags  •  **Priority:** Nice  •  **Status:** back-ready
 **Branch:** `tas-4-5-tag-colors`
 
 ## Goal

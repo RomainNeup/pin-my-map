@@ -7,6 +7,7 @@ export class TagMapper {
       id: entity._id.toHexString(),
       name: entity.name,
       emoji: entity.emoji,
+      color: entity.color,
     };
   }
   static toDtoList(entities: TagDocument[]): TagDto[] {
