@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Tag } from './tag.entity';
 import { Model } from 'mongoose';
@@ -14,9 +18,17 @@ export class TagService {
   ) {}
 
   async create(userId: string, tag: CreateTagRequestDto): Promise<TagDto> {
+    const duplicate = await this.tagModel
+      .findOne({ owner: userId, name: tag.name })
+      .exec();
+    if (duplicate) {
+      throw new ConflictException('A tag with this name already exists');
+    }
+
     const newTag = new this.tagModel({
       name: tag.name,
       emoji: tag.emoji,
+      color: tag.color,
       owner: userId,
     });
     const result = await newTag.save();
@@ -52,10 +64,17 @@ export class TagService {
     id: string,
     dto: UpdateTagRequestDto,
   ): Promise<TagDto> {
+    const duplicate = await this.tagModel
+      .findOne({ owner: userId, name: dto.name, _id: { $ne: id } })
+      .exec();
+    if (duplicate) {
+      throw new ConflictException('A tag with this name already exists');
+    }
+
     const result = await this.tagModel
       .findOneAndUpdate(
         { _id: id, owner: userId },
-        { name: dto.name, emoji: dto.emoji },
+        { name: dto.name, emoji: dto.emoji, color: dto.color },
         { new: true },
       )
       .exec();
