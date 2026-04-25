@@ -9,12 +9,14 @@ import { Model } from 'mongoose';
 import { CreateTagRequestDto, TagDto, UpdateTagRequestDto } from './tag.dto';
 import { TagMapper } from './tag.mapper';
 import { SavedPlace } from 'src/saved/saved.entity';
+import { GamificationService } from 'src/gamification/gamification.service';
 
 @Injectable()
 export class TagService {
   constructor(
     @InjectModel(Tag.name) private tagModel: Model<Tag>,
     @InjectModel(SavedPlace.name) private savedPlaceModel: Model<SavedPlace>,
+    private gamificationService: GamificationService,
   ) {}
 
   async create(userId: string, tag: CreateTagRequestDto): Promise<TagDto> {
@@ -25,6 +27,10 @@ export class TagService {
       throw new ConflictException('A tag with this name already exists');
     }
 
+    const ownedCountBefore = await this.tagModel
+      .countDocuments({ owner: userId })
+      .exec();
+
     const newTag = new this.tagModel({
       name: tag.name,
       emoji: tag.emoji,
@@ -32,6 +38,15 @@ export class TagService {
       owner: userId,
     });
     const result = await newTag.save();
+
+    if (ownedCountBefore === 0) {
+      try {
+        await this.gamificationService.award(userId, 'tag');
+      } catch {
+        // never let gamification break the primary action
+      }
+    }
+
     return TagMapper.toDto(result);
   }
 
