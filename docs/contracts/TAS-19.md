@@ -1,6 +1,6 @@
 # TAS-19 — Manage members
 
-**Epic:** User  •  **Priority:** Nice  •  **Status:** draft
+**Epic:** User  •  **Priority:** Nice  •  **Status:** back-ready
 **Branch:** `tas-18-19-20-25-34-user-admin`
 
 ## Goal

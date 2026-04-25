@@ -1,6 +1,6 @@
 # TAS-25 — Search for user
 
-**Epic:** User  •  **Priority:** Nice  •  **Status:** draft
+**Epic:** User  •  **Priority:** Nice  •  **Status:** back-ready
 **Branch:** `tas-18-19-20-25-34-user-admin`
 
 ## Goal

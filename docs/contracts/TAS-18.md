@@ -1,6 +1,6 @@
 # TAS-18 — Approve member
 
-**Epic:** User  •  **Priority:** Bonus  •  **Status:** draft
+**Epic:** User  •  **Priority:** Bonus  •  **Status:** back-ready
 **Branch:** `tas-18-19-20-25-34-user-admin`
 
 ## Goal
