@@ -16,6 +16,17 @@ import {
   GamificationService,
 } from 'src/gamification/gamification.service';
 
+export function csvEscape(value: unknown): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  const str = String(value);
+  if (/[",\r\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
 @Injectable()
 export class SavedPlaceService {
   private readonly logger = new Logger(SavedPlaceService.name);
@@ -201,6 +212,44 @@ export class SavedPlaceService {
     }
 
     return this.findOne(userId, savedPlaceId);
+  }
+
+  async exportCsv(userId: string): Promise<string> {
+    const savedPlaces = await this.savedPlaceModel
+      .find({ user: userId })
+      .sort({ createdAt: -1 })
+      .populate(['place', 'tags'])
+      .exec();
+
+    const header = 'id,name,address,lat,lng,rating,done,comment,tags,createdAt';
+    const lines: string[] = [header];
+
+    for (const sp of savedPlaces) {
+      const place = sp.place;
+      // GeoJSON convention in `Place.location`: [lng, lat].
+      const lng = place?.location?.[0];
+      const lat = place?.location?.[1];
+      const tagNames = (sp.tags ?? [])
+        .map((t) => (t?.name ?? '').replace(/\|/g, ' '))
+        .join('|');
+      const row = [
+        sp._id.toHexString(),
+        place?.name ?? '',
+        place?.address ?? '',
+        lat ?? '',
+        lng ?? '',
+        sp.rating ?? '',
+        sp.done ? 'true' : 'false',
+        sp.comment ?? '',
+        tagNames,
+        sp.createdAt ? sp.createdAt.toISOString() : '',
+      ]
+        .map((v) => csvEscape(v))
+        .join(',');
+      lines.push(row);
+    }
+
+    return lines.join('\r\n') + '\r\n';
   }
 
   async toggleDone(userId: string, savedPlaceId: string): Promise<void> {

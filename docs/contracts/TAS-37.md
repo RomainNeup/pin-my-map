@@ -1,6 +1,6 @@
 # TAS-37 — Export saved places to CSV
 
-**Epic:** Place-saved  •  **Priority:** Bonus  •  **Status:** draft
+**Epic:** Place-saved  •  **Priority:** Bonus  •  **Status:** back-ready
 **Branch:** `tas-37-csv-export`
 
 ## Route

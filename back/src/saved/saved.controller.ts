@@ -9,8 +9,10 @@ import {
   Post,
   Put,
   Query,
+  Res,
 } from '@nestjs/common';
 import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { Private } from 'src/auth/auth.decorator';
 import { SavedPlaceService } from './saved.service';
 import {
@@ -62,6 +64,26 @@ export class SavedController {
       offset: Number.isFinite(parsedOffset) ? parsedOffset : undefined,
       tagIds: parsedTagIds,
     });
+  }
+
+  @Private()
+  @Get('export.csv')
+  @HttpCode(200)
+  @ApiResponse({
+    status: 200,
+    description: 'Stream the user saved places as a CSV file',
+  })
+  async exportCsv(
+    @User('id') userId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const csv = await this.savedPlaceService.exportCsv(userId);
+    const date = new Date().toISOString().slice(0, 10);
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="pin-my-map-saved-${date}.csv"`,
+    });
+    res.send(csv);
   }
 
   @Private()
