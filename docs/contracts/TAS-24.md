@@ -1,6 +1,6 @@
 # TAS-24 — See users' saved maps
 
-**Epic:** Place-saved  •  **Priority:** Nice  •  **Status:** draft
+**Epic:** Place-saved  •  **Priority:** Nice  •  **Status:** back-ready
 **Branch:** `tas-24-public-map`
 
 Most of the public-map module already exists. TAS-24 polishes the UX so a logged-in user can browse other users' public maps from the discover/following flows.
