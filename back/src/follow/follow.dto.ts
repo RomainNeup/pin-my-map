@@ -1,5 +1,11 @@
 import { ApiProperty, ApiSchema } from '@nestjs/swagger';
 
+@ApiSchema({ name: 'Is Following' })
+export class IsFollowingDto {
+  @ApiProperty()
+  following: boolean;
+}
+
 @ApiSchema({ name: 'Follow User Summary' })
 export class FollowUserDto {
   @ApiProperty()

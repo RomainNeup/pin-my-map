@@ -8,7 +8,7 @@ import { Model, Types } from 'mongoose';
 import { GamificationService } from 'src/gamification/gamification.service';
 import { User } from 'src/user/user.entity';
 import { Follow } from './follow.entity';
-import { FollowStatsDto, FollowUserDto } from './follow.dto';
+import { FollowStatsDto, FollowUserDto, IsFollowingDto } from './follow.dto';
 
 @Injectable()
 export class FollowService {
@@ -91,6 +91,20 @@ export class FollowService {
         : Promise.resolve(false),
     ]);
     return { followerCount, followingCount, isFollowing };
+  }
+
+  async isFollowing(
+    followerId: string,
+    followedId: string,
+  ): Promise<IsFollowingDto> {
+    if (!Types.ObjectId.isValid(followedId)) {
+      throw new BadRequestException('Invalid user id');
+    }
+    const exists = await this.followModel.exists({
+      follower: new Types.ObjectId(followerId),
+      followed: new Types.ObjectId(followedId),
+    });
+    return { following: !!exists };
   }
 
   async listFollowing(userId: string): Promise<FollowUserDto[]> {
