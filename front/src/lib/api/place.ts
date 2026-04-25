@@ -27,6 +27,8 @@ export interface PlaceEnrichment {
 	fetchedAt: string;
 }
 
+export type ModerationStatus = 'pending' | 'approved' | 'rejected';
+
 export interface Place {
 	id: string;
 	name: string;
@@ -38,6 +40,12 @@ export interface Place {
 	externalProvider?: string;
 	enrichment?: PlaceEnrichment;
 	enrichedAt?: string;
+	moderationStatus?: ModerationStatus;
+	rejectionReason?: string;
+	creatorId?: string;
+	creatorName?: string;
+	creatorEmail?: string;
+	createdAt?: string;
 }
 
 export interface CreatePlaceRequest {
@@ -64,4 +72,16 @@ export function createPlace(place: CreatePlaceRequest): Promise<Place> {
 
 export function refreshEnrichment(id: string): Promise<Place> {
 	return axiosInstance.post<Place>(`/place/${id}/refresh-enrichment`).then(({ data }) => data);
+}
+
+export function listPending(): Promise<Place[]> {
+	return axiosInstance.get<Place[]>('/place/pending').then(({ data }) => data);
+}
+
+export function approvePlace(id: string): Promise<Place> {
+	return axiosInstance.post<Place>(`/place/${id}/approve`).then(({ data }) => data);
+}
+
+export function rejectPlace(id: string, reason?: string): Promise<Place> {
+	return axiosInstance.post<Place>(`/place/${id}/reject`, { reason }).then(({ data }) => data);
 }

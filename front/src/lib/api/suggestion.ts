@@ -52,3 +52,18 @@ export function rejectSuggestion(id: string, reason?: string): Promise<Suggestio
 		.post<Suggestion>(`/suggestion/${id}/reject`, { reason })
 		.then(({ data }) => data);
 }
+
+export function listMine(): Promise<Suggestion[]> {
+	return axiosInstance.get<Suggestion[]>('/suggestion/mine').then(({ data }) => data);
+}
+
+export interface SuggestionCountForPlace {
+	pending: number;
+	total: number;
+}
+
+export function countForPlace(placeId: string): Promise<SuggestionCountForPlace> {
+	return axiosInstance
+		.get<SuggestionCountForPlace>(`/suggestion/place/${placeId}/count`)
+		.then(({ data }) => data);
+}
