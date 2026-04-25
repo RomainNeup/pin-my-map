@@ -73,6 +73,11 @@
 					/>
 				{/snippet}
 			</Field>
+			<div class="flex justify-end">
+				<a href="/forgot-password" class="text-xs text-fg-muted hover:text-accent hover:underline"
+					>Forgot password?</a
+				>
+			</div>
 			<Button type="submit" fullwidth loading={submitting}>Sign in</Button>
 		</form>
 
