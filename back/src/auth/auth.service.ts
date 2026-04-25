@@ -1,10 +1,12 @@
 import {
+  ForbiddenException,
   UnauthorizedException,
   BadRequestException,
   Injectable,
 } from '@nestjs/common';
 import { JoseService } from './jose.service';
 import { UserService } from '../user/user.service';
+import { ConfigService } from 'src/config/config.service';
 import {
   LoginRequestDto,
   LoginResponseDto,
@@ -17,6 +19,7 @@ export class AuthService {
   constructor(
     private userService: UserService,
     private joseService: JoseService,
+    private configService: ConfigService,
   ) {}
 
   async login(loginDto: LoginRequestDto): Promise<LoginResponseDto> {
@@ -32,6 +35,13 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (user.status && user.status !== 'active') {
+      const reasonSuffix = user.rejectionReason
+        ? `: ${user.rejectionReason}`
+        : '';
+      throw new ForbiddenException(`Account ${user.status}${reasonSuffix}`);
+    }
+
     return {
       accessToken: await this.joseService.signAsync({
         name: user.name,
@@ -43,25 +53,39 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterRequestDto): Promise<void> {
-    const userExists = await this.userService.exists(registerDto.email);
+    const config = await this.configService.get();
 
+    if (config.registrationMode === 'invite-only') {
+      throw new ForbiddenException(
+        'Registration is invite-only. Ask an admin for an invitation.',
+      );
+    }
+
+    const userExists = await this.userService.exists(registerDto.email);
     if (userExists) {
       throw new BadRequestException('User already exists');
     }
 
     const password = await bcrypt.hash(registerDto.password, 10);
     const existingCount = await this.userService.count();
+    const isFirstUser = existingCount === 0;
+
+    // First user becomes admin (active). Otherwise, follow registrationMode.
+    const status =
+      !isFirstUser && config.registrationMode === 'approval-required'
+        ? 'pending'
+        : 'active';
+
     const user = await this.userService.create({
       name: registerDto.name,
       email: registerDto.email,
-      password: password,
-      role: existingCount === 0 ? 'admin' : 'user',
+      password,
+      role: isFirstUser ? 'admin' : 'user',
+      status,
     });
 
     if (!user) {
       throw new BadRequestException('User could not be created');
     }
-
-    return;
   }
 }
