@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AuditModule } from 'src/audit/audit.module';
 import { GamificationModule } from 'src/gamification/gamification.module';
 import { Place, PlaceSchema } from 'src/place/place.entity';
 import { SavedPlace, SavedPlaceSchema } from 'src/saved/saved.entity';
@@ -15,6 +16,7 @@ import { ImportService } from './import.service';
       { name: SavedPlace.name, schema: SavedPlaceSchema },
     ]),
     GamificationModule,
+    AuditModule,
   ],
   controllers: [ImportController],
   providers: [ImportService],

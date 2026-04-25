@@ -1,11 +1,19 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { parse } from 'csv-parse/sync';
+import { AuditService } from 'src/audit/audit.service';
 import { GamificationService } from 'src/gamification/gamification.service';
 import { Place } from 'src/place/place.entity';
 import { SavedPlace } from 'src/saved/saved.entity';
 import { Tag } from 'src/tag/tag.entity';
-import { ImportErrorDto, ImportSummaryDto } from './import.dto';
+import {
+  CsvImportErrorDto,
+  CsvImportSummaryDto,
+  GoogleImportSummaryDto,
+  ImportErrorDto,
+  ImportSummaryDto,
+} from './import.dto';
 
 const LEADING_EMOJI_REGEX =
   /^(\p{Regional_Indicator}\p{Regional_Indicator}|\p{Extended_Pictographic}(?:\u{FE0F})?)\s*/u;
@@ -44,6 +52,47 @@ interface MapstrGeoJson {
   features: MapstrFeature[];
 }
 
+// ── TAS-13: Google Takeout shapes ─────────────────────────────────────────────
+
+interface GoogleFeatureProperties {
+  Title?: string;
+  name?: string;
+  'Google Maps URL'?: string;
+  address?: string;
+  note?: string;
+}
+
+interface GoogleGeoJsonFeature {
+  type: 'Feature';
+  geometry: { type: string; coordinates: [number, number] };
+  properties: GoogleFeatureProperties;
+}
+
+interface GoogleGeoJson {
+  type: 'FeatureCollection';
+  features: GoogleGeoJsonFeature[];
+}
+
+interface GoogleLegacyItem {
+  title?: string;
+  location?: { latitude?: number; longitude?: number; address?: string };
+  note?: string;
+}
+
+interface NormalizedGoogleEntry {
+  name: string;
+  lat: number;
+  lng: number;
+  address?: string;
+  note?: string;
+}
+
+// ── CSV expected header columns (case-insensitive) ────────────────────────────
+
+const CSV_REQUIRED_COLUMNS = ['name', 'lat', 'lng', 'address'] as const;
+const CSV_OPTIONAL_COLUMNS = ['description', 'image'] as const;
+const CSV_ALL_COLUMNS = [...CSV_REQUIRED_COLUMNS, ...CSV_OPTIONAL_COLUMNS];
+
 @Injectable()
 export class ImportService {
   private readonly logger = new Logger(ImportService.name);
@@ -54,7 +103,10 @@ export class ImportService {
     @InjectModel(SavedPlace.name)
     private readonly savedPlaceModel: Model<SavedPlace>,
     private readonly gamificationService: GamificationService,
+    private readonly auditService: AuditService,
   ) {}
+
+  // ── Mapstr ─────────────────────────────────────────────────────────────────
 
   async importMapstr(
     userId: string,
@@ -201,5 +253,335 @@ export class ImportService {
       comment: comment || undefined,
     });
     summary.imported++;
+  }
+
+  // ── TAS-11: Admin bulk CSV import ─────────────────────────────────────────
+
+  async importPlacesCsv(
+    adminId: string,
+    csvBuffer: Buffer,
+  ): Promise<CsvImportSummaryDto> {
+    let rows: Record<string, string>[];
+
+    try {
+      rows = parse(csvBuffer, {
+        columns: (header: string[]) =>
+          header.map((h) => h.trim().toLowerCase()),
+        skip_empty_lines: true,
+        trim: true,
+        relax_quotes: true,
+      }) as Record<string, string>[];
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new BadRequestException(`CSV parse error: ${message}`);
+    }
+
+    if (rows.length === 0) {
+      throw new BadRequestException('CSV file has no data rows');
+    }
+
+    // Validate required header columns exist
+    const firstRowKeys = Object.keys(rows[0]);
+    const missingRequired = CSV_REQUIRED_COLUMNS.filter(
+      (col) => !firstRowKeys.includes(col),
+    );
+    if (missingRequired.length > 0) {
+      throw new BadRequestException(
+        `CSV missing required columns: ${missingRequired.join(', ')}`,
+      );
+    }
+
+    const summary: CsvImportSummaryDto = { created: 0, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const rowNum = i + 1; // 1-based, header excluded by csv-parse
+      const row = rows[i];
+
+      // Skip truly empty rows (all known column values are empty)
+      if (CSV_ALL_COLUMNS.every((col) => !row[col])) {
+        continue;
+      }
+
+      const error = await this.processCsvRow(adminId, row, rowNum);
+      if (error) {
+        summary.errors.push(error);
+      } else {
+        summary.created++;
+      }
+    }
+
+    try {
+      await this.auditService.log({
+        actor: adminId,
+        action: 'place.bulk_import',
+        targetType: 'place',
+        meta: { created: summary.created, errors: summary.errors.length },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Audit log failed: ${message}`);
+    }
+
+    return summary;
+  }
+
+  private async processCsvRow(
+    adminId: string,
+    row: Record<string, string>,
+    rowNum: number,
+  ): Promise<CsvImportErrorDto | null> {
+    const name = (row['name'] ?? '').trim();
+    if (!name) {
+      return { row: rowNum, message: 'Missing required field: name' };
+    }
+
+    const latRaw = (row['lat'] ?? '').trim();
+    const lngRaw = (row['lng'] ?? '').trim();
+    const address = (row['address'] ?? '').trim();
+
+    if (!latRaw) {
+      return { row: rowNum, message: 'Missing required field: lat' };
+    }
+    if (!lngRaw) {
+      return { row: rowNum, message: 'Missing required field: lng' };
+    }
+    if (!address) {
+      return { row: rowNum, message: 'Missing required field: address' };
+    }
+
+    const lat = parseFloat(latRaw);
+    const lng = parseFloat(lngRaw);
+
+    if (!isFinite(lat) || lat < -90 || lat > 90) {
+      return { row: rowNum, message: `Invalid lat value: ${latRaw}` };
+    }
+    if (!isFinite(lng) || lng < -180 || lng > 180) {
+      return { row: rowNum, message: `Invalid lng value: ${lngRaw}` };
+    }
+
+    const description = (row['description'] ?? '').trim();
+    const image = (row['image'] ?? '').trim();
+
+    try {
+      await this.placeModel.create({
+        name,
+        location: [lng, lat],
+        address,
+        description: description || '',
+        image: image || undefined,
+        moderationStatus: 'approved',
+        createdBy: adminId,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { row: rowNum, message: `DB error: ${message}` };
+    }
+
+    return null;
+  }
+
+  // ── TAS-13: Google Takeout import ─────────────────────────────────────────
+
+  async importGoogle(
+    userId: string,
+    parsedJson: unknown,
+  ): Promise<GoogleImportSummaryDto> {
+    const entries = this.normalizeGoogleInput(parsedJson);
+
+    const summary: GoogleImportSummaryDto = {
+      placesCreated: 0,
+      savedCreated: 0,
+      skipped: 0,
+      errors: [],
+    };
+
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      try {
+        await this.processGoogleEntry(userId, entry, summary);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        summary.errors.push({ index: i, name: entry.name, message });
+        this.logger.warn(
+          `Google entry ${i} (${entry.name}) failed: ${message}`,
+        );
+      }
+    }
+
+    try {
+      await this.auditService.log({
+        actor: userId,
+        action: 'import.google',
+        targetType: 'import',
+        meta: {
+          placesCreated: summary.placesCreated,
+          savedCreated: summary.savedCreated,
+          skipped: summary.skipped,
+        },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Audit log failed: ${message}`);
+    }
+
+    return summary;
+  }
+
+  private normalizeGoogleInput(parsedJson: unknown): NormalizedGoogleEntry[] {
+    if (!parsedJson || typeof parsedJson !== 'object') {
+      throw new BadRequestException('Uploaded file is not a valid JSON object');
+    }
+
+    // GeoJSON FeatureCollection (newer Takeout)
+    const asObj = parsedJson as Record<string, unknown>;
+    if (
+      asObj['type'] === 'FeatureCollection' &&
+      Array.isArray(asObj['features'])
+    ) {
+      const doc = parsedJson as GoogleGeoJson;
+      return doc.features
+        .map((f, idx) => {
+          try {
+            return this.normalizeGeoJsonFeature(f);
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            this.logger.warn(`Skipping GeoJSON feature ${idx}: ${message}`);
+            return null;
+          }
+        })
+        .filter((e): e is NormalizedGoogleEntry => e !== null);
+    }
+
+    // JSON array (legacy Takeout)
+    if (Array.isArray(parsedJson)) {
+      return (parsedJson as GoogleLegacyItem[])
+        .map((item, idx) => {
+          try {
+            return this.normalizeLegacyItem(item);
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            this.logger.warn(`Skipping legacy item ${idx}: ${message}`);
+            return null;
+          }
+        })
+        .filter((e): e is NormalizedGoogleEntry => e !== null);
+    }
+
+    throw new BadRequestException(
+      'Unrecognized Google Takeout format: expected a GeoJSON FeatureCollection or a JSON array',
+    );
+  }
+
+  private normalizeGeoJsonFeature(
+    feature: GoogleGeoJsonFeature,
+  ): NormalizedGoogleEntry {
+    if (
+      !feature.geometry ||
+      feature.geometry.type !== 'Point' ||
+      !Array.isArray(feature.geometry.coordinates)
+    ) {
+      throw new Error('Missing or non-Point geometry');
+    }
+    const [lng, lat] = feature.geometry.coordinates;
+    if (!isFinite(lat) || !isFinite(lng)) {
+      throw new Error('Invalid coordinates');
+    }
+    const props = feature.properties ?? {};
+    const name = ((props.Title ?? props.name) || '').trim();
+    if (!name) throw new Error('Missing name');
+    return { name, lat, lng, address: props.address, note: props.note };
+  }
+
+  private normalizeLegacyItem(item: GoogleLegacyItem): NormalizedGoogleEntry {
+    const name = (item.title ?? '').trim();
+    if (!name) throw new Error('Missing title');
+    const loc = item.location;
+    if (!loc) throw new Error('Missing location');
+    const lat = loc.latitude;
+    const lng = loc.longitude;
+    if (
+      lat === undefined ||
+      lng === undefined ||
+      !isFinite(lat) ||
+      !isFinite(lng)
+    ) {
+      throw new Error('Invalid coordinates');
+    }
+    return { name, lat, lng, address: loc.address, note: item.note };
+  }
+
+  private async processGoogleEntry(
+    userId: string,
+    entry: NormalizedGoogleEntry,
+    summary: GoogleImportSummaryDto,
+  ): Promise<void> {
+    // Try exact coords first, then a ~25m bounding-box tolerance
+    let place = await this.placeModel
+      .findOne({ name: entry.name, location: [entry.lng, entry.lat] })
+      .exec();
+
+    if (!place) {
+      const tolerance = 0.0003; // ~33 m
+      place = await this.placeModel
+        .findOne({
+          name: entry.name,
+          'location.0': {
+            $gte: entry.lng - tolerance,
+            $lte: entry.lng + tolerance,
+          },
+          'location.1': {
+            $gte: entry.lat - tolerance,
+            $lte: entry.lat + tolerance,
+          },
+        })
+        .exec();
+    }
+
+    let isNewPlace = false;
+    if (!place) {
+      place = await this.placeModel.create({
+        name: entry.name,
+        location: [entry.lng, entry.lat],
+        address: entry.address,
+        moderationStatus: 'pending',
+        createdBy: userId,
+      });
+      isNewPlace = true;
+      summary.placesCreated++;
+
+      try {
+        await this.gamificationService.award(userId, 'place_create');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        this.logger.warn(
+          `Gamification award (place_create) failed: ${message}`,
+        );
+      }
+    }
+
+    const alreadySaved = await this.savedPlaceModel
+      .exists({ user: userId, place: place._id })
+      .exec();
+
+    if (alreadySaved) {
+      if (!isNewPlace) {
+        summary.skipped++;
+      }
+      return;
+    }
+
+    await this.savedPlaceModel.create({
+      user: userId,
+      place: place._id,
+      comment: entry.note || undefined,
+    });
+    summary.savedCreated++;
+
+    try {
+      await this.gamificationService.award(userId, 'save');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Gamification award (save) failed: ${message}`);
+    }
   }
 }
