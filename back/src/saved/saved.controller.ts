@@ -39,6 +39,13 @@ export class SavedController {
     type: String,
     description: 'Comma-separated tag ids to filter by (OR semantics)',
   })
+  @ApiQuery({
+    name: 'done',
+    required: false,
+    type: Boolean,
+    description:
+      'Filter by done status. true = only done places, false = only todo places. Omit to return all.',
+  })
   @ApiResponse({
     status: 200,
     type: [SavedPlaceDto],
@@ -49,6 +56,7 @@ export class SavedController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
     @Query('tagIds') tagIds?: string,
+    @Query('done') done?: string,
   ): Promise<SavedPlaceDto[]> {
     const parsedLimit = limit ? Number(limit) : undefined;
     const parsedOffset = offset ? Number(offset) : undefined;
@@ -58,11 +66,14 @@ export class SavedController {
           .map((s) => s.trim())
           .filter(Boolean)
       : undefined;
+    const parsedDone =
+      done === 'true' ? true : done === 'false' ? false : undefined;
 
     return await this.savedPlaceService.findAll(userId, {
       limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
       offset: Number.isFinite(parsedOffset) ? parsedOffset : undefined,
       tagIds: parsedTagIds,
+      done: parsedDone,
     });
   }
 
