@@ -16,25 +16,34 @@
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import X from 'lucide-svelte/icons/x';
 
+	const COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+
 	let newName = $state('');
 	let newEmoji = $state('');
+	let newColor = $state<string | undefined>(undefined);
 	let creating = $state(false);
 
 	let editingId = $state<string | null>(null);
 	let editName = $state('');
 	let editEmoji = $state('');
+	let editColor = $state<string | undefined>(undefined);
 	let saving = $state(false);
 	let deletingId = $state<string | null>(null);
 
 	const handleCreate = async () => {
 		const name = newName.trim();
 		if (!name || creating) return;
+		if (newColor !== undefined && !COLOR_REGEX.test(newColor)) {
+			toast('Color must be a valid hex value (#RRGGBB)', 'error');
+			return;
+		}
 		creating = true;
 		try {
-			const tag = await createTag({ name, emoji: newEmoji || '🏷️' });
+			const tag = await createTag({ name, emoji: newEmoji || '🏷️', color: newColor });
 			addTag(tag);
 			newName = '';
 			newEmoji = '';
+			newColor = undefined;
 			toast(`Tag "${tag.name}" created`, 'success');
 		} catch (err) {
 			console.error(err);
@@ -48,20 +57,26 @@
 		editingId = tag.id;
 		editName = tag.name;
 		editEmoji = tag.emoji;
+		editColor = tag.color;
 	};
 
 	const cancelEdit = () => {
 		editingId = null;
 		editName = '';
 		editEmoji = '';
+		editColor = undefined;
 	};
 
 	const saveEdit = async (id: string) => {
 		const name = editName.trim();
 		if (!name || saving) return;
+		if (editColor !== undefined && !COLOR_REGEX.test(editColor)) {
+			toast('Color must be a valid hex value (#RRGGBB)', 'error');
+			return;
+		}
 		saving = true;
 		try {
-			const updated = await updateTag(id, { name, emoji: editEmoji || '🏷️' });
+			const updated = await updateTag(id, { name, emoji: editEmoji || '🏷️', color: editColor });
 			replaceTag(updated);
 			toast(`Tag updated`, 'success');
 			cancelEdit();
@@ -119,6 +134,29 @@
 		>
 			<EmojiPicker bind:value={newEmoji} />
 			<Input bind:value={newName} placeholder="Tag name" fullwidth required disabled={creating} />
+			<div class="relative flex shrink-0 items-center">
+				<input
+					type="color"
+					value={newColor ?? '#cbd5e1'}
+					oninput={(e) => {
+						newColor = (e.currentTarget as HTMLInputElement).value;
+					}}
+					title="Pick a color"
+					class="h-8 w-8 cursor-pointer rounded border border-border bg-transparent p-0.5"
+					disabled={creating}
+				/>
+				{#if newColor !== undefined}
+					<button
+						type="button"
+						class="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-fg-muted text-bg hover:bg-fg"
+						onclick={() => (newColor = undefined)}
+						title="Clear color"
+						aria-label="Clear color"
+					>
+						<X class="h-2.5 w-2.5" />
+					</button>
+				{/if}
+			</div>
 			<Button
 				type="submit"
 				variant="solid"
@@ -167,6 +205,29 @@
 								}
 							}}
 						/>
+						<div class="relative flex shrink-0 items-center">
+							<input
+								type="color"
+								value={editColor ?? '#cbd5e1'}
+								oninput={(e) => {
+									editColor = (e.currentTarget as HTMLInputElement).value;
+								}}
+								title="Pick a color"
+								class="h-8 w-8 cursor-pointer rounded border border-border bg-transparent p-0.5"
+								disabled={saving}
+							/>
+							{#if editColor !== undefined}
+								<button
+									type="button"
+									class="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-fg-muted text-bg hover:bg-fg"
+									onclick={() => (editColor = undefined)}
+									title="Clear color"
+									aria-label="Clear color"
+								>
+									<X class="h-2.5 w-2.5" />
+								</button>
+							{/if}
+						</div>
 						<IconButton
 							label="Save"
 							icon={checkIcon}
@@ -177,7 +238,13 @@
 						/>
 						<IconButton label="Cancel" icon={xIcon} onclick={cancelEdit} disabled={saving} />
 					{:else}
-						<span class="text-2xl leading-none" aria-hidden="true">{tag.emoji || '🏷️'}</span>
+						<span
+							class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-lg leading-none"
+							style={tag.color ? `background-color:${tag.color}` : 'background-color:#cbd5e1'}
+							aria-hidden="true"
+						>
+							{tag.emoji || '🏷️'}
+						</span>
 						<span class="flex-1 truncate text-fg">{tag.name}</span>
 						<IconButton label="Edit tag" icon={pencilIcon} onclick={() => startEdit(tag)} />
 						<IconButton
