@@ -2,7 +2,7 @@ import { PlaceDto, PlaceEnrichmentDto } from './place.dto';
 import { PlaceDocument, PlaceEnrichment } from './place.entity';
 
 export class PlaceMapper {
-  static toDto(entity: PlaceDocument): PlaceDto {
+  static toDto(entity: PlaceDocument, saveCount?: number): PlaceDto {
     const id = entity._id.toHexString();
     return {
       id,
@@ -24,6 +24,9 @@ export class PlaceMapper {
       summary: buildPlaceSummary(entity.enrichment),
       moderationStatus: entity.moderationStatus,
       rejectionReason: entity.rejectionReason,
+      permanentlyClosed: entity.permanentlyClosed || undefined,
+      permanentlyClosedAt: entity.permanentlyClosedAt?.toISOString(),
+      saveCount,
     };
   }
 
@@ -52,6 +55,9 @@ export class PlaceMapper {
       priceLevel: e.priceLevel,
       types: e.types,
       googleMapsUri: e.googleMapsUri,
+      socialLinks: e.socialLinks,
+      amenities: e.amenities as PlaceEnrichmentDto['amenities'],
+      reservationLinks: e.reservationLinks,
       fetchedAt: e.fetchedAt,
     };
   }

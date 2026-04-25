@@ -49,6 +49,24 @@ export class PlaceEnrichment {
   types?: string[];
   @Prop()
   googleMapsUri?: string;
+  @Prop({ type: Object })
+  socialLinks?: {
+    instagram?: string;
+    facebook?: string;
+    twitter?: string;
+    tiktok?: string;
+  };
+  @Prop({ type: Object })
+  amenities?: {
+    wheelchair?: string;
+    outdoorSeating?: boolean;
+    wifi?: string;
+    dietVegetarian?: string;
+    dietVegan?: string;
+    dietGlutenFree?: string;
+  };
+  @Prop({ type: [String], default: undefined })
+  reservationLinks?: string[];
   @Prop()
   fetchedAt: Date;
 }
@@ -84,6 +102,10 @@ export class Place {
   moderationStatus: PlaceModerationStatus;
   @Prop({ required: false })
   rejectionReason?: string;
+  @Prop({ required: false, default: false })
+  permanentlyClosed: boolean;
+  @Prop({ required: false })
+  permanentlyClosedAt?: Date;
 }
 
 export type PlaceModerationStatus = 'pending' | 'approved' | 'rejected';

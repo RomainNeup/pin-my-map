@@ -56,6 +56,41 @@ export function mergeEnrichments(
     }
   }
 
+  // Social links: merge, primary wins per-field
+  if (secondary.socialLinks) {
+    const base = merged.socialLinks ?? {};
+    merged.socialLinks = {
+      instagram: base.instagram ?? secondary.socialLinks.instagram,
+      facebook: base.facebook ?? secondary.socialLinks.facebook,
+      twitter: base.twitter ?? secondary.socialLinks.twitter,
+      tiktok: base.tiktok ?? secondary.socialLinks.tiktok,
+    };
+    // Remove undefined keys so the object stays clean
+    Object.keys(merged.socialLinks).forEach((k) => {
+      if (
+        merged.socialLinks![k as keyof typeof merged.socialLinks] === undefined
+      ) {
+        delete merged.socialLinks![k as keyof typeof merged.socialLinks];
+      }
+    });
+    if (Object.keys(merged.socialLinks).length === 0) delete merged.socialLinks;
+  }
+
+  // Amenities: merge, primary wins per-field
+  if (secondary.amenities && !merged.amenities) {
+    merged.amenities = secondary.amenities;
+  }
+
+  // permanentlyClosed: true wins (if either flags it)
+  if (secondary.permanentlyClosed && !merged.permanentlyClosed) {
+    merged.permanentlyClosed = true;
+  }
+
+  // reservationLinks: primary wins
+  if (!merged.reservationLinks && secondary.reservationLinks) {
+    merged.reservationLinks = secondary.reservationLinks;
+  }
+
   // Mark providerName to reflect both providers contributed
   merged.providerName = `${primary.providerName}+${secondary.providerName}`;
 
