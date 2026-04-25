@@ -1,85 +1,78 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Pin My Map — Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS 10 + Mongoose API for [Pin My Map](../README.md). Listens on `:8080`. JWT-based auth. Swagger UI exposed at `/api` in development.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+> For day-to-day project context (architecture, auth pattern, conventions) read [`CLAUDE.md`](CLAUDE.md).
 
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+## Setup
 
 ```bash
-$ yarn install
+cp .env.example .env   # then fill in values
+yarn install
+yarn start:dev         # http://localhost:8080
 ```
 
-## Compile and run the project
+Required runtime: Node.js 18+, Yarn (Classic), a reachable MongoDB instance.
+
+## Environment
+
+See [`.env.example`](.env.example). Loaded via `dotenv.config()` in `src/main.ts`.
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `MONGODB_URI` | `mongodb://localhost/pin-my-map` | Mongo connection string |
+| `JWT_SECRET` | `secret` | Dev-only fallback — override in any non-dev env |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Comma-separated list |
+| `NODE_ENV` | — | Must be `development` to expose Swagger UI at `/api` |
+| `GOOGLE_PLACES_API_KEY` | — | Optional; enables Google Places enrichment when set |
+
+> The server is hard-coded to listen on `:8080` in `src/main.ts` regardless of `PORT`.
+
+## Commands
+
+| Command | Description |
+| --- | --- |
+| `yarn start:dev` | Watch-mode Nest server |
+| `yarn start:prod` | Runs compiled `dist/main` |
+| `yarn build` | `nest build` |
+| `yarn lint` | ESLint with `--fix` |
+| `yarn test` | Jest unit tests (`*.spec.ts` under `src/`) |
+| `yarn test:watch` / `yarn test:cov` | Watch / coverage |
+| `yarn test:e2e` | Uses `test/jest-e2e.json` |
+
+Single test: `yarn test -- src/place/place.service.spec.ts` or `yarn test -- -t "should ..."`.
+
+## Module Layout
+
+`src/app.module.ts` registers a single `MongooseModule.forRoot` and the feature modules. Each follows the same convention:
+
+```
+<feature>/
+  <feature>.module.ts       # @Module, registers schema via MongooseModule.forFeature
+  <feature>.controller.ts   # HTTP layer, Swagger-annotated
+  <feature>.service.ts      # business logic, injects Mongoose Model
+  <feature>.entity.ts       # @Schema() Mongoose class
+  <feature>.dto.ts          # request/response DTOs with @ApiProperty
+  <feature>.mapper.ts       # entity <-> DTO conversion
+```
+
+Modules:
+
+- **Core** — `auth`, `user`, `place`, `saved` (`SavedPlace`), `tag`
+- **Social & sharing** — `follow`, `public-map`, `place-comment`, `suggestion`
+- **Engagement** — `gamification`, `audit`
+- **Integrations** — `import` (Mapstr), `enrichment` (Google Places), `mcp` (Model Context Protocol)
+
+See [`CLAUDE.md`](CLAUDE.md) for the auth pattern (`@Private()`, `@Admin()`, `@User()`), conventions, and per-module notes.
+
+## API Documentation
+
+With `NODE_ENV=development`, Swagger UI is at <http://localhost:8080/api>. The Swagger doc is built from `@nestjs/swagger` decorators on controllers and DTOs — keep them up to date when changing the HTTP contract.
+
+## Docker
+
+The backend is part of the root `docker-compose.yml`. From the repo root:
 
 ```bash
-# development
-$ yarn run start
-
-# watch mode
-$ yarn run start:dev
-
-# production mode
-$ yarn run start:prod
+docker-compose up -d backend mongodb
 ```
-
-## Run tests
-
-```bash
-# unit tests
-$ yarn run test
-
-# e2e tests
-$ yarn run test:e2e
-
-# test coverage
-$ yarn run test:cov
-```
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).

@@ -35,22 +35,30 @@ Svelte 5 + SvelteKit 2, Tailwind 3 (with `@tailwindcss/forms`), `mapbox-gl` used
 ```
 src/
   routes/
-    +layout.svelte, +page.svelte
-    login/, register/, place/, saved/
+    +layout.svelte, +page.svelte         # main map view
+    login/, register/                    # auth
+    place/[id]/, place/{create,pick,search}/
+    saved/list/, saved/[id]/
+    tags/list/
+    import/                              # Mapstr/CSV import
+    profile/, settings/public-map/
+    discover/, following/                # social feeds
+    u/[slug]/                            # public profile by slug
+    public/[token]/                      # public map by share token
+    admin/{audit,suggestions,users}/     # admin console (gated by user.role === 'admin')
   lib/
-    api/        # axios clients, one per backend feature (auth, place, savedPlace, tag) + base.ts
-    components/ # reusable Svelte components (Map.svelte, MapPoints.svelte, Input, Button, ...)
-    store/      # Svelte stores: error, place, tags, user
-    stores/     # Svelte stores: mapStore
-    utils/      # geolocation helper
+    api/        # axios clients, one per backend feature + base.ts (see below)
+    components/ # reusable Svelte components, with subfolders map/, place/, public/, shell/, ui/
+    stores/     # Svelte stores: user, place, tags, mapStore, theme, toast, confirm, gamification
+    utils/      # geolocation, clickOutside, focusTrap, portal, mapboxStatic, mapDeeplinks
     index.ts
 ```
 
-**Both `store/` and `stores/` exist.** This is historical — before creating a new store, check both directories so you don't duplicate state. Prefer `store/` for new stores (it has more entries) unless touching map state, which lives in `stores/mapStore.ts`.
+A `store/` directory existed historically; everything has been consolidated into `stores/`. If you find references to `lib/store/...` they're stale.
 
 ## API Client Pattern
 
-`lib/api/base.ts` centralises the axios instance pointing at `PUBLIC_API_BASE_URL` and handles auth headers. Per-feature files (`auth.ts`, `place.ts`, `savedPlace.ts`, `tag.ts`) export typed functions that call the backend's REST endpoints (whose contract is visible at `<backend>/api` Swagger in dev). When adding a new backend feature, add a matching file here rather than calling axios inline from components.
+`lib/api/base.ts` centralises the axios instance pointing at `PUBLIC_API_BASE_URL` and handles auth headers. Per-feature files mirror the backend modules: `auth`, `place`, `savedPlace`, `tag`, `user`, `import`, `suggestion`, `placeComment`, `follow`, `publicMap`, `gamification`, `audit`, plus `mapbox` for direct Mapbox API calls. The HTTP contract is visible at `<backend>/api` (Swagger) in dev. When adding a new backend feature, add a matching file here rather than calling axios inline from components.
 
 ## Conventions
 

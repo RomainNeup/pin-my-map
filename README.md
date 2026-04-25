@@ -3,296 +3,180 @@
 Pin My Map is the easiest way to create your own personal map, filled with your favorite places in every city around the world.
 
 - 🎯 Save addresses you love.
-- 🗂️ Organise them by categories.
+- 🗂️ Organise them by tags.
 - ✅ Track places you've already visited.
 - ✨ Plan the spots you want to check out next.
+- 🌍 Share your map publicly via a slug or unguessable token.
+- 👥 Follow other users and discover their picks.
+- 🏆 Earn points and achievements as you build your map.
 
 Accessible anywhere. Ultra-fast. 100% Open Source.
 
-## Project Architecture
+## Tech Stack
 
-### Technology Stack
+- **Frontend** — SvelteKit 2 + Svelte 5, Tailwind CSS, Mapbox GL JS, axios. Built as a static SPA via `@sveltejs/adapter-static` (no SSR at runtime).
+- **Backend** — NestJS 10 (TypeScript), Mongoose, JWT auth, Swagger/OpenAPI.
+- **Database** — MongoDB.
+- **Optional integrations** — Google Places API (place enrichment), Mapbox Geocoding.
 
-#### Frontend
-- **Framework**: SvelteKit
-- **Styling**: Tailwind CSS
-- **Map Integration**: Mapbox
-- **State Management**: Svelte stores
-
-#### Backend
-- **Framework**: NestJS
-- **Database**: MongoDB with Mongoose
-- **Authentication**: JWT-based authentication
-- **API Documentation**: Swagger
-
-### Project Structure
+## Repository Layout
 
 ```
 pin-my-map/
-├── front/                  # Frontend SvelteKit application
-│   ├── src/
-│   │   ├── lib/            # Reusable components and utilities
-│   │   │   ├── api/        # API client functions
-│   │   │   ├── components/ # UI components
-│   │   │   └── store/      # Svelte stores for state management
-│   │   ├── routes/         # Application routes
-│   │   └── app.html        # Main HTML template
-│   ├── static/             # Static assets
-│   └── ...
-└── back/                   # Backend NestJS application
-    ├── src/
-    │   ├── auth/           # Authentication module
-    │   ├── place/          # Place module for location data
-    │   ├── saved/          # Saved places module
-    │   ├── tag/            # Tags module
-    │   ├── user/           # User module
-    │   └── ...
-    └── ...
+├── front/                # SvelteKit SPA — dev server on :5173
+│   └── src/
+│       ├── routes/       # pages (map, place, saved, public, admin, ...)
+│       └── lib/
+│           ├── api/      # axios clients, one per backend feature
+│           ├── components/
+│           ├── stores/   # Svelte stores
+│           └── utils/
+├── back/                 # NestJS API — listens on :8080
+│   └── src/
+│       ├── auth/         # JWT, AuthGuard, @Private() / @Admin() decorators
+│       ├── user/         # users, roles, public-map config
+│       ├── place/        # canonical places (shared)
+│       ├── saved/        # SavedPlace (per user, references Place)
+│       ├── tag/          # user-scoped tags
+│       ├── place-comment/# public comments on places
+│       ├── suggestion/   # user-submitted place corrections
+│       ├── follow/       # social graph
+│       ├── public-map/   # public read-only views by slug/token + discover feed
+│       ├── gamification/ # points, levels, achievements
+│       ├── audit/        # admin audit log
+│       ├── import/       # Mapstr archive import
+│       ├── enrichment/   # pluggable place-enrichment providers (Google Places)
+│       └── mcp/          # Model Context Protocol endpoint for AI agents
+└── docker-compose.yml    # mongo + backend (8080) + frontend (5173)
 ```
 
-## Features
-
-- **Place Saving**: Save your favorite places with location data, descriptions, and addresses
-- **Tagging System**: Organize saved places with custom tags
-- **Rating & Comments**: Add personal ratings and comments to saved places
-- **Done Marker**: Mark places as visited/done
-- **Map Visualization**: View saved places on an interactive map
-- **Authentication**: Secure user accounts with authentication
+See [`CLAUDE.md`](CLAUDE.md), [`back/CLAUDE.md`](back/CLAUDE.md), and [`front/CLAUDE.md`](front/CLAUDE.md) for in-depth architectural notes.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v16 or later)
-- Yarn package manager
-- MongoDB instance
-- Mapbox account for API access token
+- Node.js 18+ and Yarn (Classic, v1)
+- MongoDB (local or remote)
+- A [Mapbox](https://www.mapbox.com/) access token
+- _(optional)_ A [Google Places API (New)](https://developers.google.com/maps/documentation/places/web-service) key for place enrichment
 
-### Environment Variables
+### 1. Configure environment
 
-#### Frontend (front/.env)
-```
-PUBLIC_MAPBOX_ACCESS_TOKEN=your_mapbox_token
-PUBLIC_API_BASE_URL=http://localhost:3000
-```
+Copy the example env files and fill them in:
 
-#### Backend (back/.env)
-```
-MONGODB_URI=mongodb://localhost:27017/pin-my-map
-JWT_SECRET=your_jwt_secret
-PORT=3000
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
-NODE_ENV=development
-```
-
-### Installation and Setup
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/pin-my-map.git
-   cd pin-my-map
-   ```
-
-2. Install dependencies for both frontend and backend:
-   ```bash
-   # Install frontend dependencies
-   cd front
-   yarn install
-
-   # Install backend dependencies
-   cd ../back
-   yarn install
-   ```
-
-3. Start the development servers:
-   ```bash
-   # Start the backend server
-   cd back
-   yarn start:dev
-
-   # In a separate terminal, start the frontend server
-   cd front
-   yarn dev
-   ```
-
-4. Access the application:
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:3000
-   - API Documentation: http://localhost:3000/api
-
-## Docker Setup
-
-The project includes Docker configuration for easy deployment.
-
-### Docker Compose Setup
-
-1. Create a `docker-compose.yml` file in the project root:
-   ```yaml
-   version: '3'
-   services:
-     mongodb:
-       image: mongo:latest
-       ports:
-         - "27017:27017"
-       volumes:
-         - mongo_data:/data/db
-       environment:
-         - MONGO_INITDB_DATABASE=pin-my-map
-       networks:
-         - pin-my-map-network
-
-     backend:
-       build:
-         context: ./back
-         dockerfile: Dockerfile
-       ports:
-         - "3000:3000"
-       depends_on:
-         - mongodb
-       environment:
-         - MONGODB_URI=mongodb://mongodb:27017/pin-my-map
-         - JWT_SECRET=your_secure_jwt_secret
-       networks:
-         - pin-my-map-network
-
-     frontend:
-       build:
-         context: ./front
-         dockerfile: Dockerfile
-       ports:
-         - "80:80"
-       depends_on:
-         - backend
-       environment:
-         - PUBLIC_API_BASE_URL=http://localhost:3000
-         - PUBLIC_MAPBOX_ACCESS_TOKEN=${MAPBOX_TOKEN}
-       networks:
-         - pin-my-map-network
-
-   networks:
-     pin-my-map-network:
-       driver: bridge
-
-   volumes:
-     mongo_data:
-   ```
-
-2. Create a `Dockerfile` in the `back/` directory:
-   ```dockerfile
-   FROM node:16-alpine
-
-   WORKDIR /app
-
-   COPY package.json yarn.lock ./
-   RUN yarn install --frozen-lockfile
-
-   COPY . .
-   RUN yarn build
-
-   EXPOSE 3000
-
-   CMD ["node", "dist/main"]
-   ```
-
-3. Create a `Dockerfile` in the `front/` directory:
-   ```dockerfile
-   FROM node:16-alpine as build
-
-   WORKDIR /app
-
-   COPY package.json yarn.lock ./
-   RUN yarn install --frozen-lockfile
-
-   COPY . .
-   RUN yarn build
-
-   FROM nginx:alpine
-
-   COPY --from=build /app/build /usr/share/nginx/html
-   COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-   EXPOSE 80
-
-   CMD ["nginx", "-g", "daemon off;"]
-   ```
-
-4. Create an nginx configuration file (`front/nginx.conf`):
-   ```
-   server {
-       listen 80;
-       root /usr/share/nginx/html;
-       index index.html;
-
-       location / {
-           try_files $uri $uri/ /index.html;
-       }
-
-       location /api/ {
-           proxy_pass http://backend:3000/;
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-       }
-   }
-   ```
-
-5. Run with Docker Compose:
-   ```bash
-   export MAPBOX_TOKEN=your_mapbox_token
-   docker-compose up -d
-   ```
-
-### Running with Docker
-
-After setting up Docker Compose, you can:
-
-- Start all services: `docker-compose up -d`
-- View logs: `docker-compose logs -f`
-- Stop all services: `docker-compose down`
-- Rebuild and start: `docker-compose up -d --build`
-
-## Development Guidelines
-
-### Code Style
-
-- Frontend: Follow ESLint configuration in `front/eslint.config.js`
-- Backend: Follow ESLint configuration in `back/.eslintrc.js`
-
-### Git Workflow
-
-1. Create a feature branch: `git checkout -b feature/your-feature-name`
-2. Make your changes and commit with descriptive messages
-3. Push your branch and create a pull request
-4. Request code review
-5. After approval, merge to main branch
-
-### Testing
-
-#### Backend
 ```bash
+cp back/.env.example back/.env
+cp front/.env.example front/.env
+```
+
+**`back/.env`**
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `MONGODB_URI` | `mongodb://localhost/pin-my-map` | Mongo connection string |
+| `JWT_SECRET` | `secret` (dev only) | JWT signing secret |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Comma-separated list of allowed origins |
+| `NODE_ENV` | — | Set to `development` to expose Swagger UI at `/api` |
+| `GOOGLE_PLACES_API_KEY` | — | Optional. Enables Google Places enrichment; place creation works without it. |
+
+> Note: the server is hard-coded to listen on `:8080` in `back/src/main.ts`.
+
+**`front/.env`**
+
+| Variable | Description |
+| --- | --- |
+| `PUBLIC_API_BASE_URL` | Backend origin, e.g. `http://localhost:8080` |
+| `PUBLIC_MAPBOX_ACCESS_TOKEN` | Mapbox GL JS access token |
+
+### 2. Run with Docker (recommended)
+
+```bash
+docker-compose up -d
+```
+
+This starts:
+- `mongodb` on `:27017` (with a persistent `mongodb_data` volume)
+- `backend` on `:8080` (live-reload, source mounted from `./back`)
+- `frontend` on `:5173` (live-reload, source mounted from `./front`)
+
+Open http://localhost:5173. Swagger UI is at http://localhost:8080/api.
+
+### 2. Run locally without Docker
+
+```bash
+# Backend
 cd back
-# Run unit tests
-yarn test
-# Run e2e tests
-yarn test:e2e
-# Check test coverage
-yarn test:cov
+yarn install
+yarn start:dev          # http://localhost:8080  (Swagger UI: /api in dev)
+
+# Frontend (separate terminal)
+cd front
+yarn install
+yarn start:dev          # http://localhost:5173
 ```
 
-#### Frontend
-```bash
-cd front
-# Run tests
-yarn test
-```
+You'll need a MongoDB instance reachable at `MONGODB_URI`.
+
+## Common Commands
+
+### Backend (`cd back`)
+
+| Command | What it does |
+| --- | --- |
+| `yarn start:dev` | Watch-mode Nest server |
+| `yarn start:prod` | Run compiled `dist/main` |
+| `yarn build` | `nest build` |
+| `yarn lint` | ESLint with `--fix` |
+| `yarn test` / `yarn test:watch` / `yarn test:cov` | Jest unit tests |
+| `yarn test:e2e` | Jest with `test/jest-e2e.json` |
+
+Run a single test: `yarn test -- src/place/place.service.spec.ts` or `yarn test -- -t "test name"`.
+
+### Frontend (`cd front`)
+
+| Command | What it does |
+| --- | --- |
+| `yarn start:dev` | Vite dev server (note: the script is `start:dev`, not `dev`) |
+| `yarn build` / `yarn preview` | Production build / preview |
+| `yarn check` | `svelte-kit sync` + `svelte-check` (type check) |
+| `yarn lint` | `prettier --check` + `eslint` |
+| `yarn format` | `prettier --write` |
+
+No frontend test runner is configured.
+
+## Architecture Highlights
+
+### Authentication
+
+Auth is JWT-based and enforced **globally by opt-in**, not opt-out. `AuthGuard` is registered as `APP_GUARD` and only verifies the JWT on routes marked with `@Private()` or `@Admin()` (from `back/src/auth/auth.decorator.ts`). Inside handlers the current user is read via the `@User()` param decorator. See [`back/CLAUDE.md`](back/CLAUDE.md) for details.
+
+### Domain model
+
+- A **`Place`** is a canonical location (lat/lng, address) shared across all users.
+- A **`SavedPlace`** is the per-user record that references a `Place` and carries the user's rating, comment, done flag, and tags.
+- A **`Tag`** is user-scoped and applied to saved places.
+- **Public maps** are exposed by either a human-friendly `slug` or an unguessable `token`, with a `discover` feed of public maps for browsing.
+
+### Gamification
+
+User actions (`save`, `done`, `rate`, `comment`, `tag`, `place_create`, `suggestion`, `follow`, `comment_public`) award points and progress through achievements defined in `back/src/gamification/achievements.catalog.ts`. New features should consider whether they produce a meaningful action worth rewarding — see the gamification section in [`CLAUDE.md`](CLAUDE.md) for guidelines.
+
+### MCP endpoint
+
+The backend exposes a [Model Context Protocol](https://modelcontextprotocol.io/) endpoint under `/mcp` so AI agents can read/write the user's map with the same auth model as the rest of the API.
 
 ## API Documentation
 
-The API documentation is available at `http://localhost:3000/api` when the backend server is running. It's generated using Swagger and provides interactive documentation for all available endpoints.
+Swagger UI is available at `http://localhost:8080/api` when the backend is running with `NODE_ENV=development`. Swagger/OpenAPI is the source of truth for the HTTP contract — every DTO and controller is annotated with `@nestjs/swagger` decorators.
+
+## Contributing
+
+1. Create a feature branch: `git checkout -b feature/your-feature-name`
+2. Make changes, keeping commits scoped and descriptive.
+3. Run lint and tests in the affected project (`yarn lint`, `yarn test`).
+4. Open a pull request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Contact
-
-For questions or feedback, please open an issue on the project's GitHub repository.
+MIT — see [`LICENSE.md`](LICENSE.md).

@@ -21,10 +21,31 @@ Loaded via `dotenv.config()` in `src/main.ts`:
 - `PORT` — read but note `main.ts` hard-codes `app.listen(8080)`
 - `CORS_ALLOWED_ORIGINS` — comma-separated; default `http://localhost:5173`
 - `NODE_ENV=development` — enables Swagger UI at `/api`
+- `GOOGLE_PLACES_API_KEY` — optional. Enables `enrichment/providers/google-places.provider.ts`; place creation still succeeds when unset (enrichment is silently skipped).
+
+See `back/.env.example` for the canonical list.
 
 ## Module Architecture
 
-`AppModule` wires `MongooseModule.forRoot(MONGODB_URI)` once, then imports four feature modules: `AuthModule`, `PlaceModule`, `TagModule`, `SavedPlaceModule`. There is also a `UserModule` (imported by `AuthModule`) that owns the user schema.
+`AppModule` wires `MongooseModule.forRoot(MONGODB_URI)` once, then imports the feature modules listed below. `UserModule` is imported by `AuthModule` and owns the user schema.
+
+Core domain modules:
+- `AuthModule` — JWT issuance/verification, global guard, decorators.
+- `UserModule` — user schema (`role: 'user' | 'admin'`, optional `publicSlug` / `publicToken` / `isPublic`).
+- `PlaceModule` — canonical `Place` (location, address). Shared across users.
+- `SavedPlaceModule` — `SavedPlace`: per-user record referencing a `Place` with rating, comment, done flag, tags.
+- `TagModule` — user-scoped tags.
+
+Layered feature modules:
+- `ImportModule` — bulk import (Mapstr archive via multipart upload).
+- `EnrichmentModule` — pluggable place-enrichment providers (Google Places).
+- `SuggestionModule` — user-submitted edit/correction suggestions on places.
+- `PlaceCommentModule` — public comments on places (distinct from the private `comment` on `SavedPlace`).
+- `FollowModule` — follow/unfollow users, followers/following lists.
+- `PublicMapModule` — public read-only views of a user's map (`/public/slug/:slug`, `/public/token/:token`, `/public/discover`).
+- `GamificationModule` — points/levels/achievements; see root CLAUDE.md.
+- `AuditModule` — admin audit log of sensitive actions.
+- `McpModule` — Model Context Protocol endpoint exposing the API to AI agents.
 
 Each feature follows a fixed file layout — **mirror this when adding a feature**:
 
@@ -45,9 +66,10 @@ Controllers stay thin; services own persistence; mappers own DTO shape. DTOs mus
 Auth is enforced **globally by opt-in**, not opt-out:
 
 - `AuthGuard` is registered as `APP_GUARD` in `AuthModule`, so it runs on every request.
-- By default the guard returns `true`. It only checks the JWT when the handler/class is marked with the `@Private()` decorator (from `auth/auth.decorator.ts`), which sets the `isPrivate` metadata and adds `@ApiBearerAuth` + 401 response to Swagger.
-- On success the guard attaches the JWT payload to `request.user`.
-- To protect a route: decorate the controller or method with `@Private()`. To access the current user inside a handler, read it off the request.
+- By default the guard returns `true`. It only verifies the JWT when the handler/class is marked with `@Private()` or `@Admin()` (from `auth/auth.decorator.ts`), which set `isPrivate` / `isAdmin` metadata and add `@ApiBearerAuth` + 401/403 responses to Swagger.
+- On success the guard attaches the JWT payload to `request.user` (`{ sub, email, name, role, ... }`).
+- `@Admin()` additionally requires `request.user.role === 'admin'` (returns 403 otherwise).
+- To protect a route: decorate the controller or method with `@Private()` (or `@Admin()`). Read the current user inside a handler via the `@User()` param decorator from `user/user.decorator.ts` — pass a key (`@User('sub') userId: string`) or get the whole payload (`@User() user`).
 
 JWT is signed with `JWT_SECRET`, `expiresIn: 1h`, via `@nestjs/jwt`'s `JwtModule.register` in `AuthModule`.
 
