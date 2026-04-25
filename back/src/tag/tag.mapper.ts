@@ -1,5 +1,5 @@
 import { TagDto, TagDtoLight } from './tag.dto';
-import { Tag, TagDocument } from './tag.entity';
+import { TagDocument } from './tag.entity';
 
 export class TagMapper {
   static toDto(entity: TagDocument): TagDto {
