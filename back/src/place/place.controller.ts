@@ -101,7 +101,11 @@ export class PlaceController {
     status: 200,
     description: 'Streams the enrichment photo binary.',
   })
-  @ApiResponse({ status: 404, description: 'Photo not found.' })
+  @ApiResponse({
+    status: 204,
+    description: 'Place exists but has no photo at the given index.',
+  })
+  @ApiResponse({ status: 404, description: 'Place not found.' })
   async getPhoto(
     @Param('id', ParseObjectIdPipe) id: string,
     @Param('idx', ParseIntPipe) idx: number,
@@ -111,6 +115,10 @@ export class PlaceController {
       throw new BadRequestException('Invalid photo index');
     }
     const url = await this.placeService.findPhotoUrl(id, idx);
+    if (url === null) {
+      res.status(204).end();
+      return;
+    }
     try {
       const upstream = await fetch(url, { redirect: 'follow' });
       if (!upstream.ok || !upstream.body) {

@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { ImportService, extractLeadingEmoji } from './import.service';
+import { GamificationService } from 'src/gamification/gamification.service';
 
 const PLACE_TOKEN = getModelToken('Place');
 const TAG_TOKEN = getModelToken('Tag');
@@ -88,6 +89,7 @@ describe('ImportService', () => {
         { provide: PLACE_TOKEN, useValue: placeModel },
         { provide: TAG_TOKEN, useValue: tagModel },
         { provide: SAVED_TOKEN, useValue: savedPlaceModel },
+        { provide: GamificationService, useValue: { award: jest.fn().mockResolvedValue(undefined) } },
       ],
     })
       .compile()
