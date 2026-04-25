@@ -14,6 +14,7 @@
 		type UserStatus
 	} from '$lib/api/user';
 	import { getConfig, updateConfig, type RegistrationMode } from '$lib/api/config';
+	import { bulkEnrich, type BulkEnrichSummary } from '$lib/api/place';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
 	import Dialog from '$lib/components/ui/Dialog.svelte';
@@ -284,6 +285,28 @@
 		inviteOpen = true;
 	};
 
+	// ── Maintenance ────────────────────────────────────────────────────────────
+
+	let enrichBusy = $state(false);
+	let enrichResult = $state<BulkEnrichSummary | null>(null);
+
+	const runBulkEnrich = async (onlyMissing: boolean) => {
+		enrichBusy = true;
+		enrichResult = null;
+		try {
+			const result = await bulkEnrich({ onlyMissing, limit: 100, delayMs: 1100 });
+			enrichResult = result;
+			toast(
+				`Enrichment done: ${result.enriched} enriched, ${result.skipped} skipped, ${result.failed} failed`,
+				result.failed > 0 ? 'error' : 'success'
+			);
+		} catch {
+			toast('Bulk enrichment failed', 'error');
+		} finally {
+			enrichBusy = false;
+		}
+	};
+
 	const submitInvite = async () => {
 		if (!inviteName.trim() || !inviteEmail.trim()) return;
 		inviteSaving = true;
@@ -328,6 +351,46 @@
 					<option value="invite-only">Invite only</option>
 				</select>
 				<Button size="sm" loading={configSaving} onclick={saveConfig}>Save</Button>
+			</div>
+		{/if}
+	</div>
+
+	<!-- ── Maintenance card ──────────────────────────────────────────────── -->
+	<div class="rounded-xl border border-border bg-bg-elevated p-4">
+		<h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-fg-muted">Maintenance</h2>
+		<div class="flex flex-wrap items-center gap-3">
+			<Button
+				size="sm"
+				loading={enrichBusy}
+				onclick={() => runBulkEnrich(true)}
+			>
+				Re-enrich missing places
+			</Button>
+			<Button
+				size="sm"
+				variant="outline"
+				tone="neutral"
+				loading={enrichBusy}
+				onclick={() => runBulkEnrich(false)}
+			>
+				Re-enrich all (top 100)
+			</Button>
+		</div>
+		{#if enrichResult}
+			<div class="mt-3 rounded-lg border border-border bg-bg-muted p-3 text-sm">
+				<div class="flex flex-wrap gap-4">
+					<span>Scanned: <strong>{enrichResult.scanned}</strong></span>
+					<span>Enriched: <strong class="text-success">{enrichResult.enriched}</strong></span>
+					<span>Skipped: <strong class="text-fg-muted">{enrichResult.skipped}</strong></span>
+					<span>Failed: <strong class={enrichResult.failed > 0 ? 'text-danger' : ''}>{enrichResult.failed}</strong></span>
+				</div>
+				{#if enrichResult.errors.length > 0}
+					<ul class="mt-2 space-y-1 text-xs text-danger">
+						{#each enrichResult.errors as err (err.placeId)}
+							<li><code>{err.placeId}</code>: {err.message}</li>
+						{/each}
+					</ul>
+				{/if}
 			</div>
 		{/if}
 	</div>

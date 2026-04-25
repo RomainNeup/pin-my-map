@@ -93,3 +93,28 @@ export function approvePlace(id: string): Promise<Place> {
 export function rejectPlace(id: string, reason?: string): Promise<Place> {
 	return axiosInstance.post<Place>(`/place/${id}/reject`, { reason }).then(({ data }) => data);
 }
+
+export interface BulkEnrichRequest {
+	onlyMissing?: boolean;
+	limit?: number;
+	delayMs?: number;
+}
+
+export interface BulkEnrichError {
+	placeId: string;
+	message: string;
+}
+
+export interface BulkEnrichSummary {
+	scanned: number;
+	enriched: number;
+	skipped: number;
+	failed: number;
+	errors: BulkEnrichError[];
+}
+
+export function bulkEnrich(params: BulkEnrichRequest): Promise<BulkEnrichSummary> {
+	return axiosInstance
+		.post<BulkEnrichSummary>('/place/bulk-enrich', params)
+		.then(({ data }) => data);
+}
