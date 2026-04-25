@@ -4,13 +4,14 @@
  */
 export function populatedRefId(value: unknown): string {
   if (!value) return '';
-  if (typeof value === 'object' && '_id' in (value as object)) {
-    const inner = (value as { _id: unknown })._id;
-    return populatedRefId(inner);
-  }
-  const maybe = value as { toHexString?: () => string };
-  if (typeof maybe.toHexString === 'function') {
-    return maybe.toHexString();
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as { toHexString?: () => string; _id?: unknown };
+    if (typeof obj.toHexString === 'function') {
+      return obj.toHexString();
+    }
+    if ('_id' in obj && obj._id !== obj) {
+      return populatedRefId(obj._id);
+    }
   }
   return String(value);
 }
