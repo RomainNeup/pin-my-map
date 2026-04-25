@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import Map from 'lucide-svelte/icons/map';
-	import Bookmark from 'lucide-svelte/icons/bookmark';
+	import Compass from 'lucide-svelte/icons/compass';
 	import Plus from 'lucide-svelte/icons/plus';
-	import Search from 'lucide-svelte/icons/search';
 	import User from 'lucide-svelte/icons/user';
 	import { twMerge } from 'tailwind-merge';
 	import UserMenu from './UserMenu.svelte';
@@ -25,9 +24,9 @@
 		<Map class="h-5 w-5" />
 		Map
 	</a>
-	<a href="/saved/list" class={itemCls(isActive('/saved/list'))}>
-		<Bookmark class="h-5 w-5" />
-		Saved
+	<a href="/discover" class={itemCls(isActive('/discover'))}>
+		<Compass class="h-5 w-5" />
+		Discover
 	</a>
 	<div class="flex items-center justify-center px-2">
 		<a
@@ -38,9 +37,9 @@
 			<Plus class="h-5 w-5" />
 		</a>
 	</div>
-	<a href="/place/search" class={itemCls(isActive('/place/search'))}>
-		<Search class="h-5 w-5" />
-		Search
+	<a href="/profile" class={itemCls(isActive('/profile'))}>
+		<User class="h-5 w-5" />
+		Profile
 	</a>
 	<UserMenu placement="top-end" class="flex-1">
 		{#snippet trigger({ toggle, open })}
