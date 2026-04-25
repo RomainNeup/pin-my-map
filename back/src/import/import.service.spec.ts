@@ -1,10 +1,15 @@
 import { Test } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { ImportService, extractLeadingEmoji } from './import.service';
+import { GamificationService } from 'src/gamification/gamification.service';
 
 const PLACE_TOKEN = getModelToken('Place');
 const TAG_TOKEN = getModelToken('Tag');
 const SAVED_TOKEN = getModelToken('SavedPlace');
+
+const mockGamificationService = {
+  recompute: jest.fn().mockResolvedValue(undefined),
+};
 
 describe('extractLeadingEmoji', () => {
   it('splits a leading simple emoji', () => {
@@ -88,6 +93,7 @@ describe('ImportService', () => {
         { provide: PLACE_TOKEN, useValue: placeModel },
         { provide: TAG_TOKEN, useValue: tagModel },
         { provide: SAVED_TOKEN, useValue: savedPlaceModel },
+        { provide: GamificationService, useValue: mockGamificationService },
       ],
     })
       .compile()
