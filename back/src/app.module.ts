@@ -15,6 +15,7 @@ import { FollowModule } from './follow/follow.module';
 import { PlaceCommentModule } from './place-comment/place-comment.module';
 import { McpModule } from './mcp/mcp.module';
 import { ConfigModule } from './config/config.module';
+import { MailerModule } from './mailer/mailer.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ConfigModule } from './config/config.module';
     FollowModule,
     PlaceCommentModule,
     McpModule,
+    MailerModule,
   ],
   controllers: [],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

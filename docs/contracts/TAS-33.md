@@ -1,6 +1,6 @@
 # TAS-33 — Forgot password
 
-**Epic:** User  •  **Priority:** Should  •  **Status:** draft
+**Epic:** User  •  **Priority:** Should  •  **Status:** back-ready
 **Branch:** `tas-33-forgot-password`
 
 ## Goal

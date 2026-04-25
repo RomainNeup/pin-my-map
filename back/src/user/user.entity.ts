@@ -38,6 +38,10 @@ export class User {
   publicToken?: string;
   @Prop({ required: true, default: false })
   isPublic: boolean;
+  @Prop({ required: false })
+  passwordResetTokenHash?: string;
+  @Prop({ required: false })
+  passwordResetExpiresAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
