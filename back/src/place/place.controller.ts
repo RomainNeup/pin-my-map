@@ -129,7 +129,7 @@ export class PlaceController {
     }
   }
 
-  @Admin()
+  @Private()
   @Put(':id')
   @HttpCode(200)
   @ApiResponse({
@@ -138,14 +138,20 @@ export class PlaceController {
     description: 'Place successfully updated.',
   })
   @ApiResponse({
+    status: 403,
+    description: 'Caller is neither the creator nor an admin.',
+  })
+  @ApiResponse({
     status: 404,
     description: 'Place with the specified ID not found.',
   })
   async updatePlace(
     @Param('id', ParseObjectIdPipe) id: string,
     @Body() placeDto: CreatePlaceRequestDto,
+    @User('id') userId: string,
+    @User('role') role: string,
   ): Promise<PlaceDto> {
-    return await this.placeService.update(id, placeDto);
+    return await this.placeService.update(id, placeDto, { id: userId, role });
   }
 
   @Admin()

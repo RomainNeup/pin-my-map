@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -11,6 +12,7 @@ import { CreatePlaceRequestDto, PlaceDto } from './place.dto';
 import { PlaceMapper } from './place.mapper';
 import { EnrichmentService } from 'src/enrichment/enrichment.service';
 import { GamificationService } from 'src/gamification/gamification.service';
+import { AuditService } from 'src/audit/audit.service';
 
 @Injectable()
 export class PlaceService {
@@ -20,6 +22,7 @@ export class PlaceService {
     @InjectModel(Place.name) private placeModel: Model<Place>,
     private enrichmentService: EnrichmentService,
     private gamificationService: GamificationService,
+    private auditService: AuditService,
   ) {}
 
   async create(
@@ -76,7 +79,25 @@ export class PlaceService {
   async update(
     id: string,
     updatePlaceDto: CreatePlaceRequestDto,
+    actor: { id: string; role?: string },
   ): Promise<PlaceDto> {
+    const existing = await loadExisting(this.placeModel, id);
+    if (!existing) {
+      throw new NotFoundException('Place not found');
+    }
+
+    const isAdmin = actor.role === 'admin';
+    const isCreator =
+      !!existing.createdBy &&
+      existing.createdBy.equals(new Types.ObjectId(actor.id));
+    if (!isAdmin && !isCreator) {
+      throw new ForbiddenException(
+        'Only the creator or an admin can edit this place',
+      );
+    }
+
+    const before = snapshotPlace(existing);
+
     const update: Record<string, unknown> = {};
     if (updatePlaceDto.location) {
       assertValidLocation(updatePlaceDto.location);
@@ -98,6 +119,23 @@ export class PlaceService {
 
     if (!result) {
       throw new NotFoundException('Place not found');
+    }
+
+    const after = snapshotPlace(result);
+
+    try {
+      await this.auditService.log({
+        actor: actor.id,
+        action: 'place.update',
+        targetType: 'Place',
+        targetId: id,
+        before,
+        after,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `audit log failed for place.update ${id}: ${(err as Error).message}`,
+      );
     }
 
     return PlaceMapper.toDto(result);
@@ -214,6 +252,25 @@ const DEFAULT_LIMIT = 50;
 function clampLimit(value: number | undefined): number {
   if (!value || value <= 0) return DEFAULT_LIMIT;
   return Math.min(value, MAX_LIMIT);
+}
+
+function snapshotPlace(place: PlaceDocument): Record<string, unknown> {
+  return {
+    name: place.name,
+    description: place.description,
+    address: place.address,
+    image: place.image,
+    location: Array.isArray(place.location)
+      ? [...place.location]
+      : place.location,
+  };
+}
+
+function loadExisting(
+  model: Model<Place>,
+  id: string,
+): Promise<PlaceDocument | null> {
+  return model.findById(id).exec();
 }
 
 function resolvePhotoFetchUrl(persistedUrl: string): string {
