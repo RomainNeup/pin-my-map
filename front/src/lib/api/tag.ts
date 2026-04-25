@@ -7,16 +7,19 @@ export interface Tag {
 	id: string;
 	name: string;
 	emoji: string;
+	color?: string;
 }
 
 export interface CreateTagRequest {
 	name: string;
 	emoji: string;
+	color?: string;
 }
 
 export interface UpdateTagRequest {
 	name: string;
 	emoji: string;
+	color?: string;
 }
 
 export function getTags() {
