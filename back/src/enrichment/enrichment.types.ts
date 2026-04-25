@@ -26,6 +26,7 @@ export interface EnrichmentResult {
   reviews?: EnrichmentReview[];
   priceLevel?: number;
   types?: string[];
+  googleMapsUri?: string;
   fetchedAt: Date;
 }
 

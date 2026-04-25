@@ -220,11 +220,11 @@ export class PlaceService implements OnModuleInit {
     return PlaceMapper.toDto(result);
   }
 
-  async findPhotoUrl(id: string, idx: number): Promise<string> {
+  async findPhotoUrl(id: string, idx: number): Promise<string | null> {
     const place = await this.placeModel.findById(id).exec();
     if (!place) throw new NotFoundException('Place not found');
     const photo = place.enrichment?.photos?.[idx];
-    if (!photo) throw new NotFoundException('Photo not found');
+    if (!photo) return null;
     return resolvePhotoFetchUrl(photo.url);
   }
 

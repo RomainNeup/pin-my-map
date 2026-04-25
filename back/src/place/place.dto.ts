@@ -105,6 +105,8 @@ export class PlaceEnrichmentDto {
   priceLevel?: number;
   @ApiProperty({ type: [String], required: false })
   types?: string[];
+  @ApiProperty({ required: false })
+  googleMapsUri?: string;
   @ApiProperty()
   fetchedAt: Date;
 }
