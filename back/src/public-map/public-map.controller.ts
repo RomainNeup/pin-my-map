@@ -1,8 +1,11 @@
 import { Controller, Get, HttpCode, Param, Query } from '@nestjs/common';
 import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Private } from 'src/auth/auth.decorator';
+import { User } from 'src/user/user.decorator';
 import { PublicMapService } from './public-map.service';
 import {
   PublicMapDto,
+  PublicMapStatsDto,
   PublicMapSummaryDto,
   PublicSavedPlaceDto,
 } from './public-map.dto';
@@ -18,6 +21,25 @@ export class PublicMapController {
   @ApiResponse({ status: 200, type: [PublicMapSummaryDto] })
   async discover(@Query('q') q?: string): Promise<PublicMapSummaryDto[]> {
     return this.publicMapService.discover(q);
+  }
+
+  @Private()
+  @Get('following')
+  @HttpCode(200)
+  @ApiResponse({ status: 200, type: [PublicMapSummaryDto] })
+  async getFollowingPublicMaps(
+    @User('id') userId: string,
+  ): Promise<PublicMapSummaryDto[]> {
+    return this.publicMapService.getFollowingPublicMaps(userId);
+  }
+
+  @Get('slug/:slug/stats')
+  @HttpCode(200)
+  @ApiResponse({ status: 200, type: PublicMapStatsDto })
+  async getStatsBySlug(
+    @Param('slug') slug: string,
+  ): Promise<PublicMapStatsDto> {
+    return this.publicMapService.getStatsBySlug(slug);
   }
 
   @Get('slug/:slug')
