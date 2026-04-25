@@ -7,6 +7,7 @@
 	import StarRating from '$lib/components/StarRating.svelte';
 	import SavedTagFilter from '$lib/components/place/SavedTagFilter.svelte';
 	import Chip from '$lib/components/ui/Chip.svelte';
+	import DoneFilter, { type DoneFilterValue } from '$lib/components/ui/DoneFilter.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import SkeletonCard from '$lib/components/ui/SkeletonCard.svelte';
 	import { tags } from '$lib/stores/tags';
@@ -21,6 +22,7 @@
 
 	let items = $state<SavedPlace[]>([]);
 	let selectedTagIds = $state<string[]>([]);
+	let doneFilter = $state<DoneFilterValue>('all');
 	let sortBy = $state<SortKey>('newest');
 	let loading = $state(false);
 	let initialLoaded = $state(false);
@@ -35,15 +37,22 @@
 		if (urlTagIds) {
 			selectedTagIds = urlTagIds.split(',').filter(Boolean);
 		}
+		const urlDone = $page.url.searchParams.get('done');
+		if (urlDone === 'todo' || urlDone === 'done') doneFilter = urlDone;
 	});
 
-	// Sync selectedTagIds to URL search params
-	function syncUrl(tagIds: string[]) {
+	// Sync URL search params
+	function syncUrl(tagIds: string[], done: DoneFilterValue) {
 		const url = new URL($page.url);
 		if (tagIds.length > 0) {
 			url.searchParams.set('tagIds', tagIds.join(','));
 		} else {
 			url.searchParams.delete('tagIds');
+		}
+		if (done !== 'all') {
+			url.searchParams.set('done', done);
+		} else {
+			url.searchParams.delete('done');
 		}
 		goto(url.toString(), { replaceState: true, noScroll: true, keepFocus: true });
 	}
@@ -71,7 +80,7 @@
 		}
 	}
 
-	let filterKey = $derived([...selectedTagIds].sort().join(','));
+	let filterKey = $derived([...selectedTagIds].sort().join(',') + '|' + doneFilter);
 	$effect(() => {
 		const _key = filterKey;
 		void _key;
@@ -80,12 +89,22 @@
 
 	function onTagsChange(next: string[]) {
 		selectedTagIds = next;
-		syncUrl(next);
+		syncUrl(next, doneFilter);
 	}
 
-	// Client-side sort
+	function onDoneFilterChange(v: DoneFilterValue) {
+		doneFilter = v;
+		syncUrl(selectedTagIds, v);
+	}
+
+	// Client-side done filter + sort
 	let sorted = $derived.by(() => {
-		const copy = [...items];
+		const filtered = items.filter((sp) => {
+			if (doneFilter === 'done') return sp.done === true;
+			if (doneFilter === 'todo') return sp.done !== true;
+			return true;
+		});
+		const copy = [...filtered];
 		switch (sortBy) {
 			case 'oldest':
 				return copy.sort(
@@ -180,9 +199,9 @@
 		</div>
 	</div>
 
-	<!-- Tag filter + sort row -->
-	{#if $tags?.length}
-		<div class="mb-4 flex items-center gap-3">
+	<!-- Tag filter + done filter + sort row -->
+	<div class="mb-4 flex flex-wrap items-center gap-2">
+		{#if $tags?.length}
 			<div class="min-w-0 flex-1">
 				<SavedTagFilter
 					tags={$tags}
@@ -191,29 +210,18 @@
 					onchange={onTagsChange}
 				/>
 			</div>
-			<select
-				bind:value={sortBy}
-				class="h-8 rounded-lg border border-border bg-bg-elevated px-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
-			>
-				<option value="newest">Newest</option>
-				<option value="oldest">Oldest</option>
-				<option value="rating-desc">Top rated</option>
-				<option value="name-asc">A → Z</option>
-			</select>
-		</div>
-	{:else}
-		<div class="mb-4 flex justify-end">
-			<select
-				bind:value={sortBy}
-				class="h-8 rounded-lg border border-border bg-bg-elevated px-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
-			>
-				<option value="newest">Newest</option>
-				<option value="oldest">Oldest</option>
-				<option value="rating-desc">Top rated</option>
-				<option value="name-asc">A → Z</option>
-			</select>
-		</div>
-	{/if}
+		{/if}
+		<DoneFilter value={doneFilter} onChange={onDoneFilterChange} />
+		<select
+			bind:value={sortBy}
+			class="h-8 rounded-lg border border-border bg-bg-elevated px-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-accent"
+		>
+			<option value="newest">Newest</option>
+			<option value="oldest">Oldest</option>
+			<option value="rating-desc">Top rated</option>
+			<option value="name-asc">A → Z</option>
+		</select>
+	</div>
 
 	<!-- Content -->
 	{#if !initialLoaded}
