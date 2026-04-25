@@ -1,6 +1,36 @@
 import { axiosInstance } from './base';
 import type { UserRole } from '$lib/stores/user';
 
+export interface MeProfile {
+	id: string;
+	name: string;
+	email: string;
+	role: UserRole;
+}
+
+export interface UpdateMePayload {
+	name?: string;
+	email?: string;
+	currentPassword?: string;
+}
+
+export interface ChangePasswordPayload {
+	currentPassword: string;
+	newPassword: string;
+}
+
+export function updateMe(payload: UpdateMePayload): Promise<MeProfile> {
+	return axiosInstance.patch<MeProfile>('/user/me', payload).then(({ data }) => data);
+}
+
+export function changePassword(payload: ChangePasswordPayload): Promise<void> {
+	return axiosInstance.post('/user/me/change-password', payload).then(() => undefined);
+}
+
+export function deleteMe(password: string): Promise<void> {
+	return axiosInstance.delete('/user/me', { data: { password } }).then(() => undefined);
+}
+
 export interface AdminUser {
 	id: string;
 	name: string;
