@@ -11,7 +11,7 @@ export class UserDto {
 export class UserRegisterDto {
   name: string;
   email: string;
-  password: string;
+  password?: string;
   role?: UserRole;
 }
 
@@ -20,7 +20,7 @@ export class UserInfoDto {
   id: string;
   name: string;
   email: string;
-  password: string;
+  password?: string;
   role: UserRole;
 }
 
