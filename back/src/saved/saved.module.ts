@@ -5,6 +5,7 @@ import { SavedPlace, SavedPlaceSchema } from './saved.entity';
 import { SavedPlaceService } from './saved.service';
 import { PlaceModule } from 'src/place/place.module';
 import { TagModule } from 'src/tag/tag.module';
+import { GamificationModule } from 'src/gamification/gamification.module';
 
 @Module({
   imports: [
@@ -13,8 +14,10 @@ import { TagModule } from 'src/tag/tag.module';
     ]),
     PlaceModule,
     TagModule,
+    GamificationModule,
   ],
   controllers: [SavedController],
   providers: [SavedPlaceService],
+  exports: [SavedPlaceService],
 })
 export class SavedPlaceModule {}

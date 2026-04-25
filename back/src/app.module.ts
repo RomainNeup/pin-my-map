@@ -5,6 +5,11 @@ import { PlaceModule } from './place/place.module';
 import { TagModule } from './tag/tag.module';
 import { SavedPlaceModule } from './saved/saved.module';
 import { ImportModule } from './import/import.module';
+import { SuggestionModule } from './suggestion/suggestion.module';
+import { AuditModule } from './audit/audit.module';
+import { GamificationModule } from './gamification/gamification.module';
+import { PublicMapModule } from './public-map/public-map.module';
+import { McpModule } from './mcp/mcp.module';
 
 @Module({
   imports: [
@@ -16,6 +21,11 @@ import { ImportModule } from './import/import.module';
     TagModule,
     SavedPlaceModule,
     ImportModule,
+    SuggestionModule,
+    AuditModule,
+    GamificationModule,
+    PublicMapModule,
+    McpModule,
   ],
   controllers: [],
   providers: [],
