@@ -3,7 +3,9 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import '../app.css';
-	import { accessToken } from '$lib/stores/user';
+	import { accessToken, currentUser } from '$lib/stores/user';
+	import { loadGamificationProfile, resetGamification } from '$lib/stores/gamification';
+	import { getMe } from '$lib/api/auth';
 	import AppShell from '$lib/components/shell/AppShell.svelte';
 	import Toast from '$lib/components/ui/Toast.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
@@ -23,6 +25,22 @@
 	onMount(() => {
 		if (!$accessToken && !AUTH_ROUTES.some((p) => pathname.startsWith(p))) {
 			goto('/login');
+		}
+	});
+
+	$effect(() => {
+		if ($accessToken && !$currentUser) {
+			getMe().catch(() => {
+				// 401 interceptor already clears the token
+			});
+		}
+	});
+
+	$effect(() => {
+		if ($currentUser) {
+			loadGamificationProfile({ silent: true }).catch(() => {});
+		} else {
+			resetGamification();
 		}
 	});
 </script>

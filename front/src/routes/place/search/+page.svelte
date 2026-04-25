@@ -94,7 +94,7 @@
 				bind:value={query}
 				oninput={onInput}
 				placeholder="Search places..."
-				class="block h-11 w-full rounded-lg border border-border bg-bg-elevated pl-10 pr-10 text-sm text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
+				class="block h-11 w-full rounded-lg border border-border bg-bg-elevated pl-10 pr-10 text-sm text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-hidden focus:ring-2 focus:ring-accent"
 			/>
 			{#if query.length > 0}
 				<button

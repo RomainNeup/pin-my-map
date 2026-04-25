@@ -1,8 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { refreshEnrichment, type Place } from '$lib/api/place';
 	import { createSavedPlace, type IsSavedPlaceResponse } from '$lib/api/savedPlace';
 	import Button from '$lib/components/Button.svelte';
 	import Map from '$lib/components/Map.svelte';
+	import EnrichmentDetails from '$lib/components/place/EnrichmentDetails.svelte';
+	import OpenInMenu from '$lib/components/place/OpenInMenu.svelte';
+	import SuggestEditDialog from '$lib/components/place/SuggestEditDialog.svelte';
 	import IconButton from '$lib/components/ui/IconButton.svelte';
 	import { toast } from '$lib/stores/toast';
 	import Bookmark from 'lucide-svelte/icons/bookmark';
@@ -10,6 +14,7 @@
 	import Eye from 'lucide-svelte/icons/eye';
 	import MapPinIcon from 'lucide-svelte/icons/map-pin';
 	import Pencil from 'lucide-svelte/icons/pencil';
+	import RefreshCw from 'lucide-svelte/icons/refresh-cw';
 	import type { PageData } from './$types';
 
 	type Props = {
@@ -20,11 +25,26 @@
 
 	let saved: IsSavedPlaceResponse = $state(data.saved);
 	let saving = $state(false);
+	let suggestOpen = $state(false);
+	let place: Place = $state(data.place);
+	let refreshing = $state(false);
+
+	const handleRefresh = async () => {
+		refreshing = true;
+		try {
+			place = await refreshEnrichment(place.id);
+			toast('Place data refreshed', 'success');
+		} catch {
+			toast('Failed to refresh data', 'error');
+		} finally {
+			refreshing = false;
+		}
+	};
 
 	const savePlace = async () => {
 		saving = true;
 		try {
-			await createSavedPlace(data.place.id);
+			await createSavedPlace(place.id);
 			saved = { ...saved, isSaved: true };
 			toast('Saved to your places', 'success');
 		} finally {
@@ -42,6 +62,9 @@
 </script>
 
 {#snippet backIcon()}<ChevronLeft class="h-5 w-5" />{/snippet}
+{#snippet refreshIcon()}<RefreshCw
+		class={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`}
+	/>{/snippet}
 {#snippet viewPrefix()}<Eye class="h-4 w-4" />{/snippet}
 {#snippet savePrefix()}<Bookmark class="h-4 w-4" />{/snippet}
 {#snippet editPrefix()}<Pencil class="h-4 w-4" />{/snippet}
@@ -49,44 +72,58 @@
 <div class="mx-auto w-full max-w-6xl px-4 py-4 md:py-6">
 	<div class="mb-4 flex items-center gap-2">
 		<IconButton label="Go back" variant="ghost" tone="neutral" onclick={goBack} icon={backIcon} />
+		<div class="ml-auto">
+			<IconButton
+				label="Refresh place data"
+				variant="ghost"
+				tone="neutral"
+				onclick={handleRefresh}
+				disabled={refreshing}
+				icon={refreshIcon}
+			/>
+		</div>
 	</div>
 
-	{#if data.place}
+	{#if place}
 		<div class="grid gap-6 lg:grid-cols-[1fr_380px] lg:items-start">
 			<div class="space-y-4">
 				<div class="h-48 overflow-hidden rounded-xl md:h-80">
 					<Map
 						sources={[
 							{
-								key: data.place.name,
+								key: place.name,
 								points: [
 									{
-										id: data.place.id,
-										position: [data.place.location.lng, data.place.location.lat]
+										id: place.id,
+										position: [place.location.lng, place.location.lat]
 									}
 								]
 							}
 						]}
-						lat={data.place.location.lat}
-						lng={data.place.location.lng}
+						lat={place.location.lat}
+						lng={place.location.lng}
 						zoom={14}
 					/>
 				</div>
 
 				<div class="space-y-2">
 					<h1 class="text-2xl font-semibold leading-7 text-fg md:text-[28px]">
-						{data.place.name}
+						{place.name}
 					</h1>
-					{#if data.place.description}
-						<p class="text-fg-muted">{data.place.description}</p>
+					{#if place.description}
+						<p class="text-fg-muted">{place.description}</p>
 					{/if}
-					{#if data.place.address}
+					{#if place.address}
 						<div class="flex items-start gap-2 text-sm text-fg-muted">
 							<MapPinIcon class="mt-0.5 h-4 w-4 shrink-0" />
-							<span>{data.place.address}</span>
+							<span>{place.address}</span>
 						</div>
 					{/if}
 				</div>
+
+				{#if place.enrichment}
+					<EnrichmentDetails enrichment={place.enrichment} />
+				{/if}
 			</div>
 
 			<!-- Desktop action stack -->
@@ -113,7 +150,17 @@
 						Save to my places
 					</Button>
 				{/if}
-				<Button variant="ghost" tone="neutral" fullwidth prefix={editPrefix}>
+				<OpenInMenu
+					target={{ name: place.name, lat: place.location.lat, lng: place.location.lng }}
+					fullwidth
+				/>
+				<Button
+					variant="ghost"
+					tone="neutral"
+					fullwidth
+					prefix={editPrefix}
+					onclick={() => (suggestOpen = true)}
+				>
 					Suggest an edit
 				</Button>
 			</div>
@@ -121,8 +168,12 @@
 	{/if}
 </div>
 
+{#if place}
+	<SuggestEditDialog bind:open={suggestOpen} {place} />
+{/if}
+
 <!-- Mobile sticky action bar -->
-{#if data.place}
+{#if place}
 	<div
 		class="sticky bottom-0 left-0 right-0 z-10 border-t border-border bg-bg-elevated px-4 py-3 shadow-lg lg:hidden"
 	>
@@ -149,7 +200,19 @@
 					Save to my places
 				</Button>
 			{/if}
-			<Button variant="ghost" tone="neutral" fullwidth prefix={editPrefix}>Suggest an edit</Button>
+			<OpenInMenu
+				target={{ name: place.name, lat: place.location.lat, lng: place.location.lng }}
+				fullwidth
+			/>
+			<Button
+				variant="ghost"
+				tone="neutral"
+				fullwidth
+				prefix={editPrefix}
+				onclick={() => (suggestOpen = true)}
+			>
+				Suggest an edit
+			</Button>
 		</div>
 	</div>
 {/if}

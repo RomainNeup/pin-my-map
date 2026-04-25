@@ -55,7 +55,7 @@
 	});
 </script>
 
-<div class="relative h-[100dvh] w-full overflow-hidden">
+<div class="relative h-dvh w-full overflow-hidden">
 	{#snippet plusIcon()}<Plus class="h-6 w-6" />{/snippet}
 	<Map centerOnUser sources={[source]}>
 		<div

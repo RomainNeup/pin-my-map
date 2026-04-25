@@ -29,7 +29,7 @@
 		'absolute z-fab flex h-14 w-14 items-center justify-center rounded-full',
 		'bg-accent text-accent-fg shadow-lg',
 		'transition-transform duration-150 active:scale-95 hover:scale-105',
-		'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+		'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
 		posCls,
 		className
 	);

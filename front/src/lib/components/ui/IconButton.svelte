@@ -51,7 +51,7 @@
 	const base = $derived(
 		twMerge(
 			'inline-flex items-center justify-center rounded-lg transition-colors duration-150',
-			'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+			'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
 			sizeCls[size],
 			toneVariant[key],
 			disabled && 'cursor-not-allowed opacity-60',

@@ -89,7 +89,7 @@
 			<Map lat={lat!} lng={lng!} zoom={14} sources={previewSource} controls={false} />
 		</div>
 		<p class="flex items-start gap-1.5 font-mono text-xs text-fg-muted">
-			<MapPin class="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+			<MapPin class="mt-0.5 h-3.5 w-3.5 shrink-0" />
 			<span>{lat!.toFixed(5)}, {lng!.toFixed(5)}</span>
 		</p>
 	{/if}
@@ -127,7 +127,7 @@
 		{/if}
 
 		<div
-			class="bg-bg-elevated/80 sticky -mx-4 border-t border-border px-4 py-3 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0"
+			class="bg-bg-elevated/80 sticky -mx-4 border-t border-border px-4 py-3 backdrop-blur-sm md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0"
 			style="bottom: var(--tabbar-h);"
 		>
 			<div class="flex gap-2">

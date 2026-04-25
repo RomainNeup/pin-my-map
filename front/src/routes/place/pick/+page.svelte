@@ -127,7 +127,7 @@
 	};
 </script>
 
-<div class="relative h-[100dvh] w-full overflow-hidden">
+<div class="relative h-dvh w-full overflow-hidden">
 	<Map centerOnUser controls>
 		<!-- Top bar -->
 		<div class="pointer-events-none absolute inset-x-0 top-0 z-overlay px-3 pt-3 md:px-6">
@@ -136,12 +136,12 @@
 					href="/"
 					label="Back"
 					variant="soft"
-					class="bg-bg-elevated/90 shadow-md backdrop-blur"
+					class="bg-bg-elevated/90 shadow-md backdrop-blur-sm"
 				>
 					{#snippet icon()}<ArrowLeft class="h-5 w-5" />{/snippet}
 				</IconButton>
 				<div
-					class="bg-bg-elevated/90 rounded-full border border-border px-3 py-1.5 text-sm font-medium shadow-md backdrop-blur"
+					class="bg-bg-elevated/90 rounded-full border border-border px-3 py-1.5 text-sm font-medium shadow-md backdrop-blur-sm"
 				>
 					Move the map to pick a location
 				</div>
@@ -172,20 +172,20 @@
 				variant="soft"
 				onclick={useMyLocation}
 				disabled={locating}
-				class="bg-bg-elevated/95 shadow-md backdrop-blur"
+				class="bg-bg-elevated/95 shadow-md backdrop-blur-sm"
 			>
 				{#snippet icon()}<LocateFixed class="h-5 w-5" />{/snippet}
 			</IconButton>
 		</div>
 
 		<!-- Bottom confirmation card -->
-		<div class="absolute inset-x-0 bottom-[var(--tabbar-h)] z-overlay p-3 md:bottom-0 md:p-6">
+		<div class="absolute inset-x-0 bottom-(--tabbar-h) z-overlay p-3 md:bottom-0 md:p-6">
 			<div
-				class="bg-bg-elevated/95 mx-auto max-w-md space-y-3 rounded-2xl border border-border p-4 shadow-xl backdrop-blur"
+				class="bg-bg-elevated/95 mx-auto max-w-md space-y-3 rounded-2xl border border-border p-4 shadow-xl backdrop-blur-sm"
 			>
 				<div class="flex items-start gap-3">
 					<span
-						class="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-soft-fg"
+						class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-soft-fg"
 					>
 						<MapPin class="h-4 w-4" />
 					</span>

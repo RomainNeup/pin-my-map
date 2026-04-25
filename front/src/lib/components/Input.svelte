@@ -49,7 +49,7 @@
 	const base = $derived(
 		twMerge(
 			'block rounded-lg border bg-bg-elevated text-fg placeholder:text-fg-subtle',
-			'focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent',
+			'focus:outline-hidden focus:ring-2 focus:ring-accent focus:border-accent',
 			'transition-colors duration-150',
 			sizeCls[size],
 			error ? 'border-danger focus:border-danger focus:ring-danger' : 'border-border',

@@ -246,7 +246,7 @@
 							onkeydown={handleCommentKey}
 							onblur={handleCommentBlur}
 							rows="3"
-							class="block min-h-[80px] w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
+							class="block min-h-[80px] w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-hidden focus:ring-2 focus:ring-accent"
 						></textarea>
 						<p class="text-xs text-fg-subtle">Press Cmd/Ctrl+Enter to save · Esc to cancel</p>
 					{:else}

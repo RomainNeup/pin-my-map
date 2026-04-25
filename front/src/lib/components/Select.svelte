@@ -67,7 +67,7 @@
 		class={twMerge(
 			'inline-flex items-center justify-between gap-2 rounded-lg border border-border bg-bg-elevated text-fg',
 			'transition-colors duration-150 hover:bg-bg-muted',
-			'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+			'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent',
 			sizeCls[size],
 			fullwidth && 'w-full',
 			disabled && 'cursor-not-allowed opacity-60'

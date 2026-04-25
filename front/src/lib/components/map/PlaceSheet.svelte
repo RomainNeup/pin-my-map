@@ -18,7 +18,7 @@
 		<h2 class="text-xl font-semibold">{savedPlace.place.name}</h2>
 		{#if savedPlace.place.address}
 			<p class="flex items-start gap-1.5 text-sm text-fg-muted">
-				<MapPin class="mt-0.5 h-4 w-4 flex-shrink-0" />
+				<MapPin class="mt-0.5 h-4 w-4 shrink-0" />
 				<span>{savedPlace.place.address}</span>
 			</p>
 		{/if}

@@ -101,7 +101,7 @@
 					onkeydown={handleKey}
 					type="text"
 					placeholder="Search or create tag..."
-					class="mb-2 block h-9 w-full rounded-md border border-border bg-bg-elevated px-2.5 text-sm text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
+					class="mb-2 block h-9 w-full rounded-md border border-border bg-bg-elevated px-2.5 text-sm text-fg placeholder:text-fg-subtle focus:border-accent focus:outline-hidden focus:ring-2 focus:ring-accent"
 				/>
 
 				<div class="max-h-56 overflow-y-auto">

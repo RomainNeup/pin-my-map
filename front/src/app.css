@@ -1,71 +1,157 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@import 'tailwindcss';
 
-/* Design tokens — light theme (default) */
-:root {
-	color-scheme: light;
+@plugin '@tailwindcss/forms';
 
-	--tabbar-h: calc(56px + env(safe-area-inset-bottom, 0px));
+@custom-variant dark (&:is(.dark *));
 
-	--c-bg: #ffffff;
-	--c-bg-elevated: #ffffff;
-	--c-bg-muted: #f5f5f4;
-	--c-bg-inset: #e7e5e4;
-	--c-border: #e7e5e4;
-	--c-border-strong: #d6d3d1;
-	--c-fg: #0c0a09;
-	--c-fg-muted: #57534e;
-	--c-fg-subtle: #a8a29e;
+@theme {
+  --color-bg: var(--c-bg);
+  --color-bg-elevated: var(--c-bg-elevated);
+  --color-bg-muted: var(--c-bg-muted);
+  --color-bg-inset: var(--c-bg-inset);
+  --color-border: var(--c-border);
+  --color-border-strong: var(--c-border-strong);
+  --color-fg: var(--c-fg);
+  --color-fg-muted: var(--c-fg-muted);
+  --color-fg-subtle: var(--c-fg-subtle);
 
-	--c-accent: #0d9488;
-	--c-accent-fg: #ffffff;
-	--c-accent-hover: #0f766e;
-	--c-accent-soft: #ccfbf1;
-	--c-accent-soft-fg: #134e4a;
+  --color-accent: var(--c-accent);
+  --color-accent-fg: var(--c-accent-fg);
+  --color-accent-hover: var(--c-accent-hover);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-accent-soft-fg: var(--c-accent-soft-fg);
 
-	--c-success: #16a34a;
-	--c-warning: #d97706;
-	--c-danger: #dc2626;
-	--c-danger-soft: #fee2e2;
-	--c-info: #0ea5e9;
+  --color-success: var(--c-success);
+  --color-warning: var(--c-warning);
 
-	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-	--shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
-	--shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.18);
+  --color-danger: var(--c-danger);
+  --color-danger-soft: var(--c-danger-soft);
 
-	--glass-bg: rgba(255, 255, 255, 0.78);
-	--glass-border: rgba(0, 0, 0, 0.06);
+  --color-info: var(--c-info);
+
+  --font-sans: Inter, system-ui, sans-serif;
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow: var(--shadow-md);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+
+  --backdrop-blur-glass: 12px;
+
+  --z-index-map: 0;
+  --z-index-overlay: 10;
+  --z-index-fab: 20;
+  --z-index-sheet: 30;
+  --z-index-dialog: 40;
+  --z-index-toast: 50;
+  --z-index-popover: 60;
 }
 
-.dark {
-	color-scheme: dark;
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
 
-	--c-bg: #0c0a09;
-	--c-bg-elevated: #1c1917;
-	--c-bg-muted: #1c1917;
-	--c-bg-inset: #292524;
-	--c-border: #292524;
-	--c-border-strong: #44403c;
-	--c-fg: #fafaf9;
-	--c-fg-muted: #a8a29e;
-	--c-fg-subtle: #78716c;
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
 
-	--c-accent: #2dd4bf;
-	--c-accent-fg: #042f2e;
-	--c-accent-hover: #5eead4;
-	--c-accent-soft: #134e4a;
-	--c-accent-soft-fg: #ccfbf1;
+@utility glass {
+  background-color: var(--glass-bg);
+  backdrop-filter: saturate(1.4) blur(12px);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px);
+  border: 1px solid var(--glass-border);
+}
 
-	--c-success: #22c55e;
-	--c-warning: #f59e0b;
-	--c-danger: #ef4444;
-	--c-danger-soft: #450a0a;
-	--c-info: #38bdf8;
+@utility no-scrollbar {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  scrollbar-width: none;
+}
 
-	--glass-bg: rgba(28, 25, 23, 0.72);
-	--glass-border: rgba(255, 255, 255, 0.06);
+@layer utilities {
+  /* Design tokens — light theme (default) */
+  :root {
+    color-scheme: light;
+
+    --tabbar-h: calc(56px + env(safe-area-inset-bottom, 0px));
+
+    --c-bg: #ffffff;
+    --c-bg-elevated: #ffffff;
+    --c-bg-muted: #f5f5f4;
+    --c-bg-inset: #e7e5e4;
+    --c-border: #e7e5e4;
+    --c-border-strong: #d6d3d1;
+    --c-fg: #0c0a09;
+    --c-fg-muted: #57534e;
+    --c-fg-subtle: #a8a29e;
+
+    --c-accent: #0d9488;
+    --c-accent-fg: #ffffff;
+    --c-accent-hover: #0f766e;
+    --c-accent-soft: #ccfbf1;
+    --c-accent-soft-fg: #134e4a;
+
+    --c-success: #16a34a;
+    --c-warning: #d97706;
+    --c-danger: #dc2626;
+    --c-danger-soft: #fee2e2;
+    --c-info: #0ea5e9;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+    --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.18);
+
+    --glass-bg: rgba(255, 255, 255, 0.78);
+    --glass-border: rgba(0, 0, 0, 0.06);
+  }
+
+  .dark {
+    color-scheme: dark;
+
+    --c-bg: #0c0a09;
+    --c-bg-elevated: #1c1917;
+    --c-bg-muted: #1c1917;
+    --c-bg-inset: #292524;
+    --c-border: #292524;
+    --c-border-strong: #44403c;
+    --c-fg: #fafaf9;
+    --c-fg-muted: #a8a29e;
+    --c-fg-subtle: #78716c;
+
+    --c-accent: #2dd4bf;
+    --c-accent-fg: #042f2e;
+    --c-accent-hover: #5eead4;
+    --c-accent-soft: #134e4a;
+    --c-accent-soft-fg: #ccfbf1;
+
+    --c-success: #22c55e;
+    --c-warning: #f59e0b;
+    --c-danger: #ef4444;
+    --c-danger-soft: #450a0a;
+    --c-info: #38bdf8;
+
+    --glass-bg: rgba(28, 25, 23, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.06);
+  }
 }
 
 @layer base {
@@ -90,22 +176,6 @@
 	::selection {
 		background-color: var(--c-accent);
 		color: var(--c-accent-fg);
-	}
-}
-
-@layer utilities {
-	.glass {
-		background-color: var(--glass-bg);
-		backdrop-filter: saturate(1.4) blur(12px);
-		-webkit-backdrop-filter: saturate(1.4) blur(12px);
-		border: 1px solid var(--glass-border);
-	}
-
-	.no-scrollbar::-webkit-scrollbar {
-		display: none;
-	}
-	.no-scrollbar {
-		scrollbar-width: none;
 	}
 }
 

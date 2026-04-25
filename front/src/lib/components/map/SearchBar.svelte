@@ -64,7 +64,7 @@
 
 <div class="relative w-full" use:clickOutside={close}>
 	<div
-		class="bg-bg-elevated/90 pointer-events-auto flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm shadow-md backdrop-blur"
+		class="bg-bg-elevated/90 pointer-events-auto flex items-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm shadow-md backdrop-blur-sm"
 	>
 		<Search class="h-4 w-4 text-fg-muted" />
 		<input
@@ -73,7 +73,7 @@
 			oninput={onInput}
 			onfocus={() => (open = true)}
 			placeholder="Search places or tags"
-			class="flex-1 border-0 bg-transparent p-0 text-fg placeholder:text-fg-muted focus:border-0 focus:outline-none focus:ring-0"
+			class="flex-1 border-0 bg-transparent p-0 text-fg placeholder:text-fg-muted focus:border-0 focus:outline-hidden focus:ring-0"
 		/>
 		{#if query.length > 0}
 			<button

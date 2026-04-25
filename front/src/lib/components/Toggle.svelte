@@ -45,7 +45,7 @@
 		onclick={handleClick}
 		class={twMerge(
 			'relative inline-flex shrink-0 items-center rounded-full transition-colors duration-150',
-			'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+			'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
 			dims[size].track,
 			value ? 'bg-accent' : 'bg-bg-inset',
 			disabled && 'cursor-not-allowed opacity-60'

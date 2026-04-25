@@ -55,7 +55,7 @@
 
 		return twMerge(
 			'relative cursor-pointer bg-transparent p-0 leading-none transition-colors duration-150',
-			'focus-visible:outline-none',
+			'focus-visible:outline-hidden',
 			isFilled ? 'text-amber-400' : isHalf ? 'half-star text-amber-400' : 'text-fg-subtle',
 			disabled && 'cursor-not-allowed opacity-60'
 		);

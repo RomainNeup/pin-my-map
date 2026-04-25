@@ -43,7 +43,7 @@
 
 <dialog
 	bind:this={dialogEl}
-	class="w-full max-w-md rounded-xl border border-border bg-bg-elevated p-0 text-fg shadow-xl backdrop:bg-black/40 backdrop:backdrop-blur-sm"
+	class="w-full max-w-md rounded-xl border border-border bg-bg-elevated p-0 text-fg shadow-xl backdrop:bg-black/40 backdrop:backdrop-blur-xs"
 	oncancel={(e) => {
 		e.preventDefault();
 		if (closable) close();
