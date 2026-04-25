@@ -21,6 +21,7 @@ import {
   BulkEnrichDto,
   BulkEnrichSummaryDto,
   CreatePlaceRequestDto,
+  PlaceClosedDto,
   PlaceDto,
   RejectPlaceDto,
 } from './place.dto';
@@ -148,7 +149,7 @@ export class PlaceController {
   @ApiResponse({
     status: 200,
     type: PlaceDto,
-    description: 'Returns a specific place by ID.',
+    description: 'Returns a specific place by ID (includes saveCount).',
   })
   @ApiResponse({
     status: 404,
@@ -159,10 +160,26 @@ export class PlaceController {
     @User('id') userId: string | undefined,
     @User('role') role: 'user' | 'admin' | undefined,
   ): Promise<PlaceDto> {
-    return await this.placeService.findOne(
+    return await this.placeService.findOneWithStats(
       id,
       userId ? { id: userId, role } : undefined,
     );
+  }
+
+  @Admin()
+  @Post(':id/closed')
+  @HttpCode(200)
+  @ApiResponse({
+    status: 200,
+    type: PlaceDto,
+    description: 'Sets or unsets the permanently-closed flag.',
+  })
+  async setPlaceClosed(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() body: PlaceClosedDto,
+    @User('id') adminId: string,
+  ): Promise<PlaceDto> {
+    return await this.placeService.setPermanentlyClosed(id, body, adminId);
   }
 
   @Private()

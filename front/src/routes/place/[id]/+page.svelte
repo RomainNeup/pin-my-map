@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goBack } from '$lib/utils/navigation';
-	import { refreshEnrichment, type Place } from '$lib/api/place';
+	import { refreshEnrichment, setPermanentlyClosed, type Place } from '$lib/api/place';
 	import { createSavedPlace, type IsSavedPlaceResponse } from '$lib/api/savedPlace';
 	import Button from '$lib/components/Button.svelte';
 	import Map from '$lib/components/Map.svelte';
@@ -36,6 +36,17 @@
 		$currentUser !== null &&
 			(place.createdBy === $currentUser.id || $currentUser.role === 'admin')
 	);
+
+	const isAdmin = $derived($currentUser?.role === 'admin');
+
+	const handleToggleClosed = async (closed: boolean) => {
+		try {
+			place = await setPermanentlyClosed(place.id, closed);
+			toast(closed ? 'Place marked as permanently closed' : 'Place reopened', 'success');
+		} catch {
+			toast('Failed to update closure status', 'error');
+		}
+	};
 
 	const handleRefresh = async () => {
 		refreshing = true;
@@ -127,7 +138,12 @@
 				</div>
 
 				{#if place.enrichment}
-					<PlaceEnrichmentDetails {place} enrichment={place.enrichment} />
+					<PlaceEnrichmentDetails
+						{place}
+						enrichment={place.enrichment}
+						{isAdmin}
+						onToggleClosed={handleToggleClosed}
+					/>
 				{/if}
 			</div>
 

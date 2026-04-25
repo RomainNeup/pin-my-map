@@ -8,11 +8,13 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Place, PlaceDocument } from './place.entity';
+import { SavedPlace } from 'src/saved/saved.entity';
 import { Model, Types } from 'mongoose';
 import {
   BulkEnrichDto,
   BulkEnrichSummaryDto,
   CreatePlaceRequestDto,
+  PlaceClosedDto,
   PlaceDto,
 } from './place.dto';
 import { PlaceMapper } from './place.mapper';
@@ -31,6 +33,7 @@ export class PlaceService implements OnModuleInit {
 
   constructor(
     @InjectModel(Place.name) private placeModel: Model<Place>,
+    @InjectModel(SavedPlace.name) private savedPlaceModel: Model<SavedPlace>,
     private enrichmentService: EnrichmentService,
     private gamificationService: GamificationService,
     private auditService: AuditService,
@@ -223,6 +226,65 @@ export class PlaceService implements OnModuleInit {
     }
 
     return PlaceMapper.toDto(result);
+  }
+
+  async findOneWithStats(id: string, actor?: PlaceActor): Promise<PlaceDto> {
+    const result = await this.placeModel.findById(id).exec();
+
+    if (!result) {
+      throw new NotFoundException('Place not found');
+    }
+
+    if (result.moderationStatus && result.moderationStatus !== 'approved') {
+      const isAdmin = actor?.role === 'admin';
+      const isOwner =
+        actor?.id !== undefined &&
+        result.createdBy !== undefined &&
+        result.createdBy?.toString() === actor.id;
+      if (!isAdmin && !isOwner) {
+        throw new NotFoundException('Place not found');
+      }
+    }
+
+    const saveCount = await this.savedPlaceModel
+      .countDocuments({ place: result._id })
+      .exec();
+
+    return PlaceMapper.toDto(result, saveCount);
+  }
+
+  async setPermanentlyClosed(
+    id: string,
+    dto: PlaceClosedDto,
+    adminId: string,
+  ): Promise<PlaceDto> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid id');
+    }
+    const place = await this.placeModel.findById(id).exec();
+    if (!place) {
+      throw new NotFoundException('Place not found');
+    }
+
+    place.permanentlyClosed = dto.closed;
+    place.permanentlyClosedAt = dto.closed ? new Date() : undefined;
+    await place.save();
+
+    try {
+      await this.auditService.log({
+        actor: adminId,
+        action: 'place.closed.update',
+        targetType: 'Place',
+        targetId: id,
+        meta: { closed: dto.closed, reason: dto.reason },
+      });
+    } catch (err) {
+      this.logger.warn(
+        `audit log failed for place.closed.update ${id}: ${(err as Error).message}`,
+      );
+    }
+
+    return PlaceMapper.toDto(place);
   }
 
   async findPhotoUrl(id: string, idx: number): Promise<string | null> {
@@ -457,6 +519,11 @@ export class PlaceService implements OnModuleInit {
       place.externalProvider = result.providerName;
       place.enrichment = result;
       place.enrichedAt = result.fetchedAt;
+      // Propagate permanentlyClosed signal from enrichment providers
+      if (result.permanentlyClosed && !place.permanentlyClosed) {
+        place.permanentlyClosed = true;
+        place.permanentlyClosedAt = new Date();
+      }
       await place.save();
     }
   }

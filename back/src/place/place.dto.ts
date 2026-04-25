@@ -80,6 +80,34 @@ export class PlaceEnrichmentReviewDto {
   time: number;
 }
 
+@ApiSchema({ name: 'Social Links' })
+export class SocialLinksDto {
+  @ApiProperty({ required: false })
+  instagram?: string;
+  @ApiProperty({ required: false })
+  facebook?: string;
+  @ApiProperty({ required: false })
+  twitter?: string;
+  @ApiProperty({ required: false })
+  tiktok?: string;
+}
+
+@ApiSchema({ name: 'Amenities' })
+export class AmenitiesDto {
+  @ApiProperty({ required: false, enum: ['yes', 'no', 'limited'] })
+  wheelchair?: 'yes' | 'no' | 'limited';
+  @ApiProperty({ required: false })
+  outdoorSeating?: boolean;
+  @ApiProperty({ required: false, enum: ['yes', 'no', 'wlan'] })
+  wifi?: 'yes' | 'no' | 'wlan';
+  @ApiProperty({ required: false, enum: ['yes', 'no', 'only'] })
+  dietVegetarian?: 'yes' | 'no' | 'only';
+  @ApiProperty({ required: false, enum: ['yes', 'no', 'only'] })
+  dietVegan?: 'yes' | 'no' | 'only';
+  @ApiProperty({ required: false, enum: ['yes', 'no', 'only'] })
+  dietGlutenFree?: 'yes' | 'no' | 'only';
+}
+
 @ApiSchema({ name: 'Place Enrichment' })
 export class PlaceEnrichmentDto {
   @ApiProperty()
@@ -109,8 +137,26 @@ export class PlaceEnrichmentDto {
   types?: string[];
   @ApiProperty({ required: false })
   googleMapsUri?: string;
+  @ApiProperty({ type: SocialLinksDto, required: false })
+  socialLinks?: SocialLinksDto;
+  @ApiProperty({ type: AmenitiesDto, required: false })
+  amenities?: AmenitiesDto;
+  @ApiProperty({ type: [String], required: false })
+  reservationLinks?: string[];
   @ApiProperty()
   fetchedAt: Date;
+}
+
+@ApiSchema({ name: 'Place Closed Request' })
+export class PlaceClosedDto {
+  @ApiProperty()
+  @IsBoolean()
+  closed: boolean;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
 }
 
 @ApiSchema({ name: 'Place Moderation' })
@@ -221,4 +267,17 @@ export class PlaceDto {
   moderationStatus?: 'pending' | 'approved' | 'rejected';
   @ApiProperty({ required: false })
   rejectionReason?: string;
+  @ApiProperty({
+    required: false,
+    description: 'True when the place is permanently closed.',
+  })
+  permanentlyClosed?: boolean;
+  @ApiProperty({ required: false })
+  permanentlyClosedAt?: string;
+  @ApiProperty({
+    required: false,
+    description:
+      'Number of users who have saved this place. Only present on detail endpoints.',
+  })
+  saveCount?: number;
 }

@@ -3,6 +3,7 @@ import {
   EnrichmentProvider,
   EnrichmentQuery,
   EnrichmentResult,
+  SocialLinks,
 } from '../enrichment.types';
 
 const SEARCH_URL = 'https://places.googleapis.com/v1/places:searchText';
@@ -25,6 +26,8 @@ const FIELD_MASK = [
   'regularOpeningHours',
   'photos',
   'reviews',
+  'businessStatus',
+  'reservations',
 ].join(',');
 
 interface GooglePlace {
@@ -46,6 +49,18 @@ interface GooglePlace {
     text?: { text?: string };
     publishTime?: string;
   }[];
+  businessStatus?: string;
+  reservations?: { uri?: string }[];
+}
+
+function extractGoogleSocialLinks(website?: string): SocialLinks | undefined {
+  if (!website) return undefined;
+  const links: SocialLinks = {};
+  if (website.includes('instagram.com')) links.instagram = website;
+  else if (website.includes('facebook.com')) links.facebook = website;
+  else if (website.includes('twitter.com')) links.twitter = website;
+  else if (website.includes('tiktok.com')) links.tiktok = website;
+  return Object.keys(links).length > 0 ? links : undefined;
 }
 
 @Injectable()
@@ -137,6 +152,14 @@ export class GooglePlacesProvider implements EnrichmentProvider {
 
   private toResult(place: GooglePlace): EnrichmentResult {
     const priceLevel = this.normalizePriceLevel(place.priceLevel);
+    const permanentlyClosed =
+      place.businessStatus === 'CLOSED_PERMANENTLY' ? true : undefined;
+
+    const reservationLinks = place.reservations
+      ?.map((r) => r.uri)
+      .filter((uri): uri is string => Boolean(uri));
+
+    const socialLinks = extractGoogleSocialLinks(place.websiteUri);
 
     return {
       externalId: place.id,
@@ -163,6 +186,12 @@ export class GooglePlacesProvider implements EnrichmentProvider {
         text: r.text?.text ?? '',
         time: r.publishTime ? Date.parse(r.publishTime) : 0,
       })),
+      permanentlyClosed,
+      reservationLinks:
+        reservationLinks && reservationLinks.length > 0
+          ? reservationLinks
+          : undefined,
+      socialLinks,
       fetchedAt: new Date(),
     };
   }

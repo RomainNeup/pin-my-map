@@ -8,11 +8,19 @@ import {
 import { Types } from 'mongoose';
 import { PlaceService } from './place.service';
 import { Place } from './place.entity';
+import { SavedPlace } from 'src/saved/saved.entity';
 import { EnrichmentService } from 'src/enrichment/enrichment.service';
 import { GamificationService } from 'src/gamification/gamification.service';
 import { AuditService } from 'src/audit/audit.service';
 
 const PLACE_TOKEN = getModelToken(Place.name);
+const SAVED_PLACE_TOKEN = getModelToken(SavedPlace.name);
+
+const mockSavedPlaceModel = {
+  countDocuments: jest
+    .fn()
+    .mockReturnValue({ exec: jest.fn().mockResolvedValue(0) }),
+};
 
 const creatorId = new Types.ObjectId().toHexString();
 const otherId = new Types.ObjectId().toHexString();
@@ -70,6 +78,7 @@ const buildService = (initialDoc: MockPlaceDoc | null) => {
     providers: [
       PlaceService,
       { provide: PLACE_TOKEN, useValue: placeModel },
+      { provide: SAVED_PLACE_TOKEN, useValue: mockSavedPlaceModel },
       { provide: EnrichmentService, useValue: enrichmentService },
       { provide: GamificationService, useValue: gamificationService },
       { provide: AuditService, useValue: auditService },
@@ -239,6 +248,7 @@ describe('PlaceService moderation', () => {
       providers: [
         PlaceService,
         { provide: getModelToken(Place.name), useValue: placeModel },
+        { provide: SAVED_PLACE_TOKEN, useValue: mockSavedPlaceModel },
         { provide: EnrichmentService, useValue: enrichmentService },
         { provide: GamificationService, useValue: gamificationService },
         { provide: AuditService, useValue: auditService },
@@ -394,6 +404,7 @@ describe('PlaceService.findPhotoUrl', () => {
       providers: [
         PlaceService,
         { provide: PLACE_TOKEN, useValue: modelStub },
+        { provide: SAVED_PLACE_TOKEN, useValue: mockSavedPlaceModel },
         { provide: EnrichmentService, useValue: {} },
         { provide: GamificationService, useValue: {} },
         { provide: AuditService, useValue: { log: jest.fn() } },
@@ -458,5 +469,184 @@ describe('PlaceService.findPhotoUrl — bad request guard (controller level)', (
         throw new BadRequestException('Invalid photo index');
       }
     }).toThrow(BadRequestException);
+  });
+});
+
+describe('PlaceService.setPermanentlyClosed', () => {
+  const buildService = async (placeDoc: Record<string, unknown> | null) => {
+    const docSave = jest.fn().mockImplementation(function (this: unknown) {
+      return Promise.resolve(this);
+    });
+    const doc = placeDoc
+      ? ({ ...placeDoc, save: docSave } as Record<string, unknown> & {
+          save: jest.Mock;
+          permanentlyClosed?: boolean;
+          permanentlyClosedAt?: Date;
+        })
+      : null;
+
+    const placeModel = {
+      findById: jest
+        .fn()
+        .mockReturnValue({ exec: jest.fn().mockResolvedValue(doc) }),
+      countDocuments: jest
+        .fn()
+        .mockReturnValue({ exec: jest.fn().mockResolvedValue(0) }),
+      updateMany: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ modifiedCount: 0 }),
+      }),
+    };
+    const auditService = { log: jest.fn().mockResolvedValue(undefined) };
+
+    const module = await Test.createTestingModule({
+      providers: [
+        PlaceService,
+        { provide: PLACE_TOKEN, useValue: placeModel },
+        { provide: SAVED_PLACE_TOKEN, useValue: mockSavedPlaceModel },
+        {
+          provide: EnrichmentService,
+          useValue: { enrich: jest.fn(), refresh: jest.fn() },
+        },
+        { provide: GamificationService, useValue: { award: jest.fn() } },
+        { provide: AuditService, useValue: auditService },
+      ],
+    }).compile();
+
+    return { service: module.get(PlaceService), docSave, auditService, doc };
+  };
+
+  it('sets permanentlyClosed=true and audits the action', async () => {
+    const id = new Types.ObjectId().toHexString();
+    const { service, docSave, auditService, doc } = await buildService({
+      _id: { toHexString: () => id },
+      name: 'A Place',
+      location: [0, 0],
+      address: 'a',
+      description: 'd',
+      image: '',
+      moderationStatus: 'approved',
+      permanentlyClosed: false,
+    });
+
+    await service.setPermanentlyClosed(
+      id,
+      { closed: true },
+      new Types.ObjectId().toHexString(),
+    );
+
+    expect(doc?.permanentlyClosed).toBe(true);
+    expect(doc?.permanentlyClosedAt).toBeInstanceOf(Date);
+    expect(docSave).toHaveBeenCalledTimes(1);
+    expect(auditService.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'place.closed.update',
+        meta: expect.objectContaining({ closed: true }),
+      }),
+    );
+  });
+
+  it('unsets permanentlyClosed when closed=false', async () => {
+    const id = new Types.ObjectId().toHexString();
+    const { service, doc } = await buildService({
+      _id: { toHexString: () => id },
+      name: 'A Place',
+      location: [0, 0],
+      address: 'a',
+      description: 'd',
+      image: '',
+      moderationStatus: 'approved',
+      permanentlyClosed: true,
+      permanentlyClosedAt: new Date(),
+    });
+
+    await service.setPermanentlyClosed(
+      id,
+      { closed: false },
+      new Types.ObjectId().toHexString(),
+    );
+
+    expect(doc?.permanentlyClosed).toBe(false);
+    expect(doc?.permanentlyClosedAt).toBeUndefined();
+  });
+
+  it('throws NotFoundException when place does not exist', async () => {
+    const id = new Types.ObjectId().toHexString();
+    const { service } = await buildService(null);
+
+    await expect(
+      service.setPermanentlyClosed(
+        id,
+        { closed: true },
+        new Types.ObjectId().toHexString(),
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+describe('PlaceService.findOneWithStats', () => {
+  const buildService = async (
+    placeDoc: Record<string, unknown> | null,
+    saveCount = 0,
+  ) => {
+    const placeModel = {
+      findById: jest
+        .fn()
+        .mockReturnValue({ exec: jest.fn().mockResolvedValue(placeDoc) }),
+      countDocuments: jest
+        .fn()
+        .mockReturnValue({ exec: jest.fn().mockResolvedValue(0) }),
+      updateMany: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ modifiedCount: 0 }),
+      }),
+    };
+    const savedPlaceModel = {
+      countDocuments: jest
+        .fn()
+        .mockReturnValue({ exec: jest.fn().mockResolvedValue(saveCount) }),
+    };
+
+    const module = await Test.createTestingModule({
+      providers: [
+        PlaceService,
+        { provide: PLACE_TOKEN, useValue: placeModel },
+        { provide: SAVED_PLACE_TOKEN, useValue: savedPlaceModel },
+        {
+          provide: EnrichmentService,
+          useValue: { enrich: jest.fn(), refresh: jest.fn() },
+        },
+        { provide: GamificationService, useValue: { award: jest.fn() } },
+        { provide: AuditService, useValue: { log: jest.fn() } },
+      ],
+    }).compile();
+
+    return { service: module.get(PlaceService), savedPlaceModel };
+  };
+
+  it('includes saveCount in the returned dto', async () => {
+    const id = new Types.ObjectId();
+    const doc = {
+      _id: id,
+      name: 'Test',
+      location: [0, 0],
+      address: 'addr',
+      description: 'desc',
+      image: '',
+      moderationStatus: 'approved',
+    };
+
+    const { service } = await buildService(doc, 42);
+
+    const result = await service.findOneWithStats(id.toHexString());
+
+    expect(result.saveCount).toBe(42);
+  });
+
+  it('throws NotFoundException when the place does not exist', async () => {
+    const id = new Types.ObjectId().toHexString();
+    const { service } = await buildService(null, 0);
+
+    await expect(service.findOneWithStats(id)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });

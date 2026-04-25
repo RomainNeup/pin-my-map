@@ -12,6 +12,22 @@ export interface PlaceEnrichmentReview {
 	time: number;
 }
 
+export interface SocialLinks {
+	instagram?: string;
+	facebook?: string;
+	twitter?: string;
+	tiktok?: string;
+}
+
+export interface Amenities {
+	wheelchair?: 'yes' | 'no' | 'limited';
+	outdoorSeating?: boolean;
+	wifi?: 'yes' | 'no' | 'wlan';
+	dietVegetarian?: 'yes' | 'no' | 'only';
+	dietVegan?: 'yes' | 'no' | 'only';
+	dietGlutenFree?: 'yes' | 'no' | 'only';
+}
+
 export interface PlaceEnrichment {
 	externalId: string;
 	providerName: string;
@@ -24,6 +40,10 @@ export interface PlaceEnrichment {
 	reviews?: PlaceEnrichmentReview[];
 	priceLevel?: number;
 	types?: string[];
+	googleMapsUri?: string;
+	socialLinks?: SocialLinks;
+	amenities?: Amenities;
+	reservationLinks?: string[];
 	fetchedAt: string;
 }
 
@@ -48,6 +68,9 @@ export interface Place {
 	creatorName?: string;
 	creatorEmail?: string;
 	createdAt?: string;
+	permanentlyClosed?: boolean;
+	permanentlyClosedAt?: string;
+	saveCount?: number;
 }
 
 export interface CreatePlaceRequest {
@@ -116,5 +139,15 @@ export interface BulkEnrichSummary {
 export function bulkEnrich(params: BulkEnrichRequest): Promise<BulkEnrichSummary> {
 	return axiosInstance
 		.post<BulkEnrichSummary>('/place/bulk-enrich', params)
+		.then(({ data }) => data);
+}
+
+export function setPermanentlyClosed(
+	id: string,
+	closed: boolean,
+	reason?: string
+): Promise<Place> {
+	return axiosInstance
+		.post<Place>(`/place/${id}/closed`, { closed, reason })
 		.then(({ data }) => data);
 }

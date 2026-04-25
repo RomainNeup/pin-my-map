@@ -3,11 +3,13 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 import { PlaceService } from './place.service';
 import { Place } from './place.entity';
+import { SavedPlace } from 'src/saved/saved.entity';
 import { EnrichmentService } from 'src/enrichment/enrichment.service';
 import { GamificationService } from 'src/gamification/gamification.service';
 import { AuditService } from 'src/audit/audit.service';
 
 const PLACE_TOKEN = getModelToken(Place.name);
+const SAVED_PLACE_TOKEN = getModelToken(SavedPlace.name);
 
 function makePlaceDoc(
   overrides: Record<string, unknown> = {},
@@ -57,10 +59,17 @@ async function buildModule(docs: unknown[]) {
     }),
   });
 
+  const savedPlaceModel = {
+    countDocuments: jest
+      .fn()
+      .mockReturnValue({ exec: jest.fn().mockResolvedValue(0) }),
+  };
+
   const mod = await Test.createTestingModule({
     providers: [
       PlaceService,
       { provide: PLACE_TOKEN, useValue: placeModel },
+      { provide: SAVED_PLACE_TOKEN, useValue: savedPlaceModel },
       { provide: EnrichmentService, useValue: enrichmentService },
       { provide: GamificationService, useValue: gamificationService },
       { provide: AuditService, useValue: auditService },
