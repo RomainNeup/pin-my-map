@@ -1,12 +1,17 @@
 import { accessToken, currentUser, type CurrentUser } from '$lib/stores/user';
 import { axiosInstance } from './base';
 
+export interface LoginResponseDto {
+	accessToken: string;
+}
+
+function storeToken(token: string): void {
+	accessToken.set(token);
+}
+
 export function login(email: string, password: string) {
-	return axiosInstance.post('/auth/login', { email, password }).then((response) => {
-		const token = response.data.accessToken;
-
-		accessToken.set(token);
-
+	return axiosInstance.post<LoginResponseDto>('/auth/login', { email, password }).then((response) => {
+		storeToken(response.data.accessToken);
 		return response;
 	});
 }
@@ -28,4 +33,22 @@ export function forgotPassword(email: string) {
 
 export function resetPassword(token: string, newPassword: string) {
 	return axiosInstance.post('/auth/reset-password', { token, newPassword });
+}
+
+export function oauthGoogle(idToken: string): Promise<LoginResponseDto> {
+	return axiosInstance
+		.post<LoginResponseDto>('/auth/oauth/google', { idToken })
+		.then((response) => {
+			storeToken(response.data.accessToken);
+			return response.data;
+		});
+}
+
+export function oauthApple(idToken: string, name?: string): Promise<LoginResponseDto> {
+	return axiosInstance
+		.post<LoginResponseDto>('/auth/oauth/apple', { idToken, name })
+		.then((response) => {
+			storeToken(response.data.accessToken);
+			return response.data;
+		});
 }
