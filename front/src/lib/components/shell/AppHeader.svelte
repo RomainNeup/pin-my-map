@@ -3,6 +3,7 @@
 	import MapPin from 'lucide-svelte/icons/map-pin';
 	import { twMerge } from 'tailwind-merge';
 	import UserMenu from './UserMenu.svelte';
+	import UserSearch from '$lib/components/user/UserSearch.svelte';
 
 	interface AppHeaderProps {
 		transparent?: boolean;
@@ -40,7 +41,10 @@
 		<a href="/place/search" class={navLink(isActive('/place/search'))}>Search</a>
 	</nav>
 
-	<div class="ml-auto">
+	<div class="ml-auto flex items-center gap-2">
+		<div class="w-48 lg:w-64">
+			<UserSearch />
+		</div>
 		<UserMenu />
 	</div>
 </header>

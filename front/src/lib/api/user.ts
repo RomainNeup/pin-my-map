@@ -3,6 +3,18 @@ import type { UserRole } from '$lib/stores/user';
 
 export type UserStatus = 'active' | 'pending' | 'rejected' | 'suspended';
 
+export interface PublicUserDto {
+	id: string;
+	name: string;
+	publicSlug?: string;
+	points: number;
+	level: number;
+}
+
+export function searchUsers(q: string): Promise<PublicUserDto[]> {
+	return axiosInstance.get<PublicUserDto[]>('/user/search', { params: { q } }).then(({ data }) => data);
+}
+
 export interface AdminUser {
 	id: string;
 	name: string;
