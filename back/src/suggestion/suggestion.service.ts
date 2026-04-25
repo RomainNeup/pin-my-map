@@ -109,6 +109,34 @@ export class SuggestionService {
     return SuggestionMapper.toDtoList(results);
   }
 
+  async listMine(userId: string): Promise<SuggestionDto[]> {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid userId');
+    }
+    const results = await this.suggestionModel
+      .find({ user: new Types.ObjectId(userId) })
+      .sort({ createdAt: -1 })
+      .populate(['user', 'place']);
+    return SuggestionMapper.toDtoList(results);
+  }
+
+  async countForPlace(
+    placeId: string,
+  ): Promise<{ pending: number; total: number }> {
+    if (!Types.ObjectId.isValid(placeId)) {
+      throw new BadRequestException('Invalid placeId');
+    }
+    const placeObjectId = new Types.ObjectId(placeId);
+    const [pending, total] = await Promise.all([
+      this.suggestionModel.countDocuments({
+        place: placeObjectId,
+        status: 'pending',
+      }),
+      this.suggestionModel.countDocuments({ place: placeObjectId }),
+    ]);
+    return { pending, total };
+  }
+
   async findOne(id: string): Promise<SuggestionDto> {
     const result = await this.suggestionModel
       .findById(id)

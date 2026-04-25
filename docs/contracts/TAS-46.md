@@ -1,6 +1,6 @@
 # TAS-46 — Other users' suggestion (my suggestions list)
 
-**Epic:** Place-saved  •  **Priority:** Bonus  •  **Status:** draft
+**Epic:** Place-saved  •  **Priority:** Bonus  •  **Status:** back-ready
 **Branch:** `tas-10-46-suggestions`
 
 ## Goal
