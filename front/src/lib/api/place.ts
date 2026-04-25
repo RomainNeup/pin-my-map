@@ -38,6 +38,8 @@ export interface Place {
 	externalProvider?: string;
 	enrichment?: PlaceEnrichment;
 	enrichedAt?: string;
+	createdBy?: string;
+	summary?: string;
 }
 
 export interface CreatePlaceRequest {
@@ -47,6 +49,8 @@ export interface CreatePlaceRequest {
 	description?: string;
 	image?: string;
 }
+
+export type UpdatePlaceRequest = Partial<CreatePlaceRequest>;
 
 export function getPlace(id: string): Promise<Place> {
 	return axiosInstance.get<Place>(`/place/${id}`).then(({ data }) => data);
@@ -60,6 +64,10 @@ export function searchPlaces(query: string): Promise<Place[]> {
 
 export function createPlace(place: CreatePlaceRequest): Promise<Place> {
 	return axiosInstance.post<Place>('/place', place).then(({ data }) => data);
+}
+
+export function updatePlace(id: string, payload: UpdatePlaceRequest): Promise<Place> {
+	return axiosInstance.put<Place>(`/place/${id}`, payload).then(({ data }) => data);
 }
 
 export function refreshEnrichment(id: string): Promise<Place> {
