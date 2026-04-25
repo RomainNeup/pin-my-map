@@ -48,6 +48,8 @@ export class PlaceEnrichment {
   @Prop({ type: [String], default: undefined })
   types?: string[];
   @Prop()
+  googleMapsUri?: string;
+  @Prop()
   fetchedAt: Date;
 }
 

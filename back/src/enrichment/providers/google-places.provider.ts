@@ -17,6 +17,7 @@ const FIELD_MASK = [
   'websiteUri',
   'nationalPhoneNumber',
   'internationalPhoneNumber',
+  'googleMapsUri',
   'rating',
   'userRatingCount',
   'priceLevel',
@@ -32,6 +33,7 @@ interface GooglePlace {
   websiteUri?: string;
   nationalPhoneNumber?: string;
   internationalPhoneNumber?: string;
+  googleMapsUri?: string;
   rating?: number;
   userRatingCount?: number;
   priceLevel?: string | number;
@@ -141,6 +143,7 @@ export class GooglePlacesProvider implements EnrichmentProvider {
       providerName: this.name,
       website: place.websiteUri,
       phoneNumber: place.internationalPhoneNumber ?? place.nationalPhoneNumber,
+      googleMapsUri: place.googleMapsUri,
       externalRating: place.rating,
       externalRatingCount: place.userRatingCount,
       priceLevel,

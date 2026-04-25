@@ -47,6 +47,7 @@ export class PlaceMapper {
       reviews: e.reviews,
       priceLevel: e.priceLevel,
       types: e.types,
+      googleMapsUri: e.googleMapsUri,
       fetchedAt: e.fetchedAt,
     };
   }
