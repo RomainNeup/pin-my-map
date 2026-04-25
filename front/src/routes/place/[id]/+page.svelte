@@ -4,10 +4,12 @@
 	import { createSavedPlace, type IsSavedPlaceResponse } from '$lib/api/savedPlace';
 	import Button from '$lib/components/Button.svelte';
 	import Map from '$lib/components/Map.svelte';
-	import EnrichmentDetails from '$lib/components/place/EnrichmentDetails.svelte';
+	import EditPlaceDialog from '$lib/components/place/EditPlaceDialog.svelte';
 	import OpenInMenu from '$lib/components/place/OpenInMenu.svelte';
+	import PlaceEnrichmentDetails from '$lib/components/place/PlaceEnrichmentDetails.svelte';
 	import SuggestEditDialog from '$lib/components/place/SuggestEditDialog.svelte';
 	import IconButton from '$lib/components/ui/IconButton.svelte';
+	import { currentUser } from '$lib/stores/user';
 	import { toast } from '$lib/stores/toast';
 	import Bookmark from 'lucide-svelte/icons/bookmark';
 	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
@@ -26,8 +28,14 @@
 	let saved: IsSavedPlaceResponse = $state(data.saved);
 	let saving = $state(false);
 	let suggestOpen = $state(false);
+	let editOpen = $state(false);
 	let place: Place = $state(data.place);
 	let refreshing = $state(false);
+
+	const canEdit = $derived(
+		$currentUser !== null &&
+			(place.createdBy === $currentUser.id || $currentUser.role === 'admin')
+	);
 
 	const handleRefresh = async () => {
 		refreshing = true;
@@ -104,6 +112,9 @@
 					<h1 class="text-2xl font-semibold leading-7 text-fg md:text-[28px]">
 						{place.name}
 					</h1>
+					{#if place.summary}
+						<p class="text-sm text-fg-muted">{place.summary}</p>
+					{/if}
 					{#if place.description}
 						<p class="text-fg-muted">{place.description}</p>
 					{/if}
@@ -116,7 +127,7 @@
 				</div>
 
 				{#if place.enrichment}
-					<EnrichmentDetails enrichment={place.enrichment} />
+					<PlaceEnrichmentDetails {place} enrichment={place.enrichment} />
 				{/if}
 			</div>
 
@@ -145,9 +156,20 @@
 					</Button>
 				{/if}
 				<OpenInMenu
-					target={{ name: place.name, lat: place.location.lat, lng: place.location.lng }}
+					target={{ name: place.name, lat: place.location.lat, lng: place.location.lng, placeId: place.externalId }}
 					fullwidth
 				/>
+				{#if canEdit}
+					<Button
+						variant="outline"
+						tone="neutral"
+						fullwidth
+						prefix={editPrefix}
+						onclick={() => (editOpen = true)}
+					>
+						Edit place
+					</Button>
+				{/if}
 				<Button
 					variant="ghost"
 					tone="neutral"
@@ -164,6 +186,9 @@
 
 {#if place}
 	<SuggestEditDialog bind:open={suggestOpen} {place} />
+	{#if canEdit}
+		<EditPlaceDialog bind:open={editOpen} {place} onUpdated={(updated) => (place = updated)} />
+	{/if}
 {/if}
 
 <!-- Mobile sticky action bar -->
@@ -195,9 +220,20 @@
 				</Button>
 			{/if}
 			<OpenInMenu
-				target={{ name: place.name, lat: place.location.lat, lng: place.location.lng }}
+				target={{ name: place.name, lat: place.location.lat, lng: place.location.lng, placeId: place.externalId }}
 				fullwidth
 			/>
+			{#if canEdit}
+				<Button
+					variant="outline"
+					tone="neutral"
+					fullwidth
+					prefix={editPrefix}
+					onclick={() => (editOpen = true)}
+				>
+					Edit place
+				</Button>
+			{/if}
 			<Button
 				variant="ghost"
 				tone="neutral"
