@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Place, PlaceDocument } from './place.entity';
@@ -14,8 +15,13 @@ import { EnrichmentService } from 'src/enrichment/enrichment.service';
 import { GamificationService } from 'src/gamification/gamification.service';
 import { AuditService } from 'src/audit/audit.service';
 
+export interface PlaceActor {
+  id: string;
+  role?: 'user' | 'admin';
+}
+
 @Injectable()
-export class PlaceService {
+export class PlaceService implements OnModuleInit {
   private readonly logger = new Logger(PlaceService.name);
 
   constructor(
@@ -25,9 +31,40 @@ export class PlaceService {
     private auditService: AuditService,
   ) {}
 
+  async onModuleInit(): Promise<void> {
+    try {
+      await this.backfillModerationStatus();
+    } catch (err) {
+      this.logger.warn(
+        `moderationStatus backfill failed: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  async backfillModerationStatus(): Promise<number> {
+    const count = await this.placeModel
+      .countDocuments({ moderationStatus: { $exists: false } })
+      .exec();
+    if (count === 0) return 0;
+    const result = await this.placeModel
+      .updateMany(
+        { moderationStatus: { $exists: false } },
+        { $set: { moderationStatus: 'approved' } },
+      )
+      .exec();
+    const modified = (result as { modifiedCount?: number }).modifiedCount ?? 0;
+    if (modified > 0) {
+      this.logger.log(
+        `Backfilled moderationStatus='approved' on ${modified} legacy place(s)`,
+      );
+    }
+    return modified;
+  }
+
   async create(
     createPlaceDto: CreatePlaceRequestDto,
     userId?: string,
+    actorRole?: 'user' | 'admin',
   ): Promise<PlaceDto> {
     assertValidLocation(createPlaceDto.location);
     if (!createPlaceDto.name) {
@@ -42,6 +79,11 @@ export class PlaceService {
       );
     }
 
+    const isAdmin = actorRole === 'admin';
+    const moderationStatus: 'pending' | 'approved' = isAdmin
+      ? 'approved'
+      : 'pending';
+
     const place = new this.placeModel({
       name: createPlaceDto.name,
       location: [createPlaceDto.location.lng, createPlaceDto.location.lat],
@@ -49,6 +91,7 @@ export class PlaceService {
       description: createPlaceDto.description,
       image: createPlaceDto.image,
       createdBy: userId ? new Types.ObjectId(userId) : undefined,
+      moderationStatus,
     });
     const result = await place.save();
 
@@ -56,7 +99,9 @@ export class PlaceService {
       throw new BadRequestException('Failed to create place');
     }
 
-    if (userId) {
+    // Award place_create only when status becomes 'approved' (admin self-create
+    // here; for users, the award fires from approve()).
+    if (userId && moderationStatus === 'approved') {
       try {
         await this.gamificationService.award(userId, 'place_create');
       } catch (err) {
@@ -147,18 +192,29 @@ export class PlaceService {
     const limit = clampLimit(options.limit);
     const offset = options.offset && options.offset > 0 ? options.offset : 0;
     const result = await this.placeModel
-      .find()
+      .find({ moderationStatus: 'approved' })
       .skip(offset)
       .limit(limit)
       .exec();
     return PlaceMapper.toDtoList(result);
   }
 
-  async findOne(id: string): Promise<PlaceDto> {
+  async findOne(id: string, actor?: PlaceActor): Promise<PlaceDto> {
     const result = await this.placeModel.findById(id).exec();
 
     if (!result) {
       throw new NotFoundException('Place not found');
+    }
+
+    if (result.moderationStatus && result.moderationStatus !== 'approved') {
+      const isAdmin = actor?.role === 'admin';
+      const isOwner =
+        actor?.id !== undefined &&
+        result.createdBy !== undefined &&
+        result.createdBy?.toString() === actor.id;
+      if (!isAdmin && !isOwner) {
+        throw new NotFoundException('Place not found');
+      }
     }
 
     return PlaceMapper.toDto(result);
@@ -175,9 +231,96 @@ export class PlaceService {
   async search(query: string): Promise<PlaceDto[]> {
     const safe = (query ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const result = await this.placeModel
-      .find({ name: { $regex: safe, $options: 'i' } })
+      .find({
+        name: { $regex: safe, $options: 'i' },
+        moderationStatus: 'approved',
+      })
       .exec();
     return PlaceMapper.toDtoList(result);
+  }
+
+  async listPending(): Promise<PlaceDto[]> {
+    const result = await this.placeModel
+      .find({ moderationStatus: 'pending' })
+      .sort({ _id: -1 })
+      .exec();
+    return PlaceMapper.toDtoList(result);
+  }
+
+  async approve(id: string, adminId: string): Promise<PlaceDto> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid id');
+    }
+    const place = await this.placeModel.findById(id).exec();
+    if (!place) {
+      throw new NotFoundException('Place not found');
+    }
+    if (place.moderationStatus === 'approved') {
+      throw new BadRequestException('Place already approved');
+    }
+
+    place.moderationStatus = 'approved';
+    place.rejectionReason = undefined;
+    await place.save();
+
+    if (place.createdBy) {
+      const creatorId = place.createdBy.toString();
+      try {
+        await this.gamificationService.award(creatorId, 'place_create');
+      } catch (err) {
+        this.logger.warn(
+          `gamification award failed: ${(err as Error).message}`,
+        );
+      }
+    }
+
+    try {
+      await this.auditService.log({
+        actor: adminId,
+        action: 'place.approve',
+        targetType: 'place',
+        targetId: id,
+      });
+    } catch (err) {
+      this.logger.warn(`audit log failed: ${(err as Error).message}`);
+    }
+
+    return PlaceMapper.toDto(place);
+  }
+
+  async reject(
+    id: string,
+    adminId: string,
+    reason?: string,
+  ): Promise<PlaceDto> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid id');
+    }
+    const place = await this.placeModel.findById(id).exec();
+    if (!place) {
+      throw new NotFoundException('Place not found');
+    }
+    if (place.moderationStatus === 'rejected') {
+      throw new BadRequestException('Place already rejected');
+    }
+
+    place.moderationStatus = 'rejected';
+    place.rejectionReason = reason?.trim() || undefined;
+    await place.save();
+
+    try {
+      await this.auditService.log({
+        actor: adminId,
+        action: 'place.reject',
+        targetType: 'place',
+        targetId: id,
+        meta: { reason: place.rejectionReason },
+      });
+    } catch (err) {
+      this.logger.warn(`audit log failed: ${(err as Error).message}`);
+    }
+
+    return PlaceMapper.toDto(place);
   }
 
   async findByName(name: string): Promise<PlaceDto> {

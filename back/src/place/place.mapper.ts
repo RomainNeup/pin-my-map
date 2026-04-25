@@ -22,6 +22,8 @@ export class PlaceMapper {
       enrichedAt: entity.enrichedAt,
       createdBy: entity.createdBy?.toHexString(),
       summary: buildPlaceSummary(entity.enrichment),
+      moderationStatus: entity.moderationStatus,
+      rejectionReason: entity.rejectionReason,
     };
   }
 

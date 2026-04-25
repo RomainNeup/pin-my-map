@@ -73,6 +73,17 @@ export class Place {
   enrichedAt?: Date;
   @Prop({ type: Types.ObjectId, ref: 'User', required: false, index: true })
   createdBy?: Types.ObjectId;
+  @Prop({
+    required: true,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
+    index: true,
+  })
+  moderationStatus: PlaceModerationStatus;
+  @Prop({ required: false })
+  rejectionReason?: string;
 }
+
+export type PlaceModerationStatus = 'pending' | 'approved' | 'rejected';
 
 export const PlaceSchema = SchemaFactory.createForClass(Place);

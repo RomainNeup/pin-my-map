@@ -44,6 +44,34 @@ export class SuggestionController {
     return this.suggestionService.list(status);
   }
 
+  @Private()
+  @Get('mine')
+  @HttpCode(200)
+  @ApiResponse({ status: 200, type: [SuggestionDto] })
+  async listMine(@User('id') userId: string): Promise<SuggestionDto[]> {
+    return this.suggestionService.listMine(userId);
+  }
+
+  @Private()
+  @Get('place/:placeId/count')
+  @HttpCode(200)
+  @ApiResponse({
+    status: 200,
+    description: 'Suggestion counts for a place.',
+    schema: {
+      type: 'object',
+      properties: {
+        pending: { type: 'number' },
+        total: { type: 'number' },
+      },
+    },
+  })
+  async countForPlace(
+    @Param('placeId') placeId: string,
+  ): Promise<{ pending: number; total: number }> {
+    return this.suggestionService.countForPlace(placeId);
+  }
+
   @Admin()
   @Get(':id')
   @HttpCode(200)

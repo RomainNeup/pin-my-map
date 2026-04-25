@@ -109,6 +109,23 @@ export class PlaceEnrichmentDto {
   fetchedAt: Date;
 }
 
+@ApiSchema({ name: 'Place Moderation' })
+export class PlaceModerationDto {
+  @ApiProperty({ enum: ['pending', 'approved', 'rejected'] })
+  status: 'pending' | 'approved' | 'rejected';
+  @ApiProperty({ required: false })
+  rejectionReason?: string;
+}
+
+@ApiSchema({ name: 'Reject Place Request' })
+export class RejectPlaceDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+}
+
 @ApiSchema({ name: 'Place' })
 export class PlaceDto {
   @ApiProperty()
@@ -142,4 +159,13 @@ export class PlaceDto {
       'Human-readable one-liner derived from enrichment, e.g. "$$ • 4.6 ★ (1.2k)".',
   })
   summary?: string;
+  @ApiProperty({
+    required: false,
+    enum: ['pending', 'approved', 'rejected'],
+    description:
+      'Only exposed to creator/admins. Other users always see "approved" since pending places are filtered out of listings.',
+  })
+  moderationStatus?: 'pending' | 'approved' | 'rejected';
+  @ApiProperty({ required: false })
+  rejectionReason?: string;
 }

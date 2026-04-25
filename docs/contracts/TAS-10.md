@@ -1,6 +1,6 @@
 # TAS-10 — Approve places add/edit
 
-**Epic:** Place-general  •  **Priority:** Should  •  **Status:** draft
+**Epic:** Place-general  •  **Priority:** Should  •  **Status:** back-ready
 **Branch:** `tas-10-46-suggestions`
 
 ## Background
