@@ -4,9 +4,22 @@
 	import Lock from 'lucide-svelte/icons/lock';
 	import { gamificationProfile, loadGamificationProfile } from '$lib/stores/gamification';
 	import { currentUser } from '$lib/stores/user';
+	import { listMine, type Suggestion } from '$lib/api/suggestion';
+
+	let mySuggestions = $state<Suggestion[]>([]);
+	let suggestionsLoading = $state(false);
 
 	onMount(() => {
 		loadGamificationProfile({ silent: true }).catch(() => {});
+		suggestionsLoading = true;
+		listMine()
+			.then((data) => {
+				mySuggestions = data;
+			})
+			.catch(() => {})
+			.finally(() => {
+				suggestionsLoading = false;
+			});
 	});
 
 	const stats = $derived($gamificationProfile?.stats);
@@ -144,4 +157,46 @@
 			{/if}
 		</section>
 	{/if}
+
+	<!-- My suggestions -->
+	<section>
+		<h2 class="mb-3 text-lg font-semibold">My suggestions</h2>
+
+		{#if suggestionsLoading}
+			<p class="text-sm text-fg-muted">Loading…</p>
+		{:else if mySuggestions.length === 0}
+			<p class="text-sm text-fg-muted">You haven't submitted any suggestions yet.</p>
+		{:else}
+			<ul class="space-y-3">
+				{#each mySuggestions as s (s.id)}
+					<li class="rounded-lg border border-border bg-bg p-3">
+						<div class="flex flex-wrap items-start justify-between gap-2">
+							<div class="flex-1">
+								<p class="text-sm font-medium">
+									{s.place?.name ?? `Place ${s.placeId}`}
+								</p>
+								<p class="text-xs text-fg-muted">
+									{new Date(s.createdAt).toLocaleString()}
+								</p>
+							</div>
+							<span
+								class="rounded-full px-2 py-0.5 text-xs"
+								class:bg-accent-soft={s.status === 'pending'}
+								class:text-accent={s.status === 'pending'}
+								class:bg-success-soft={s.status === 'approved'}
+								class:text-success={s.status === 'approved'}
+								class:bg-danger-soft={s.status === 'rejected'}
+								class:text-danger={s.status === 'rejected'}
+							>
+								{s.status}
+							</span>
+						</div>
+						{#if s.status === 'rejected' && s.reviewReason}
+							<p class="mt-1 text-xs text-fg-muted">Reason: {s.reviewReason}</p>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</section>
 </div>
