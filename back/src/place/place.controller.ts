@@ -17,7 +17,7 @@ import type { Response } from 'express';
 import { Admin, Private } from 'src/auth/auth.decorator';
 import { ParseObjectIdPipe } from 'src/common/parse-object-id.pipe';
 import { PlaceService } from './place.service';
-import { CreatePlaceRequestDto, PlaceDto } from './place.dto';
+import { CreatePlaceRequestDto, PlaceDto, RejectPlaceDto } from './place.dto';
 import { User } from 'src/user/user.decorator';
 
 @Controller('place')
@@ -38,9 +38,10 @@ export class PlaceController {
   @ApiResponse({ status: 400, description: 'Failed to create place.' })
   async createPlace(
     @User('id') userId: string,
+    @User('role') role: 'user' | 'admin' | undefined,
     @Body() placeDto: CreatePlaceRequestDto,
   ): Promise<PlaceDto> {
-    return await this.placeService.create(placeDto, userId);
+    return await this.placeService.create(placeDto, userId, role);
   }
 
   @Private()
@@ -77,6 +78,49 @@ export class PlaceController {
     return await this.placeService.search(query);
   }
 
+  @Admin()
+  @Get('pending')
+  @HttpCode(200)
+  @ApiResponse({
+    status: 200,
+    type: [PlaceDto],
+    description: 'Returns places awaiting moderation.',
+  })
+  async listPending(): Promise<PlaceDto[]> {
+    return await this.placeService.listPending();
+  }
+
+  @Admin()
+  @Post(':id/approve')
+  @HttpCode(200)
+  @ApiResponse({
+    status: 200,
+    type: PlaceDto,
+    description: 'Place approved.',
+  })
+  async approvePlace(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @User('id') adminId: string,
+  ): Promise<PlaceDto> {
+    return await this.placeService.approve(id, adminId);
+  }
+
+  @Admin()
+  @Post(':id/reject')
+  @HttpCode(200)
+  @ApiResponse({
+    status: 200,
+    type: PlaceDto,
+    description: 'Place rejected.',
+  })
+  async rejectPlace(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @User('id') adminId: string,
+    @Body() body: RejectPlaceDto,
+  ): Promise<PlaceDto> {
+    return await this.placeService.reject(id, adminId, body?.reason);
+  }
+
   @Private()
   @Get(':id')
   @HttpCode(200)
@@ -91,8 +135,13 @@ export class PlaceController {
   })
   async getPlace(
     @Param('id', ParseObjectIdPipe) id: string,
+    @User('id') userId: string | undefined,
+    @User('role') role: 'user' | 'admin' | undefined,
   ): Promise<PlaceDto> {
-    return await this.placeService.findOne(id);
+    return await this.placeService.findOne(
+      id,
+      userId ? { id: userId, role } : undefined,
+    );
   }
 
   @Private()

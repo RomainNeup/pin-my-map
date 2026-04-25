@@ -20,6 +20,8 @@ export class PlaceMapper {
         ? this.enrichmentToDto(entity.enrichment, id)
         : undefined,
       enrichedAt: entity.enrichedAt,
+      moderationStatus: entity.moderationStatus,
+      rejectionReason: entity.rejectionReason,
     };
   }
 
