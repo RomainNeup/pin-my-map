@@ -28,6 +28,10 @@ export class TagController {
     description: 'The tag has been successfully created.',
   })
   @ApiResponse({ status: 400, description: 'Bad request. Invalid input data.' })
+  @ApiResponse({
+    status: 409,
+    description: 'A tag with this name already exists for this user.',
+  })
   async createTag(
     @Body() tagDto: CreateTagRequestDto,
     @User('id') userId: string,
@@ -57,6 +61,10 @@ export class TagController {
   })
   @ApiResponse({ status: 400, description: 'Bad request. Invalid input data.' })
   @ApiResponse({ status: 404, description: 'Tag not found.' })
+  @ApiResponse({
+    status: 409,
+    description: 'A tag with this name already exists for this user.',
+  })
   async updateTag(
     @Param('id') id: string,
     @Body() tagDto: UpdateTagRequestDto,
