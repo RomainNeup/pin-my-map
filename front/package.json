@@ -2,6 +2,9 @@
 	"name": "pin-my-map-front",
 	"version": "0.0.1",
 	"type": "module",
+	"engines": {
+		"node": ">=22.0.0"
+	},
 	"scripts": {
 		"start:dev": "vite dev",
 		"build": "vite build",

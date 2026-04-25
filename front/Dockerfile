@@ -1,4 +1,4 @@
-FROM node:slim AS build
+FROM node:22-slim AS build
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ ENV NODE_OPTIONS=--max-old-space-size=4096
 RUN yarn build
 
 # Production stage
-FROM node:slim AS production
+FROM node:22-slim AS production
 
 WORKDIR /app
 
