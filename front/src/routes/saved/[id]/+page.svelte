@@ -10,6 +10,7 @@
 		toggleDoneSavedPlace
 	} from '$lib/api/savedPlace';
 	import { createTag, type Tag } from '$lib/api/tag';
+	import Button from '$lib/components/Button.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import StarRating from '$lib/components/StarRating.svelte';
 	import TagPicker from '$lib/components/TagPicker.svelte';
@@ -22,6 +23,7 @@
 	import { toast } from '$lib/stores/toast';
 	import Check from 'lucide-svelte/icons/check';
 	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
+	import ExternalLink from 'lucide-svelte/icons/external-link';
 	import MapPinIcon from 'lucide-svelte/icons/map-pin';
 	import MoreHorizontal from 'lucide-svelte/icons/more-horizontal';
 	import Trash2 from 'lucide-svelte/icons/trash-2';
@@ -129,6 +131,7 @@
 </script>
 
 {#snippet backIcon()}<ChevronLeft class="h-5 w-5" />{/snippet}
+{#snippet externalLinkIcon()}<ExternalLink class="h-4 w-4" />{/snippet}
 {#snippet menuIcon()}<MoreHorizontal class="h-5 w-5" />{/snippet}
 {#snippet doneChipPrefix()}<Check class="h-3 w-3" />{/snippet}
 
@@ -228,6 +231,18 @@
 				<div class="space-y-2">
 					<h3 class="text-sm font-medium text-fg">My rating</h3>
 					<StarRating {rating} onChange={handleRating} />
+				</div>
+
+				<!-- Navigate to public place page -->
+				<div>
+					<Button
+						variant="soft"
+						tone="neutral"
+						href={`/place/${data.savedPlace.place.id}`}
+						prefix={externalLinkIcon}
+					>
+						Go to place page
+					</Button>
 				</div>
 
 				<!-- Comment -->
