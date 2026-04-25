@@ -27,6 +27,8 @@ export interface EnrichmentResult {
   priceLevel?: number;
   types?: string[];
   googleMapsUri?: string;
+  /** Optional description/excerpt (e.g. from Wikipedia). Used when the Place has no description. */
+  description?: string;
   fetchedAt: Date;
 }
 
