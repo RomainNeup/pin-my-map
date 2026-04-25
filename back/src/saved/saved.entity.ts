@@ -6,7 +6,7 @@ import { UserDocument } from 'src/user/user.entity';
 
 export type SavedPlaceDocument = HydratedDocument<SavedPlace>;
 
-@Schema()
+@Schema({ timestamps: true })
 export class SavedPlace {
   @Prop({ required: true, type: mongoose.Schema.Types.ObjectId, ref: 'User' })
   user: UserDocument;
@@ -20,8 +20,8 @@ export class SavedPlace {
   comment: string;
   @Prop({ min: 1, max: 5, default: undefined })
   rating?: number;
-  @Prop({ default: Date.now })
   createdAt: Date;
+  updatedAt: Date;
 }
 
 export const SavedPlaceSchema = SchemaFactory.createForClass(SavedPlace);

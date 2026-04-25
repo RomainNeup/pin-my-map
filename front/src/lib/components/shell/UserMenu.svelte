@@ -15,7 +15,7 @@
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import Popover from '$lib/components/ui/Popover.svelte';
 	import { theme, type ThemeMode } from '$lib/stores/theme';
-	import { accessToken, isAdmin } from '$lib/stores/user';
+	import { accessToken, currentUser, isAdmin } from '$lib/stores/user';
 	import { gamificationProfile } from '$lib/stores/gamification';
 
 	interface UserMenuProps {
@@ -42,7 +42,7 @@
 		goto('/login');
 	};
 
-	const name = 'You';
+	const name = $derived($currentUser?.name ?? 'You');
 </script>
 
 <div class="relative {className}" bind:this={triggerEl}>

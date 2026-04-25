@@ -20,22 +20,10 @@ export class AuthService {
   ) {}
 
   async login(loginDto: LoginRequestDto): Promise<LoginResponseDto> {
-    if (!loginDto.email || !loginDto.password) {
-      const missingFields = [];
-      if (!loginDto.email) {
-        missingFields.push('email');
-      }
-      if (!loginDto.password) {
-        missingFields.push('password');
-      }
-
-      const message = `Missing fields: ${missingFields.join(', ')}`;
-      throw new BadRequestException(message);
-    }
-
-    const user = await this.userService.findByEmail(loginDto.email);
-
-    if (!user) {
+    let user;
+    try {
+      user = await this.userService.findByEmail(loginDto.email);
+    } catch {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -55,35 +43,18 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterRequestDto): Promise<void> {
-    if (!registerDto.email || !registerDto.password || !registerDto.name) {
-      const missingFields = [];
-      if (!registerDto.email) {
-        missingFields.push('email');
-      }
-      if (!registerDto.password) {
-        missingFields.push('password');
-      }
-      if (!registerDto.name) {
-        missingFields.push('name');
-      }
-
-      const message = `Missing fields: ${missingFields.join(', ')}`;
-      throw new BadRequestException(message);
-    }
     const userExists = await this.userService.exists(registerDto.email);
 
     if (userExists) {
       throw new BadRequestException('User already exists');
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const password = await bcrypt.hash(registerDto.password, salt);
+    const password = await bcrypt.hash(registerDto.password, 10);
     const existingCount = await this.userService.count();
     const user = await this.userService.create({
       name: registerDto.name,
       email: registerDto.email,
       password: password,
-      salt: salt,
       role: existingCount === 0 ? 'admin' : 'user',
     });
 

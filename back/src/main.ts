@@ -1,3 +1,4 @@
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
@@ -7,7 +8,18 @@ async function main() {
   // Load environment variables
   dotenv.config();
 
+  const logger = new Logger('Bootstrap');
+
+  if (!process.env.JWT_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET must be set in production');
+    }
+    logger.warn('JWT_SECRET is not set; falling back to development default');
+  }
+
   const app = await NestFactory.create(AppModule);
+
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   // Only enable Swagger in development environment
   if (process.env.NODE_ENV === 'development') {
@@ -32,7 +44,8 @@ async function main() {
     credentials: true,
   });
 
-  await app.listen(8080);
+  const port = Number(process.env.PORT) || 8080;
+  await app.listen(port);
 }
 
 main();

@@ -12,8 +12,7 @@
 		error?: boolean;
 		disabled?: boolean;
 		readonly?: boolean;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		autocomplete?: any;
+		autocomplete?: HTMLInputElement['autocomplete'] | undefined;
 		class?: string;
 		onInput?: (event: Event) => void;
 		onKeydown?: (event: KeyboardEvent) => void;

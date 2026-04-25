@@ -1,36 +1,30 @@
 <script lang="ts">
 	import { searchPlaces, type Place } from '$lib/api/place';
-	import { type Tag } from '$lib/api/tag';
 	import Button from '$lib/components/Button.svelte';
-	import Chip from '$lib/components/ui/Chip.svelte';
 	import EmptyState from '$lib/components/ui/EmptyState.svelte';
-	import IconButton from '$lib/components/ui/IconButton.svelte';
-	import Popover from '$lib/components/ui/Popover.svelte';
 	import Skeleton from '$lib/components/ui/Skeleton.svelte';
-	import { tags } from '$lib/stores/tags';
 	import ChevronRight from 'lucide-svelte/icons/chevron-right';
 	import MapPinIcon from 'lucide-svelte/icons/map-pin';
 	import Plus from 'lucide-svelte/icons/plus';
 	import Search from 'lucide-svelte/icons/search';
-	import SlidersHorizontal from 'lucide-svelte/icons/sliders-horizontal';
 	import X from 'lucide-svelte/icons/x';
 
 	let query = $state('');
 	let results = $state<Place[] | null>(null);
 	let loading = $state(false);
-	let filterOpen = $state(false);
-	let selectedTagIds = $state<string[]>([]);
-	let filterAnchor = $state<HTMLElement | null>(null);
 
 	let debounceHandle: ReturnType<typeof setTimeout> | null = null;
+	let requestId = 0;
 
 	const runSearch = async (q: string) => {
+		const id = ++requestId;
 		loading = true;
 		try {
 			const places = await searchPlaces(q);
+			if (id !== requestId) return;
 			results = places;
 		} finally {
-			loading = false;
+			if (id === requestId) loading = false;
 		}
 	};
 
@@ -51,29 +45,8 @@
 		loading = false;
 		if (debounceHandle) clearTimeout(debounceHandle);
 	};
-
-	const toggleTag = (tagId: string) => {
-		if (selectedTagIds.includes(tagId)) {
-			selectedTagIds = selectedTagIds.filter((id) => id !== tagId);
-		} else {
-			selectedTagIds = [...selectedTagIds, tagId];
-		}
-	};
-
-	// Client-side tag filter (ANY match)
-	const filteredResults = $derived.by(() => {
-		if (!results) return null;
-		if (selectedTagIds.length === 0) return results;
-		// Place doesn't carry tags, so this is a no-op filter until places carry tag metadata.
-		// Kept here to wire the UI; intersection logic runs against an empty tags array safely.
-		return results.filter((p) => {
-			const placeTags = (p as Place & { tags?: Tag[] }).tags ?? [];
-			return placeTags.some((t) => selectedTagIds.includes(t.id));
-		});
-	});
 </script>
 
-{#snippet filterIcon()}<SlidersHorizontal class="h-5 w-5" />{/snippet}
 {#snippet searchEmptyIcon()}<Search class="h-6 w-6" />{/snippet}
 {#snippet noResultsIcon()}<MapPinIcon class="h-6 w-6" />{/snippet}
 {#snippet createAction()}
@@ -85,7 +58,7 @@
 
 <div class="mx-auto w-full max-w-3xl px-4 py-4 md:py-6">
 	<div class="mb-4 flex items-center gap-2">
-		<div class="relative flex-1">
+		<div class="relative w-full">
 			<Search
 				class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted"
 			/>
@@ -108,39 +81,6 @@
 			{/if}
 		</div>
 
-		<div class="relative" bind:this={filterAnchor}>
-			<IconButton
-				label="Filters"
-				variant="outline"
-				tone="neutral"
-				onclick={() => (filterOpen = !filterOpen)}
-				icon={filterIcon}
-			/>
-			<Popover
-				bind:open={filterOpen}
-				anchor={filterAnchor}
-				placement="bottom-end"
-				class="min-w-[240px] p-3"
-			>
-				<h4 class="mb-2 text-sm font-medium text-fg">Filter by tag</h4>
-				{#if $tags && $tags.length > 0}
-					<div class="flex flex-wrap gap-1.5">
-						{#each $tags as tag (tag.id)}
-							<Chip
-								size="sm"
-								prefix={tag.emoji}
-								selected={selectedTagIds.includes(tag.id)}
-								onclick={() => toggleTag(tag.id)}
-							>
-								{tag.name}
-							</Chip>
-						{/each}
-					</div>
-				{:else}
-					<p class="text-sm text-fg-muted">No tags yet.</p>
-				{/if}
-			</Popover>
-		</div>
 	</div>
 
 	{#if results === null && !loading}
@@ -161,16 +101,16 @@
 				</div>
 			{/each}
 		</div>
-	{:else if filteredResults && filteredResults.length === 0}
+	{:else if results && results.length === 0}
 		<EmptyState
 			title="No places match"
 			description="Try a different query or create a new place."
 			icon={noResultsIcon}
 			action={createAction}
 		/>
-	{:else if filteredResults}
+	{:else if results}
 		<div class="space-y-1">
-			{#each filteredResults as place (place.id)}
+			{#each results as place (place.id)}
 				<a
 					href={`/place/${place.id}`}
 					class="flex items-center gap-3 rounded-md px-3 py-3 hover:bg-bg-muted"

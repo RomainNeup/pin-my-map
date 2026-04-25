@@ -8,10 +8,9 @@
 		sourceKey: string;
 		points: Point[];
 		tagFilter?: string[];
-		onPointClick?: (point: Point) => void;
 	}
 
-	let { map, sourceKey, points, tagFilter = [], onPointClick }: Props = $props();
+	let { map, sourceKey, points, tagFilter = [] }: Props = $props();
 
 	const clusterLayer = `${sourceKey}-clusters`;
 	const clusterCountLayer = `${sourceKey}-cluster-count`;
@@ -99,7 +98,6 @@
 			const point = points.find((p) => p.id === id);
 			if (point) {
 				point.onClick?.();
-				onPointClick?.(point);
 			}
 		});
 

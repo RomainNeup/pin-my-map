@@ -8,8 +8,9 @@ import {
   Patch,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
-import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Private } from 'src/auth/auth.decorator';
 import { SavedPlaceService } from './saved.service';
 import {
@@ -28,13 +29,39 @@ export class SavedController {
   @Private()
   @Get()
   @HttpCode(200)
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'offset', required: false, type: Number })
+  @ApiQuery({
+    name: 'tagIds',
+    required: false,
+    type: String,
+    description: 'Comma-separated tag ids to filter by (OR semantics)',
+  })
   @ApiResponse({
     status: 200,
     type: [SavedPlaceDto],
-    description: 'Return all saved places',
+    description: 'Return saved places, newest first',
   })
-  async getSavedPlaces(@User('id') userId: string): Promise<SavedPlaceDto[]> {
-    return await this.savedPlaceService.findAll(userId);
+  async getSavedPlaces(
+    @User('id') userId: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Query('tagIds') tagIds?: string,
+  ): Promise<SavedPlaceDto[]> {
+    const parsedLimit = limit ? Number(limit) : undefined;
+    const parsedOffset = offset ? Number(offset) : undefined;
+    const parsedTagIds = tagIds
+      ? tagIds
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : undefined;
+
+    return await this.savedPlaceService.findAll(userId, {
+      limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
+      offset: Number.isFinite(parsedOffset) ? parsedOffset : undefined,
+      tagIds: parsedTagIds,
+    });
   }
 
   @Private()
@@ -144,13 +171,13 @@ export class SavedController {
   @Private()
   @Patch(':id/done')
   @HttpCode(204)
-  @ApiResponse({ status: 204, description: 'Done toogled' })
+  @ApiResponse({ status: 204, description: 'Done toggled' })
   @ApiResponse({ status: 404, description: 'Saved place not found' })
-  async toogleDone(
+  async toggleDone(
     @User('id') userId: string,
     @Param('id') id: string,
   ): Promise<void> {
-    return await this.savedPlaceService.toogleDone(userId, id);
+    return await this.savedPlaceService.toggleDone(userId, id);
   }
 
   @Private()

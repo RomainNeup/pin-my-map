@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { GamificationService } from 'src/gamification/gamification.service';
 import { Place } from 'src/place/place.entity';
 import { SavedPlace } from 'src/saved/saved.entity';
 import { Tag } from 'src/tag/tag.entity';
@@ -52,6 +53,7 @@ export class ImportService {
     @InjectModel(Tag.name) private readonly tagModel: Model<Tag>,
     @InjectModel(SavedPlace.name)
     private readonly savedPlaceModel: Model<SavedPlace>,
+    private readonly gamificationService: GamificationService,
   ) {}
 
   async importMapstr(
@@ -107,6 +109,13 @@ export class ImportService {
           `Feature ${i} (${error.name ?? 'unknown'}) failed: ${message}`,
         );
       }
+    }
+
+    try {
+      await this.gamificationService.recompute(userId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Gamification recompute failed: ${message}`);
     }
 
     return summary;

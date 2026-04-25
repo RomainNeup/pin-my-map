@@ -1,18 +1,43 @@
 import { axiosInstance } from './base';
 
-/**
- * Place interface
- */
+export interface PlaceEnrichmentPhoto {
+	url: string;
+	attribution?: string;
+}
+
+export interface PlaceEnrichmentReview {
+	author: string;
+	rating: number;
+	text: string;
+	time: number;
+}
+
+export interface PlaceEnrichment {
+	externalId: string;
+	providerName: string;
+	photos?: PlaceEnrichmentPhoto[];
+	website?: string;
+	phoneNumber?: string;
+	openingHours?: { weekdayText: string[] };
+	externalRating?: number;
+	externalRatingCount?: number;
+	reviews?: PlaceEnrichmentReview[];
+	priceLevel?: number;
+	types?: string[];
+	fetchedAt: string;
+}
+
 export interface Place {
-	/**
-	 * Place id
-	 */
 	id: string;
 	name: string;
 	location: { lat: number; lng: number };
 	address: string;
 	description?: string;
 	image?: string;
+	externalId?: string;
+	externalProvider?: string;
+	enrichment?: PlaceEnrichment;
+	enrichedAt?: string;
 }
 
 export interface CreatePlaceRequest {
@@ -23,22 +48,20 @@ export interface CreatePlaceRequest {
 	image?: string;
 }
 
-export function getPlaces(): Promise<Place[]> {
-	return axiosInstance.get<Place[]>('/place').then(({ data }) => data);
-}
-
 export function getPlace(id: string): Promise<Place> {
 	return axiosInstance.get<Place>(`/place/${id}`).then(({ data }) => data);
 }
 
 export function searchPlaces(query: string): Promise<Place[]> {
-	return axiosInstance.get<Place[]>(`/place/search?q=${query}`).then(({ data }) => data);
+	return axiosInstance
+		.get<Place[]>('/place/search', { params: { q: query } })
+		.then(({ data }) => data);
 }
 
 export function createPlace(place: CreatePlaceRequest): Promise<Place> {
 	return axiosInstance.post<Place>('/place', place).then(({ data }) => data);
 }
 
-export function updatePlace(place: Place): Promise<void> {
-	return axiosInstance.put(`/place/${place.id}`, place);
+export function refreshEnrichment(id: string): Promise<Place> {
+	return axiosInstance.post<Place>(`/place/${id}/refresh-enrichment`).then(({ data }) => data);
 }

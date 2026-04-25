@@ -16,7 +16,7 @@
 		hint,
 		error,
 		required,
-		id = `field-${Math.random().toString(36).slice(2, 9)}`,
+		id = `field-${crypto.randomUUID()}`,
 		children
 	}: FieldProps = $props();
 </script>

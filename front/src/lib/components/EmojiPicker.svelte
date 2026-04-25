@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { EmojiButton } from '@joeattardi/emoji-button';
 
 	interface EmojiPickerProps {
@@ -10,18 +11,24 @@
 
 	let { onChange, value = $bindable('') }: EmojiPickerProps = $props();
 
-	const picker = new EmojiButton({ style: 'native', zIndex: 1000 });
 	let trigger: HTMLButtonElement;
+	let picker: EmojiButton | null = null;
 
-	picker.on('emoji', (selection) => {
-		value = selection.emoji;
-		if (onChange) {
-			onChange(selection.emoji);
-		}
+	onMount(() => {
+		picker = new EmojiButton({ style: 'native', zIndex: 1000 });
+		picker.on('emoji', (selection) => {
+			value = selection.emoji;
+			onChange?.(selection.emoji);
+		});
+
+		return () => {
+			picker?.destroyPicker();
+			picker = null;
+		};
 	});
 
 	function togglePicker() {
-		picker.togglePicker(trigger);
+		picker?.togglePicker(trigger);
 	}
 </script>
 

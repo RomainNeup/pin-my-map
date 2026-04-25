@@ -62,8 +62,8 @@
 	}
 
 	$effect(() => {
-		if (rating < 0) rating = 0;
-		if (rating > maxStars) rating = maxStars;
+		const clamped = Math.min(Math.max(rating, 0), maxStars);
+		if (clamped !== rating) rating = clamped;
 	});
 </script>
 

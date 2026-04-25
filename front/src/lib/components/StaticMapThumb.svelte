@@ -13,14 +13,8 @@
 
 	let { lat, lng, zoom = 14, width = 288, height = 256, alt = '' }: Props = $props();
 
-	let mode = $state($theme);
-	$effect(() => {
-		const unsub = theme.subscribe((v) => (mode = v));
-		return unsub;
-	});
-
 	const resolved = $derived(
-		mode === 'dark' || (mode === 'system' && theme.resolved() === 'dark') ? 'dark' : 'light'
+		$theme === 'dark' || ($theme === 'system' && theme.resolved() === 'dark') ? 'dark' : 'light'
 	);
 
 	const src = $derived(staticMapUrl({ lng, lat, zoom, width, height, theme: resolved }));

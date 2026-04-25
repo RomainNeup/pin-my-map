@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goBack } from '$lib/utils/navigation';
 	import { refreshEnrichment, type Place } from '$lib/api/place';
 	import { createSavedPlace, type IsSavedPlaceResponse } from '$lib/api/savedPlace';
 	import Button from '$lib/components/Button.svelte';
@@ -52,13 +52,7 @@
 		}
 	};
 
-	const goBack = () => {
-		if (typeof history !== 'undefined' && history.length > 1) {
-			history.back();
-		} else {
-			goto('/place/search');
-		}
-	};
+	const onBack = () => goBack('/place/search');
 </script>
 
 {#snippet backIcon()}<ChevronLeft class="h-5 w-5" />{/snippet}
@@ -71,7 +65,7 @@
 
 <div class="mx-auto w-full max-w-6xl px-4 py-4 md:py-6">
 	<div class="mb-4 flex items-center gap-2">
-		<IconButton label="Go back" variant="ghost" tone="neutral" onclick={goBack} icon={backIcon} />
+		<IconButton label="Go back" variant="ghost" tone="neutral" onclick={onBack} icon={backIcon} />
 		<div class="ml-auto">
 			<IconButton
 				label="Refresh place data"
@@ -91,7 +85,7 @@
 					<Map
 						sources={[
 							{
-								key: place.name,
+								key: place.id,
 								points: [
 									{
 										id: place.id,

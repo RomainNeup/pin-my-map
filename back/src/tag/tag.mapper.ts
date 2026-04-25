@@ -1,4 +1,4 @@
-import { TagDto, TagDtoLight } from './tag.dto';
+import { TagDto } from './tag.dto';
 import { TagDocument } from './tag.entity';
 
 export class TagMapper {
@@ -11,16 +11,5 @@ export class TagMapper {
   }
   static toDtoList(entities: TagDocument[]): TagDto[] {
     return entities.map((entity) => this.toDto(entity));
-  }
-
-  static toDtoLight(entity: TagDocument): TagDtoLight {
-    return {
-      name: entity.name,
-      emoji: entity.emoji,
-    };
-  }
-
-  static toDtoLightList(entities: TagDocument[]): TagDtoLight[] {
-    return entities.map((entity) => this.toDtoLight(entity));
   }
 }

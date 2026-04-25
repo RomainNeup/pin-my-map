@@ -19,7 +19,9 @@
 	import * as mapbox from 'mapbox-gl';
 	import 'mapbox-gl/dist/mapbox-gl.css';
 	import { onMount, type Snippet } from 'svelte';
-	import { mapStore } from '$lib/stores/mapStore';
+	import { env } from '$env/dynamic/public';
+	import { theme } from '$lib/stores/theme';
+	import { styleForTheme } from '$lib/stores/mapStore';
 	import Loader from './Loader.svelte';
 	import MapGeolocation from './MapGeolocation.svelte';
 	import MapPoints from './MapPoints.svelte';
@@ -32,6 +34,7 @@
 		controls?: boolean;
 		sources?: MapSource[];
 		onMapClick?: (ll: { lat: number; lng: number }) => void;
+		onReady?: (map: mapbox.Map) => void;
 		children?: Snippet;
 	}
 
@@ -43,6 +46,7 @@
 		controls = true,
 		sources = [],
 		onMapClick,
+		onReady,
 		children
 	}: MapProps = $props();
 
@@ -51,27 +55,58 @@
 	let map: mapbox.Map | undefined = $state();
 
 	onMount(() => {
-		map = mapStore.init(mapContainer, {
+		const resolved = theme.resolved();
+		const instance = new mapbox.Map({
+			container: mapContainer,
+			accessToken: env.PUBLIC_MAPBOX_ACCESS_TOKEN,
+			style: styleForTheme(resolved),
+			attributionControl: false,
 			zoom,
 			center: [lng, lat],
 			interactive: controls
 		});
+		map = instance;
+		onReady?.(instance);
+
+		// Theme-driven style swap (skip the synchronous initial fire)
+		let firstFire = true;
+		const themeUnsub = theme.subscribe(() => {
+			if (firstFire) {
+				firstFire = false;
+				return;
+			}
+			if (!instance.isStyleLoaded()) return;
+			const r = theme.resolved();
+			const current = instance.getStyle()?.sprite ?? '';
+			const wantsDark = r === 'dark';
+			if (wantsDark !== current.includes('dark')) {
+				instance.setStyle(styleForTheme(r));
+			}
+		});
+
+		// Geolocation timeout safety
+		let loadingTimer: ReturnType<typeof setTimeout> | null = null;
+		if (centerOnUser) {
+			loadingTimer = setTimeout(() => {
+				loading = false;
+			}, 5000);
+		}
 
 		// Click-to-create: only when click didn't hit a marker/cluster layer
 		const clickHandler = (e: mapbox.MapMouseEvent) => {
-			if (!onMapClick || !map) return;
+			if (!onMapClick) return;
 			const layersToCheck: string[] = [];
 			for (const s of sources) {
 				layersToCheck.push(`${s.key}-unclustered`, `${s.key}-clusters`, `${s.key}-cluster-count`);
 			}
-			const existingLayers = layersToCheck.filter((id) => map!.getLayer(id));
+			const existingLayers = layersToCheck.filter((id) => instance.getLayer(id));
 			if (existingLayers.length) {
-				const features = map.queryRenderedFeatures(e.point, { layers: existingLayers });
+				const features = instance.queryRenderedFeatures(e.point, { layers: existingLayers });
 				if (features.length > 0) return;
 			}
 			onMapClick({ lat: e.lngLat.lat, lng: e.lngLat.lng });
 		};
-		if (onMapClick) map.on('click', clickHandler);
+		if (onMapClick) instance.on('click', clickHandler);
 
 		// Long-press for touch
 		let longPressTimer: ReturnType<typeof setTimeout> | null = null;
@@ -88,9 +123,12 @@
 			const t = e.touches[0];
 			longPressStart = { x: t.clientX, y: t.clientY };
 			longPressTimer = setTimeout(() => {
-				if (!map || !longPressStart) return;
+				if (!longPressStart) return;
 				const rect = mapContainer.getBoundingClientRect();
-				const pt = map.unproject([longPressStart.x - rect.left, longPressStart.y - rect.top]);
+				const pt = instance.unproject([
+					longPressStart.x - rect.left,
+					longPressStart.y - rect.top
+				]);
 				onMapClick?.({ lat: pt.lat, lng: pt.lng });
 				clearLongPress();
 			}, 500);
@@ -110,12 +148,15 @@
 		}
 
 		return () => {
-			if (onMapClick && map) map.off('click', clickHandler);
+			if (loadingTimer) clearTimeout(loadingTimer);
+			themeUnsub();
+			if (onMapClick) instance.off('click', clickHandler);
 			mapContainer.removeEventListener('touchstart', onTouchStart);
 			mapContainer.removeEventListener('touchmove', onTouchMove);
 			mapContainer.removeEventListener('touchend', clearLongPress);
 			mapContainer.removeEventListener('touchcancel', clearLongPress);
-			mapStore.destroy();
+			instance.remove();
+			map = undefined;
 		};
 	});
 

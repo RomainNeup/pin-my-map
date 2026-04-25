@@ -17,16 +17,25 @@ export interface IsSavedPlaceResponse {
 	isSaved: boolean;
 }
 
-export function getSavedPlaces(): Promise<SavedPlace[] | void> {
-	console.log(axiosInstance.defaults.headers.common);
-	return axiosInstance.get<SavedPlace[]>('/saved').then(({ data }) => data);
+export interface GetSavedPlacesParams {
+	limit?: number;
+	offset?: number;
+	tagIds?: string[];
 }
 
-export function getSavedPlace(id: string): Promise<SavedPlace | void> {
+export function getSavedPlaces(params: GetSavedPlacesParams = {}): Promise<SavedPlace[]> {
+	const query: Record<string, string | number> = {};
+	if (params.limit !== undefined) query.limit = params.limit;
+	if (params.offset !== undefined) query.offset = params.offset;
+	if (params.tagIds && params.tagIds.length > 0) query.tagIds = params.tagIds.join(',');
+	return axiosInstance.get<SavedPlace[]>('/saved', { params: query }).then(({ data }) => data);
+}
+
+export function getSavedPlace(id: string): Promise<SavedPlace> {
 	return axiosInstance.get<SavedPlace>(`/saved/${id}`).then(({ data }) => data);
 }
 
-export function isSavedPlace(placeId: string): Promise<IsSavedPlaceResponse | false> {
+export function isSavedPlace(placeId: string): Promise<IsSavedPlaceResponse> {
 	return axiosInstance
 		.get<IsSavedPlaceResponse>(`/saved/${placeId}/exists`)
 		.then(({ data }) => data);

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { goBack } from '$lib/utils/navigation';
 	import {
 		addCommentToSavedPlace,
 		addRatingToSavedPlace,
@@ -124,13 +125,7 @@
 		goto('/saved/list');
 	};
 
-	const goBack = () => {
-		if (typeof history !== 'undefined' && history.length > 1) {
-			history.back();
-		} else {
-			goto('/saved/list');
-		}
-	};
+	const onBack = () => goBack('/saved/list');
 </script>
 
 {#snippet backIcon()}<ChevronLeft class="h-5 w-5" />{/snippet}
@@ -139,7 +134,7 @@
 
 <div class="mx-auto w-full max-w-6xl px-4 py-4 md:py-6">
 	<div class="mb-4 flex items-center justify-between">
-		<IconButton label="Go back" variant="ghost" tone="neutral" onclick={goBack} icon={backIcon} />
+		<IconButton label="Go back" variant="ghost" tone="neutral" onclick={onBack} icon={backIcon} />
 
 		<div class="relative" bind:this={menuAnchor}>
 			<IconButton
@@ -170,7 +165,7 @@
 					<Map
 						sources={[
 							{
-								key: data.savedPlace.place.name,
+								key: data.savedPlace.id,
 								points: [
 									{
 										id: data.savedPlace.place.id,

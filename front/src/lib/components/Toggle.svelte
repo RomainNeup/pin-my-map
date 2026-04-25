@@ -13,7 +13,7 @@
 
 	let {
 		label,
-		id = `toggle-${Math.random().toString(36).slice(2, 9)}`,
+		id = `toggle-${crypto.randomUUID()}`,
 		value = $bindable(false),
 		onToggle,
 		disabled = false,

@@ -14,15 +14,20 @@
 	let open = $state(false);
 
 	let debounceHandle: ReturnType<typeof setTimeout> | null = null;
+	let requestId = 0;
 
 	const runSearch = async (q: string) => {
+		const id = ++requestId;
 		loading = true;
 		try {
-			results = await searchPlaces(q);
+			const r = await searchPlaces(q);
+			if (id !== requestId) return;
+			results = r;
 		} catch {
+			if (id !== requestId) return;
 			results = [];
 		} finally {
-			loading = false;
+			if (id === requestId) loading = false;
 		}
 	};
 

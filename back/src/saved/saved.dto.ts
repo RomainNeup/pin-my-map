@@ -1,4 +1,12 @@
 import { ApiProperty, ApiSchema } from '@nestjs/swagger';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { PlaceDto } from 'src/place/place.dto';
 import { TagDto } from 'src/tag/tag.dto';
 
@@ -23,12 +31,18 @@ export class SavedPlaceDto {
 @ApiSchema({ name: 'Comment Saved Place' })
 export class CommentSavedPlaceDto {
   @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000)
   comment: string;
 }
 
 @ApiSchema({ name: 'Rating Saved Place' })
 export class RatingSavedPlaceDto {
   @ApiProperty()
+  @IsInt()
+  @Min(0)
+  @Max(5)
   rating: number;
 }
 
