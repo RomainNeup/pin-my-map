@@ -10,9 +10,14 @@ import { Model } from 'mongoose';
 import { createHash, randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { JoseService } from './jose.service';
+import {
+  OAuthProvider,
+  OAuthVerifierService,
+  VerifiedOAuthClaims,
+} from './oauth-verifier.service';
 import { UserService } from '../user/user.service';
 import { ConfigService } from 'src/config/config.service';
-import { User } from '../user/user.entity';
+import { User, UserDocument, UserStatus } from '../user/user.entity';
 import { AuditService } from '../audit/audit.service';
 import { MailerService } from '../mailer/mailer.service';
 import {
@@ -35,6 +40,7 @@ export class AuthService {
     private userService: UserService,
     private joseService: JoseService,
     private configService: ConfigService,
+    private oauthVerifier: OAuthVerifierService,
     @InjectModel(User.name) private userModel: Model<User>,
     private auditService: AuditService,
     private mailerService: MailerService,
@@ -45,6 +51,10 @@ export class AuthService {
     try {
       user = await this.userService.findByEmail(loginDto.email);
     } catch {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.password) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -88,7 +98,6 @@ export class AuthService {
     const existingCount = await this.userService.count();
     const isFirstUser = existingCount === 0;
 
-    // First user becomes admin (active). Otherwise, follow registrationMode.
     const status =
       !isFirstUser && config.registrationMode === 'approval-required'
         ? 'pending'
@@ -108,13 +117,12 @@ export class AuthService {
   }
 
   async forgotPassword(email: string): Promise<void> {
-    // Always returns 204 — never reveal whether the account exists.
     const user = await this.userModel.findOne({ email }).exec();
     if (!user) {
       return;
     }
 
-    const plainToken = randomBytes(32).toString('hex'); // 64 hex chars
+    const plainToken = randomBytes(32).toString('hex');
     const tokenHash = sha256(plainToken);
     const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
 
@@ -159,7 +167,6 @@ export class AuthService {
       !user.passwordResetExpiresAt ||
       user.passwordResetExpiresAt < new Date()
     ) {
-      // Clear the stale token before throwing
       user.passwordResetTokenHash = undefined;
       user.passwordResetExpiresAt = undefined;
       await user.save();
@@ -182,5 +189,118 @@ export class AuthService {
     } catch (err) {
       this.logger.warn(`Failed to audit password_reset_completed: ${err}`);
     }
+  }
+
+  async loginWithGoogle(idToken: string): Promise<LoginResponseDto> {
+    const claims = await this.oauthVerifier.verify('google', idToken);
+    return this.findOrLinkOrCreate('google', claims);
+  }
+
+  async loginWithApple(
+    idToken: string,
+    name?: string,
+  ): Promise<LoginResponseDto> {
+    const claims = await this.oauthVerifier.verify('apple', idToken);
+    return this.findOrLinkOrCreate('apple', {
+      ...claims,
+      name: name ?? claims.name,
+    });
+  }
+
+  private async findOrLinkOrCreate(
+    provider: OAuthProvider,
+    claims: VerifiedOAuthClaims,
+  ): Promise<LoginResponseDto> {
+    const providerField = provider === 'google' ? 'googleId' : 'appleSub';
+
+    let user: UserDocument | null = await this.userModel
+      .findOne({ [providerField]: claims.sub })
+      .exec();
+
+    let createdNew = false;
+
+    if (!user && claims.email) {
+      user = await this.userModel
+        .findOne({ email: claims.email.toLowerCase() })
+        .exec();
+      if (user) {
+        (user as unknown as Record<string, unknown>)[providerField] =
+          claims.sub;
+        await user.save();
+      }
+    }
+
+    if (!user) {
+      if (!claims.email) {
+        throw new BadRequestException(
+          'OAuth provider did not return an email address',
+        );
+      }
+
+      const config = await this.configService.get();
+      if (config.registrationMode === 'invite-only') {
+        throw new ForbiddenException('Registration is invite-only');
+      }
+      const status: UserStatus =
+        config.registrationMode === 'approval-required' ? 'pending' : 'active';
+
+      const fallbackName =
+        claims.name?.trim() || claims.email.split('@')[0] || 'User';
+      const existingCount = await this.userModel.countDocuments().exec();
+
+      const created = await this.userModel.create({
+        name: fallbackName,
+        email: claims.email.toLowerCase(),
+        role: existingCount === 0 ? 'admin' : 'user',
+        status,
+        [providerField]: claims.sub,
+      });
+      user = created;
+      createdNew = true;
+
+      try {
+        await this.auditService.log({
+          actor: created.id,
+          action: 'auth.oauth.register',
+          targetType: 'user',
+          targetId: created.id,
+          meta: { provider, status },
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Failed to audit oauth.register: ${(err as Error).message}`,
+        );
+      }
+    }
+
+    if (user.status && user.status !== 'active') {
+      const reasonSuffix = user.rejectionReason
+        ? `: ${user.rejectionReason}`
+        : '';
+      throw new ForbiddenException(`Account ${user.status}${reasonSuffix}`);
+    }
+
+    try {
+      await this.auditService.log({
+        actor: user.id,
+        action: 'auth.oauth.login',
+        targetType: 'user',
+        targetId: user.id,
+        meta: { provider, createdNew },
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Failed to audit oauth.login: ${(err as Error).message}`,
+      );
+    }
+
+    return {
+      accessToken: await this.joseService.signAsync({
+        name: user.name,
+        email: user.email,
+        id: user.id,
+        role: user.role ?? 'user',
+      }),
+    };
   }
 }

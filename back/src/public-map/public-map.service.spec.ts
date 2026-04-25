@@ -55,9 +55,13 @@ const buildService = (opts: {
       }
       return Promise.resolve(savedAgg);
     }),
-    countDocuments: jest.fn().mockImplementation((filter: Record<string, unknown>) => ({
-      exec: jest.fn().mockResolvedValue(filter?.done === true ? doneCount : savedCount),
-    })),
+    countDocuments: jest
+      .fn()
+      .mockImplementation((filter: Record<string, unknown>) => ({
+        exec: jest
+          .fn()
+          .mockResolvedValue(filter?.done === true ? doneCount : savedCount),
+      })),
   };
 
   const followModel = {
@@ -109,7 +113,9 @@ describe('PublicMapService', () => {
     it('returns points=0 and level=1 when user has no gamification record', async () => {
       const userId = makeOid();
       const { service } = await buildService({
-        users: [{ _id: userId, name: 'Alice', publicSlug: 'alice', isPublic: true }],
+        users: [
+          { _id: userId, name: 'Alice', publicSlug: 'alice', isPublic: true },
+        ],
         savedAgg: [],
         gamRecords: [],
       });
@@ -126,7 +132,9 @@ describe('PublicMapService', () => {
       // level = floor(sqrt(points/50)) + 1
       // points=200 → floor(sqrt(4))+1 = 3
       const { service } = await buildService({
-        users: [{ _id: userId, name: 'Bob', publicSlug: 'bob', isPublic: true }],
+        users: [
+          { _id: userId, name: 'Bob', publicSlug: 'bob', isPublic: true },
+        ],
         gamRecords: [{ user: userId, points: 200 }],
       });
 
@@ -139,7 +147,9 @@ describe('PublicMapService', () => {
     it('includes savedCount and followerCount', async () => {
       const userId = makeOid();
       const { service, followService } = await buildService({
-        users: [{ _id: userId, name: 'Carol', publicSlug: 'carol', isPublic: true }],
+        users: [
+          { _id: userId, name: 'Carol', publicSlug: 'carol', isPublic: true },
+        ],
         savedAgg: [{ _id: userId, count: 5 }],
         gamRecords: [],
       });
@@ -159,7 +169,9 @@ describe('PublicMapService', () => {
       const requesterId = makeOid('aaaaaaaaaaaaaaaaaaaaaaaa');
       const { service } = await buildService({ followRows: [] });
 
-      const results = await service.getFollowingPublicMaps(requesterId.toString());
+      const results = await service.getFollowingPublicMaps(
+        requesterId.toString(),
+      );
 
       expect(results).toEqual([]);
     });
@@ -183,11 +195,18 @@ describe('PublicMapService', () => {
       userModel.find.mockReturnValue({
         sort: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue([
-          { _id: publicUserId, name: 'Public User', publicSlug: 'pub', isPublic: true },
+          {
+            _id: publicUserId,
+            name: 'Public User',
+            publicSlug: 'pub',
+            isPublic: true,
+          },
         ]),
       });
 
-      const results = await service.getFollowingPublicMaps(requesterId.toString());
+      const results = await service.getFollowingPublicMaps(
+        requesterId.toString(),
+      );
 
       expect(results).toHaveLength(1);
       expect(results[0].userId).toBe(publicUserId.toString());
@@ -197,16 +216,16 @@ describe('PublicMapService', () => {
       const requesterId = makeOid('aaaaaaaaaaaaaaaaaaaaaaaa');
 
       // Self-follow: followed === requester (service filters this out before DB query)
-      const followRows = [
-        { follower: requesterId, followed: requesterId },
-      ];
+      const followRows = [{ follower: requesterId, followed: requesterId }];
 
       const { service, userModel } = await buildService({
         followRows,
         gamRecords: [],
       });
 
-      const results = await service.getFollowingPublicMaps(requesterId.toString());
+      const results = await service.getFollowingPublicMaps(
+        requesterId.toString(),
+      );
 
       expect(results).toEqual([]);
       // userModel.find should NOT be called because followedIds is empty after filtering
@@ -231,8 +250,12 @@ describe('PublicMapService', () => {
       });
 
       savedPlaceModel.countDocuments
-        .mockImplementationOnce(() => ({ exec: jest.fn().mockResolvedValue(10) }))
-        .mockImplementationOnce(() => ({ exec: jest.fn().mockResolvedValue(4) }));
+        .mockImplementationOnce(() => ({
+          exec: jest.fn().mockResolvedValue(10),
+        }))
+        .mockImplementationOnce(() => ({
+          exec: jest.fn().mockResolvedValue(4),
+        }));
 
       const stats = await service.getStatsBySlug('alice');
 
@@ -249,8 +272,12 @@ describe('PublicMapService', () => {
       });
 
       savedPlaceModel.countDocuments
-        .mockImplementationOnce(() => ({ exec: jest.fn().mockResolvedValue(0) }))
-        .mockImplementationOnce(() => ({ exec: jest.fn().mockResolvedValue(0) }));
+        .mockImplementationOnce(() => ({
+          exec: jest.fn().mockResolvedValue(0),
+        }))
+        .mockImplementationOnce(() => ({
+          exec: jest.fn().mockResolvedValue(0),
+        }));
 
       const stats = await service.getStatsBySlug('bob');
 

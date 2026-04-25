@@ -1,6 +1,8 @@
 import { ApiProperty, ApiResponseProperty, ApiSchema } from '@nestjs/swagger';
 import {
   IsEmail,
+  IsNotEmpty,
+  IsOptional,
   IsString,
   Length,
   MaxLength,
@@ -63,4 +65,31 @@ export class LoginRequestDto {
   @MinLength(1)
   @MaxLength(128)
   password: string;
+}
+
+@ApiSchema({ name: 'Google OAuth Request' })
+export class GoogleOAuthDto {
+  @ApiProperty({ required: true, description: 'Google OIDC ID token' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(8192)
+  idToken: string;
+}
+
+@ApiSchema({ name: 'Apple OAuth Request' })
+export class AppleOAuthDto {
+  @ApiProperty({ required: true, description: 'Apple OIDC ID token' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(8192)
+  idToken: string;
+  @ApiProperty({
+    required: false,
+    description:
+      'Display name. Apple only sends this on the first sign-in via the JS SDK.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  name?: string;
 }

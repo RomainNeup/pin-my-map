@@ -9,6 +9,8 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import {
+  AppleOAuthDto,
+  GoogleOAuthDto,
   LoginRequestDto,
   LoginResponseDto,
   RegisterRequestDto,
@@ -51,6 +53,32 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   async register(@Body() registerDto: RegisterRequestDto): Promise<void> {
     return await this.authService.register(registerDto);
+  }
+
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  @Post('oauth/google')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Sign in / sign up with a Google ID token' })
+  @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({ status: 401, description: 'Invalid OAuth token' })
+  @ApiResponse({ status: 403, description: 'Registration not allowed' })
+  @ApiResponse({ status: 503, description: 'OAuth provider not configured' })
+  async loginWithGoogle(
+    @Body() dto: GoogleOAuthDto,
+  ): Promise<LoginResponseDto> {
+    return this.authService.loginWithGoogle(dto.idToken);
+  }
+
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  @Post('oauth/apple')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Sign in / sign up with an Apple ID token' })
+  @ApiResponse({ status: 200, type: LoginResponseDto })
+  @ApiResponse({ status: 401, description: 'Invalid OAuth token' })
+  @ApiResponse({ status: 403, description: 'Registration not allowed' })
+  @ApiResponse({ status: 503, description: 'OAuth provider not configured' })
+  async loginWithApple(@Body() dto: AppleOAuthDto): Promise<LoginResponseDto> {
+    return this.authService.loginWithApple(dto.idToken, dto.name);
   }
 
   @Private()

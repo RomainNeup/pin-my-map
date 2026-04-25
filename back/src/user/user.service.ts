@@ -250,6 +250,11 @@ export class UserService implements OnModuleInit {
           'currentPassword is required to change email',
         );
       }
+      if (!user.password) {
+        throw new UnauthorizedException(
+          'Account has no password (OAuth-only). Use provider sign-in to change email.',
+        );
+      }
       const ok = await bcrypt.compare(body.currentPassword, user.password);
       if (!ok) {
         throw new UnauthorizedException('Invalid current password');
@@ -279,6 +284,9 @@ export class UserService implements OnModuleInit {
   ): Promise<void> {
     const user = await this.userModel.findById(id);
     if (!user) throw new NotFoundException('User not found');
+    if (!user.password) {
+      throw new UnauthorizedException('Account has no password set');
+    }
     const ok = await bcrypt.compare(currentPassword, user.password);
     if (!ok) {
       throw new UnauthorizedException('Invalid current password');
@@ -290,6 +298,9 @@ export class UserService implements OnModuleInit {
   async softDeleteMe(id: string, password: string): Promise<void> {
     const user = await this.userModel.findById(id);
     if (!user) throw new NotFoundException('User not found');
+    if (!user.password) {
+      throw new UnauthorizedException('Account has no password set');
+    }
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) {
       throw new UnauthorizedException('Invalid password');

@@ -12,6 +12,7 @@ import * as bcrypt from 'bcrypt';
 import { createHash } from 'crypto';
 import { AuthService } from './auth.service';
 import { JoseService } from './jose.service';
+import { OAuthVerifierService } from './oauth-verifier.service';
 import { UserService } from '../user/user.service';
 import { ConfigService } from 'src/config/config.service';
 import { User } from '../user/user.entity';
@@ -59,6 +60,10 @@ function buildResetModule(userModelStub: object) {
         },
       },
       {
+        provide: OAuthVerifierService,
+        useValue: { verify: jest.fn() },
+      },
+      {
         provide: AuditService,
         useValue: { log: jest.fn().mockResolvedValue(undefined) },
       },
@@ -103,6 +108,10 @@ describe('AuthService', () => {
         { provide: UserService, useValue: userService },
         { provide: JoseService, useValue: joseService },
         { provide: ConfigService, useValue: configService },
+        {
+          provide: OAuthVerifierService,
+          useValue: { verify: jest.fn() },
+        },
         { provide: getModelToken(User.name), useValue: { findOne: jest.fn() } },
         {
           provide: AuditService,
@@ -118,9 +127,6 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
   });
 
-  // ------------------------------------------------------------------
-  // login
-  // ------------------------------------------------------------------
   describe('login', () => {
     const makeUser = (overrides: Record<string, unknown> = {}) => ({
       id: 'uid1',
@@ -210,9 +216,6 @@ describe('AuthService', () => {
     });
   });
 
-  // ------------------------------------------------------------------
-  // register – TAS-20 registrationMode flow
-  // ------------------------------------------------------------------
   describe('register', () => {
     it('creates active user when registrationMode is open', async () => {
       configService.get.mockResolvedValue({ registrationMode: 'open' });
@@ -232,7 +235,7 @@ describe('AuthService', () => {
       configService.get.mockResolvedValue({
         registrationMode: 'approval-required',
       });
-      userService.count.mockResolvedValue(5); // not first user
+      userService.count.mockResolvedValue(5);
 
       await service.register({
         name: 'Bob',
@@ -249,7 +252,7 @@ describe('AuthService', () => {
       configService.get.mockResolvedValue({
         registrationMode: 'approval-required',
       });
-      userService.count.mockResolvedValue(0); // first user
+      userService.count.mockResolvedValue(0);
 
       await service.register({
         name: 'Admin',
@@ -333,7 +336,6 @@ describe('AuthService — forgotPassword', () => {
       expect.objectContaining({ action: 'auth.password_reset_requested' }),
     );
     const auditArg = JSON.stringify(auditService.log.mock.calls[0][0]);
-    // the audit entry must not carry the raw token
     expect(auditArg).not.toMatch(/"token"/);
   });
 
@@ -345,7 +347,6 @@ describe('AuthService — forgotPassword', () => {
 
     await service.forgotPassword('test@example.com');
 
-    // The email link contains the plain token; the entity stores the hash.
     const emailCall = mailerService.sendMail.mock.calls[0][0] as {
       html: string;
     };
@@ -417,5 +418,298 @@ describe('AuthService — resetPassword', () => {
     expect(auditService.log).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'auth.password_reset_completed' }),
     );
+  });
+});
+
+interface FakeOAuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'user' | 'admin';
+  status: 'active' | 'pending' | 'rejected' | 'suspended';
+  rejectionReason?: string;
+  googleId?: string;
+  appleSub?: string;
+  save: jest.Mock;
+}
+
+function makeFakeUser(partial: Partial<FakeOAuthUser> = {}): FakeOAuthUser {
+  return {
+    id: partial.id ?? 'u1',
+    name: partial.name ?? 'Alice',
+    email: partial.email ?? 'alice@example.com',
+    role: partial.role ?? 'user',
+    status: partial.status ?? 'active',
+    rejectionReason: partial.rejectionReason,
+    googleId: partial.googleId,
+    appleSub: partial.appleSub,
+    save: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
+describe('AuthService — OAuth', () => {
+  let userModel: {
+    findOne: jest.Mock;
+    create: jest.Mock;
+    countDocuments: jest.Mock;
+  };
+  let oauthVerifier: { verify: jest.Mock };
+  let auditService: { log: jest.Mock };
+  let configService: { get: jest.Mock };
+  let service: AuthService;
+
+  const queryWith = (value: unknown) => ({
+    exec: jest.fn().mockResolvedValue(value),
+  });
+
+  beforeEach(async () => {
+    userModel = {
+      findOne: jest.fn(),
+      create: jest.fn(),
+      countDocuments: jest.fn().mockReturnValue(queryWith(5)),
+    };
+    oauthVerifier = { verify: jest.fn() };
+    auditService = { log: jest.fn().mockResolvedValue(undefined) };
+    configService = {
+      get: jest.fn().mockResolvedValue({ registrationMode: 'open' }),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AuthService,
+        { provide: getModelToken(User.name), useValue: userModel },
+        {
+          provide: UserService,
+          useValue: {
+            findByEmail: jest.fn(),
+            exists: jest.fn(),
+            count: jest.fn(),
+            create: jest.fn(),
+          },
+        },
+        {
+          provide: JoseService,
+          useValue: { signAsync: jest.fn().mockResolvedValue('signed-jwt') },
+        },
+        { provide: ConfigService, useValue: configService },
+        { provide: OAuthVerifierService, useValue: oauthVerifier },
+        { provide: AuditService, useValue: auditService },
+        {
+          provide: MailerService,
+          useValue: { sendMail: jest.fn().mockResolvedValue(undefined) },
+        },
+      ],
+    }).compile();
+
+    service = module.get<AuthService>(AuthService);
+  });
+
+  describe('loginWithGoogle', () => {
+    it('returns a JWT for an existing user matched by googleId (happy path)', async () => {
+      oauthVerifier.verify.mockResolvedValue({
+        sub: 'g-sub-1',
+        email: 'alice@example.com',
+        name: 'Alice',
+      });
+      const existing = makeFakeUser({ googleId: 'g-sub-1' });
+      userModel.findOne.mockReturnValueOnce(queryWith(existing));
+
+      const result = await service.loginWithGoogle('id-token');
+
+      expect(oauthVerifier.verify).toHaveBeenCalledWith('google', 'id-token');
+      expect(userModel.findOne).toHaveBeenCalledWith({ googleId: 'g-sub-1' });
+      expect(result.accessToken).toBe('signed-jwt');
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.oauth.login' }),
+      );
+    });
+
+    it('rejects when the verifier throws (invalid token)', async () => {
+      oauthVerifier.verify.mockRejectedValue(
+        new UnauthorizedException('Invalid OAuth token'),
+      );
+      await expect(service.loginWithGoogle('bad')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+    });
+
+    it('links an existing email-matched user when no googleId match', async () => {
+      oauthVerifier.verify.mockResolvedValue({
+        sub: 'g-sub-2',
+        email: 'bob@example.com',
+        name: 'Bob',
+      });
+      const linkable = makeFakeUser({ id: 'u2', email: 'bob@example.com' });
+      userModel.findOne
+        .mockReturnValueOnce(queryWith(null))
+        .mockReturnValueOnce(queryWith(linkable));
+
+      await service.loginWithGoogle('tok');
+
+      expect(linkable.googleId).toBe('g-sub-2');
+      expect(linkable.save).toHaveBeenCalled();
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.oauth.login' }),
+      );
+      expect(auditService.log).not.toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.oauth.register' }),
+      );
+    });
+
+    it('creates a new active user when registrationMode=open', async () => {
+      configService.get.mockResolvedValue({ registrationMode: 'open' });
+      oauthVerifier.verify.mockResolvedValue({
+        sub: 'g-new',
+        email: 'new@example.com',
+        name: 'New User',
+      });
+      userModel.findOne
+        .mockReturnValueOnce(queryWith(null))
+        .mockReturnValueOnce(queryWith(null));
+      const created = makeFakeUser({
+        id: 'u3',
+        email: 'new@example.com',
+        googleId: 'g-new',
+      });
+      userModel.create.mockResolvedValue(created);
+
+      const result = await service.loginWithGoogle('tok');
+
+      expect(userModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'new@example.com',
+          status: 'active',
+          googleId: 'g-new',
+        }),
+      );
+      expect(result.accessToken).toBe('signed-jwt');
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.oauth.register' }),
+      );
+    });
+
+    it('creates a pending user when registrationMode=approval-required and blocks login', async () => {
+      configService.get.mockResolvedValue({
+        registrationMode: 'approval-required',
+      });
+      oauthVerifier.verify.mockResolvedValue({
+        sub: 'g-pending',
+        email: 'pending@example.com',
+      });
+      userModel.findOne
+        .mockReturnValueOnce(queryWith(null))
+        .mockReturnValueOnce(queryWith(null));
+      const created = makeFakeUser({
+        id: 'u4',
+        email: 'pending@example.com',
+        status: 'pending',
+        googleId: 'g-pending',
+      });
+      userModel.create.mockResolvedValue(created);
+
+      await expect(service.loginWithGoogle('tok')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(userModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'pending' }),
+      );
+    });
+
+    it('blocks new sign-ups under registrationMode=invite-only', async () => {
+      configService.get.mockResolvedValue({ registrationMode: 'invite-only' });
+      oauthVerifier.verify.mockResolvedValue({
+        sub: 'g-blocked',
+        email: 'nope@example.com',
+      });
+      userModel.findOne
+        .mockReturnValueOnce(queryWith(null))
+        .mockReturnValueOnce(queryWith(null));
+
+      await expect(service.loginWithGoogle('tok')).rejects.toMatchObject({
+        message: expect.stringMatching(/invite-only/i),
+      });
+      expect(userModel.create).not.toHaveBeenCalled();
+    });
+
+    it('still allows existing-by-email link under invite-only', async () => {
+      configService.get.mockResolvedValue({ registrationMode: 'invite-only' });
+      oauthVerifier.verify.mockResolvedValue({
+        sub: 'g-link',
+        email: 'existing@example.com',
+      });
+      const linkable = makeFakeUser({
+        id: 'u5',
+        email: 'existing@example.com',
+      });
+      userModel.findOne
+        .mockReturnValueOnce(queryWith(null))
+        .mockReturnValueOnce(queryWith(linkable));
+
+      const result = await service.loginWithGoogle('tok');
+      expect(result.accessToken).toBe('signed-jwt');
+      expect(linkable.googleId).toBe('g-link');
+    });
+  });
+
+  describe('loginWithApple', () => {
+    it('uses request name when token omits it', async () => {
+      oauthVerifier.verify.mockResolvedValue({
+        sub: 'a-sub-1',
+        email: 'fresh@example.com',
+      });
+      userModel.findOne
+        .mockReturnValueOnce(queryWith(null))
+        .mockReturnValueOnce(queryWith(null));
+      const created = makeFakeUser({
+        id: 'u6',
+        email: 'fresh@example.com',
+        appleSub: 'a-sub-1',
+      });
+      userModel.create.mockResolvedValue(created);
+
+      await service.loginWithApple('tok', 'Sent From Client');
+
+      expect(userModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Sent From Client',
+          appleSub: 'a-sub-1',
+        }),
+      );
+    });
+
+    it('falls back to email local-part when no name is provided', async () => {
+      oauthVerifier.verify.mockResolvedValue({
+        sub: 'a-sub-2',
+        email: 'jane.doe@example.com',
+      });
+      userModel.findOne
+        .mockReturnValueOnce(queryWith(null))
+        .mockReturnValueOnce(queryWith(null));
+      const created = makeFakeUser({
+        id: 'u7',
+        email: 'jane.doe@example.com',
+        appleSub: 'a-sub-2',
+      });
+      userModel.create.mockResolvedValue(created);
+
+      await service.loginWithApple('tok');
+
+      expect(userModel.create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'jane.doe' }),
+      );
+    });
+
+    it('finds existing user by appleSub', async () => {
+      oauthVerifier.verify.mockResolvedValue({
+        sub: 'a-sub-3',
+        email: 'a@example.com',
+      });
+      const existing = makeFakeUser({ appleSub: 'a-sub-3' });
+      userModel.findOne.mockReturnValueOnce(queryWith(existing));
+
+      const result = await service.loginWithApple('tok');
+      expect(userModel.findOne).toHaveBeenCalledWith({ appleSub: 'a-sub-3' });
+      expect(result.accessToken).toBe('signed-jwt');
+    });
   });
 });
