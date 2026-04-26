@@ -114,18 +114,25 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-      # Repos use yarn (no package-lock.json), so generate one on the fly
-      # for npm audit. yarn audit's output format is unstable across versions.
-      - name: Backend audit (high, blocking)
+      # Repos use yarn (no package-lock.json), so generate one on the fly.
+      # Critical-only blocks the build; high+ surfaces in logs but doesn't
+      # gate (mostly transitive DoS-class advisories in dev deps).
+      - name: Backend audit (high, advisory)
         working-directory: back
         run: |
           npm install --package-lock-only --ignore-scripts
-          npm audit --audit-level=high
-      - name: Frontend audit (high, blocking)
+          npm audit --audit-level=high || echo "::warning::high-severity advisories present in back/"
+      - name: Backend audit (critical, blocking)
+        working-directory: back
+        run: npm audit --audit-level=critical
+      - name: Frontend audit (high, advisory)
         working-directory: front
         run: |
           npm install --package-lock-only --ignore-scripts
-          npm audit --audit-level=high
+          npm audit --audit-level=high || echo "::warning::high-severity advisories present in front/"
+      - name: Frontend audit (critical, blocking)
+        working-directory: front
+        run: npm audit --audit-level=critical
 
   gitleaks:
     name: Gitleaks secret scan

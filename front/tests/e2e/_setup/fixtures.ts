@@ -1,4 +1,10 @@
-import { test as base, expect, type Page, type BrowserContext } from '@playwright/test';
+import {
+	test as base,
+	expect,
+	type APIRequestContext,
+	type Page,
+	type BrowserContext
+} from '@playwright/test';
 
 /** A 1×1 transparent PNG (base64). */
 const TRANSPARENT_PNG_BASE64 =
@@ -22,7 +28,7 @@ function uniqueEmail(prefix = 'user'): string {
 }
 
 export async function registerUser(
-	request: { post: (url: string, opts?: any) => Promise<any> },
+	request: APIRequestContext,
 	overrides: Partial<SeedUser> = {}
 ): Promise<SeedUser> {
 	const user: SeedUser = {
