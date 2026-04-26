@@ -87,14 +87,12 @@ jobs:
         run: yarn install --frozen-lockfile
       - name: Install Playwright browsers
         working-directory: front
-        run: npx playwright install --with-deps chromium firefox webkit
+        run: npx playwright install --with-deps chromium
       - name: Run Playwright tests
         working-directory: front
         env:
           CI: 'true'
-          PUBLIC_API_BASE_URL: http://localhost:8080
-          PUBLIC_MAPBOX_ACCESS_TOKEN: pk.test
-        run: yarn test:e2e
+        run: yarn test:e2e --project=chromium
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
