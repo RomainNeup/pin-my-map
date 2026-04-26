@@ -79,6 +79,48 @@ export class PlaceMapper {
   }
 }
 
+// ── Google Maps card URL helper ───────────────────────────────────────────────
+
+export interface GoogleMapsCardUrlParams {
+  name: string;
+  address?: string;
+  location: { lat: number; lng: number };
+  externalId?: string;
+  externalProvider?: string;
+  /** When set, this is already a real card URL — return it as-is. */
+  googleMapsUri?: string;
+}
+
+/**
+ * Build the best possible Google Maps URL for a place.
+ *
+ * Priority:
+ * 1. `googleMapsUri` from enrichment (real card URL, already resolved).
+ * 2. `query_place_id` when provider is "google" (opens the exact place card).
+ * 3. Name+address query when provider is mapbox/osm (Google's heuristic).
+ * 4. Plain lat,lng fallback.
+ */
+export function buildGoogleMapsCardUrl(p: GoogleMapsCardUrlParams): string {
+  if (p.googleMapsUri) return p.googleMapsUri;
+
+  const base = 'https://www.google.com/maps/search/?api=1';
+  const latLng = `${p.location.lat},${p.location.lng}`;
+
+  if (p.externalProvider === 'google' && p.externalId) {
+    const q = encodeURIComponent(latLng);
+    return `${base}&query=${q}&query_place_id=${encodeURIComponent(p.externalId)}`;
+  }
+
+  if (p.name) {
+    const queryText = p.address
+      ? `${p.name}, ${p.address}`
+      : `${p.name}, ${latLng}`;
+    return `${base}&query=${encodeURIComponent(queryText)}`;
+  }
+
+  return `${base}&query=${encodeURIComponent(latLng)}`;
+}
+
 const PRICE_SYMBOLS = ['$', '$$', '$$$', '$$$$'];
 
 /**
