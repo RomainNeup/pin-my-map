@@ -9,6 +9,7 @@ export interface SuggestionChanges {
 	address?: string;
 	image?: string;
 	location?: { lat: number; lng: number };
+	permanentlyClosed?: boolean;
 }
 
 export interface Suggestion {

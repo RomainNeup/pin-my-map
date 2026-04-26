@@ -69,6 +69,12 @@ export class SuggestionService {
         changes.location = [lng, lat];
       }
     }
+    if (
+      c.permanentlyClosed !== undefined &&
+      c.permanentlyClosed !== current.permanentlyClosed
+    ) {
+      changes.permanentlyClosed = c.permanentlyClosed;
+    }
 
     if (Object.keys(changes).length === 0) {
       throw new BadRequestException('No changes to suggest');
@@ -180,6 +186,12 @@ export class SuggestionService {
     if (Array.isArray(entity.changes.location)) {
       update.location = entity.changes.location;
     }
+    if (entity.changes.permanentlyClosed !== undefined) {
+      update.permanentlyClosed = entity.changes.permanentlyClosed;
+      update.permanentlyClosedAt = entity.changes.permanentlyClosed
+        ? new Date()
+        : null;
+    }
 
     await this.placeModel.updateOne({ _id: placeId }, { $set: update }).exec();
     const after = await this.placeService.findOne(placeId);
@@ -250,6 +262,7 @@ function diffSnapshot(
     address: string;
     image: string;
     location: { lat: number; lng: number };
+    permanentlyClosed?: boolean;
   },
   changes: {
     name?: string;
@@ -257,6 +270,7 @@ function diffSnapshot(
     address?: string;
     image?: string;
     location?: number[];
+    permanentlyClosed?: boolean;
   },
 ): Record<string, unknown> {
   const snapshot: Record<string, unknown> = {};
@@ -266,5 +280,7 @@ function diffSnapshot(
   if (changes.address !== undefined) snapshot.address = place.address;
   if (changes.image !== undefined) snapshot.image = place.image;
   if (changes.location !== undefined) snapshot.location = place.location;
+  if (changes.permanentlyClosed !== undefined)
+    snapshot.permanentlyClosed = place.permanentlyClosed;
   return snapshot;
 }

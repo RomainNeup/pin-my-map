@@ -1,6 +1,7 @@
 import { ApiProperty, ApiSchema } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsMongoId,
   IsOptional,
   IsString,
@@ -39,6 +40,14 @@ export class SuggestionChangesDto {
   @ValidateNested()
   @Type(() => LatLngDto)
   location?: LatLngDto;
+  @ApiProperty({
+    required: false,
+    description:
+      'Propose marking this place as permanently closed (or reopened)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  permanentlyClosed?: boolean;
 }
 
 @ApiSchema({ name: 'Create Suggestion Request' })

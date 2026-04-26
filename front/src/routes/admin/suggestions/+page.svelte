@@ -97,6 +97,14 @@
 					`${s.changes.location.lat.toFixed(5)}, ${s.changes.location.lng.toFixed(5)}`
 				)
 			);
+		if (s.changes.permanentlyClosed !== undefined)
+			rows.push(
+				fieldRow(
+					'Closed',
+					p?.permanentlyClosed ? 'Mark closed' : 'Open',
+					s.changes.permanentlyClosed ? 'Mark closed' : 'Reopen'
+				)
+			);
 		return rows;
 	};
 

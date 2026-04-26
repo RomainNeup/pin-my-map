@@ -25,6 +25,7 @@
 	let image = $state(place.image ?? '');
 	let lat = $state<number | null>(place.location.lat);
 	let lng = $state<number | null>(place.location.lng);
+	let permanentlyClosed = $state(place.permanentlyClosed ?? false);
 	let note = $state('');
 	let submitting = $state(false);
 	let error = $state('');
@@ -37,6 +38,7 @@
 			image = place.image ?? '';
 			lat = place.location.lat;
 			lng = place.location.lng;
+			permanentlyClosed = place.permanentlyClosed ?? false;
 			note = '';
 			error = '';
 		}
@@ -54,6 +56,9 @@
 			(lat !== place.location.lat || lng !== place.location.lng)
 		) {
 			c.location = { lat, lng };
+		}
+		if (permanentlyClosed !== (place.permanentlyClosed ?? false)) {
+			c.permanentlyClosed = permanentlyClosed;
 		}
 		return c;
 	};
@@ -123,6 +128,10 @@
 				{/snippet}
 			</Field>
 		</div>
+		<label class="flex cursor-pointer items-center gap-2">
+			<input type="checkbox" bind:checked={permanentlyClosed} class="h-4 w-4 rounded" />
+			<span class="text-sm">Mark this place as permanently closed</span>
+		</label>
 		<Field label="Note to reviewers" hint="Optional. Explain why this change is needed.">
 			{#snippet children({ id })}
 				<Input {id} type="textarea" bind:value={note} />
