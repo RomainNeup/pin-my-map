@@ -51,7 +51,7 @@ jobs:
           cache: yarn
           cache-dependency-path: front/yarn.lock
       - run: yarn install --frozen-lockfile
-      - run: yarn lint
+      - run: npx eslint .
       - run: yarn check
       - run: yarn build
         env:
@@ -114,18 +114,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Backend audit (moderate, non-blocking)
-        working-directory: back
-        run: npm audit --audit-level=moderate || true
+      # Repos use yarn (no package-lock.json), so generate one on the fly
+      # for npm audit. yarn audit's output format is unstable across versions.
       - name: Backend audit (high, blocking)
         working-directory: back
-        run: npm audit --audit-level=high
-      - name: Frontend audit (moderate, non-blocking)
-        working-directory: front
-        run: npm audit --audit-level=moderate || true
+        run: |
+          npm install --package-lock-only --ignore-scripts
+          npm audit --audit-level=high
       - name: Frontend audit (high, blocking)
         working-directory: front
-        run: npm audit --audit-level=high
+        run: |
+          npm install --package-lock-only --ignore-scripts
+          npm audit --audit-level=high
 
   gitleaks:
     name: Gitleaks secret scan
