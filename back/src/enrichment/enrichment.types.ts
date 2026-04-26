@@ -70,3 +70,30 @@ export interface EnrichmentProvider {
 }
 
 export const ENRICHMENT_PROVIDERS = 'ENRICHMENT_PROVIDERS';
+
+// ── Conflict tracking ──────────────────────────────────────────────────────
+
+export type EnrichmentField =
+  | 'name'
+  | 'address'
+  | 'phoneNumber'
+  | 'website'
+  | 'priceLevel'
+  | 'externalRating'
+  | 'permanentlyClosed'
+  | 'description';
+
+export interface EnrichmentConflict {
+  field: EnrichmentField;
+  values: Array<{ provider: string; value: unknown }>;
+}
+
+/**
+ * The result of a full enrichment run: the merged result plus any
+ * inter-provider conflicts detected and the names of providers that ran.
+ */
+export interface EnrichmentRunResult {
+  merged: EnrichmentResult;
+  conflicts: EnrichmentConflict[];
+  ranBy: string[];
+}

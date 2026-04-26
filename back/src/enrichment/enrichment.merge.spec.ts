@@ -1,4 +1,4 @@
-import { mergeEnrichments } from './enrichment.service';
+import { detectConflicts, mergeEnrichments } from './enrichment.service';
 import { EnrichmentResult } from './enrichment.types';
 
 function makeResult(
@@ -177,5 +177,185 @@ describe('mergeEnrichments', () => {
     expect(merged.providerName).toBe('mapbox+osm');
     expect(merged.types).toEqual(['landmark', 'museum']);
     expect(merged.description).toBe('A Wikipedia extract.');
+  });
+});
+
+// ── detectConflicts ──────────────────────────────────────────────────────────
+
+describe('detectConflicts', () => {
+  it('returns no conflicts when both providers have the same website (trailing slash)', () => {
+    const r1 = makeResult({
+      providerName: 'google',
+      website: 'https://example.com/',
+    });
+    const r2 = makeResult({
+      providerName: 'mapbox',
+      website: 'https://example.com',
+    });
+    const conflicts = detectConflicts([
+      { provider: 'google', result: r1 },
+      { provider: 'mapbox', result: r2 },
+    ]);
+    expect(conflicts).toHaveLength(0);
+  });
+
+  it('detects a website conflict when URLs differ beyond trailing slash', () => {
+    const r1 = makeResult({
+      providerName: 'google',
+      website: 'https://google.com',
+    });
+    const r2 = makeResult({
+      providerName: 'mapbox',
+      website: 'https://different.com',
+    });
+    const conflicts = detectConflicts([
+      { provider: 'google', result: r1 },
+      { provider: 'mapbox', result: r2 },
+    ]);
+    const c = conflicts.find((x) => x.field === 'website');
+    expect(c).toBeDefined();
+    expect(c!.values).toHaveLength(2);
+    expect(c!.values.map((v) => v.provider)).toEqual(['google', 'mapbox']);
+  });
+
+  it('detects a phone conflict when digits differ', () => {
+    const r1 = makeResult({
+      providerName: 'google',
+      phoneNumber: '+1 (800) 123-4567',
+    });
+    const r2 = makeResult({
+      providerName: 'osm',
+      phoneNumber: '+1 800 999 0000',
+    });
+    const conflicts = detectConflicts([
+      { provider: 'google', result: r1 },
+      { provider: 'osm', result: r2 },
+    ]);
+    expect(conflicts.find((c) => c.field === 'phoneNumber')).toBeDefined();
+  });
+
+  it('does NOT conflict when phone normalises to same digits', () => {
+    const r1 = makeResult({
+      providerName: 'google',
+      phoneNumber: '+1-800-123-4567',
+    });
+    const r2 = makeResult({ providerName: 'osm', phoneNumber: '+18001234567' });
+    const conflicts = detectConflicts([
+      { provider: 'google', result: r1 },
+      { provider: 'osm', result: r2 },
+    ]);
+    expect(conflicts.find((c) => c.field === 'phoneNumber')).toBeUndefined();
+  });
+
+  it('detects externalRating conflict when difference > 0.3', () => {
+    const r1 = makeResult({ providerName: 'google', externalRating: 4.5 });
+    const r2 = makeResult({ providerName: 'mapbox', externalRating: 4.0 });
+    const conflicts = detectConflicts([
+      { provider: 'google', result: r1 },
+      { provider: 'mapbox', result: r2 },
+    ]);
+    expect(conflicts.find((c) => c.field === 'externalRating')).toBeDefined();
+  });
+
+  it('does NOT conflict when externalRating difference <= 0.3', () => {
+    const r1 = makeResult({ providerName: 'google', externalRating: 4.5 });
+    const r2 = makeResult({ providerName: 'mapbox', externalRating: 4.3 });
+    const conflicts = detectConflicts([
+      { provider: 'google', result: r1 },
+      { provider: 'mapbox', result: r2 },
+    ]);
+    expect(conflicts.find((c) => c.field === 'externalRating')).toBeUndefined();
+  });
+
+  it('detects permanentlyClosed conflict when one says true and other false', () => {
+    const r1 = makeResult({ providerName: 'google', permanentlyClosed: true });
+    const r2 = makeResult({ providerName: 'osm', permanentlyClosed: false });
+    const conflicts = detectConflicts([
+      { provider: 'google', result: r1 },
+      { provider: 'osm', result: r2 },
+    ]);
+    expect(
+      conflicts.find((c) => c.field === 'permanentlyClosed'),
+    ).toBeDefined();
+  });
+
+  it('does NOT conflict when only one provider supplies permanentlyClosed', () => {
+    const r1 = makeResult({ providerName: 'google', permanentlyClosed: true });
+    const r2 = makeResult({
+      providerName: 'osm',
+      permanentlyClosed: undefined,
+    });
+    const conflicts = detectConflicts([
+      { provider: 'google', result: r1 },
+      { provider: 'osm', result: r2 },
+    ]);
+    expect(
+      conflicts.find((c) => c.field === 'permanentlyClosed'),
+    ).toBeUndefined();
+  });
+
+  it('does NOT create a conflict when only one provider has a value for a field', () => {
+    const r1 = makeResult({
+      providerName: 'google',
+      website: 'https://example.com',
+    });
+    const r2 = makeResult({ providerName: 'osm', website: undefined });
+    const conflicts = detectConflicts([
+      { provider: 'google', result: r1 },
+      { provider: 'osm', result: r2 },
+    ]);
+    expect(conflicts).toHaveLength(0);
+  });
+
+  it('array fields (types) do NOT generate conflicts', () => {
+    const r1 = makeResult({ providerName: 'google', types: ['restaurant'] });
+    const r2 = makeResult({ providerName: 'osm', types: ['cafe'] });
+    const conflicts = detectConflicts([
+      { provider: 'google', result: r1 },
+      { provider: 'osm', result: r2 },
+    ]);
+    // types is not in SCALAR_FIELDS so should not appear
+    expect(
+      conflicts.find((c) => c.field === ('types' as never)),
+    ).toBeUndefined();
+  });
+
+  it('captures all non-primary values in conflict.values', () => {
+    const r1 = makeResult({ providerName: 'google', externalRating: 4.8 });
+    const r2 = makeResult({ providerName: 'mapbox', externalRating: 4.0 });
+    const r3 = makeResult({ providerName: 'osm', externalRating: 4.1 });
+    const conflicts = detectConflicts([
+      { provider: 'google', result: r1 },
+      { provider: 'mapbox', result: r2 },
+      { provider: 'osm', result: r3 },
+    ]);
+    const c = conflicts.find((x) => x.field === 'externalRating');
+    expect(c).toBeDefined();
+    expect(c!.values).toHaveLength(3);
+  });
+
+  it('detects description conflict (case-insensitive)', () => {
+    const r1 = makeResult({
+      providerName: 'google',
+      description: 'A great café',
+    });
+    const r2 = makeResult({
+      providerName: 'osm',
+      description: 'A different place',
+    });
+    const conflicts = detectConflicts([
+      { provider: 'google', result: r1 },
+      { provider: 'osm', result: r2 },
+    ]);
+    expect(conflicts.find((c) => c.field === 'description')).toBeDefined();
+  });
+
+  it('returns empty array when only one provider runs', () => {
+    const r1 = makeResult({
+      providerName: 'google',
+      website: 'https://example.com',
+    });
+    const conflicts = detectConflicts([{ provider: 'google', result: r1 }]);
+    expect(conflicts).toHaveLength(0);
   });
 });

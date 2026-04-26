@@ -1,9 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   ENRICHMENT_PROVIDERS,
+  EnrichmentConflict,
+  EnrichmentField,
   EnrichmentProvider,
   EnrichmentQuery,
   EnrichmentResult,
+  EnrichmentRunResult,
 } from './enrichment.types';
 
 /**
@@ -97,6 +100,111 @@ export function mergeEnrichments(
   return merged;
 }
 
+// ── Normalisation helpers for conflict detection ───────────────────────────
+
+/** Normalise a string for loose comparison: lowercase, trim, remove punctuation */
+function normaliseStr(v: string): string {
+  return v
+    .toLowerCase()
+    .trim()
+    .replace(/[.,/#!$%^&*;:{}=\-_`~()'"]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Strip trailing slash from a URL so https://example.com/ equals https://example.com */
+function normaliseUrl(url: string): string {
+  return normaliseStr(url.replace(/\/+$/, ''));
+}
+
+/** Digits-only phone comparison */
+function normalisePhone(phone: string): string {
+  return phone.replace(/\D/g, '');
+}
+
+/**
+ * Given an ordered list of provider results, detect inter-provider conflicts
+ * on the scalar fields defined in the spec.  Only fires when ≥ 2 providers
+ * both supplied a non-empty value AND those values disagree per field rules.
+ */
+export function detectConflicts(
+  results: Array<{ provider: string; result: EnrichmentResult }>,
+): EnrichmentConflict[] {
+  const SCALAR_FIELDS: EnrichmentField[] = [
+    'name',
+    'address',
+    'phoneNumber',
+    'website',
+    'priceLevel',
+    'externalRating',
+    'permanentlyClosed',
+    'description',
+  ];
+
+  const conflicts: EnrichmentConflict[] = [];
+
+  for (const field of SCALAR_FIELDS) {
+    // Collect non-empty contributions from each provider
+    const contributions: Array<{ provider: string; value: unknown }> = [];
+    for (const { provider, result } of results) {
+      const raw = (result as unknown as Record<string, unknown>)[field];
+      if (raw === undefined || raw === null || raw === '') continue;
+      contributions.push({ provider, value: raw });
+    }
+
+    // Need ≥ 2 providers to have a value
+    if (contributions.length < 2) continue;
+
+    // Compare per field rule
+    let hasConflict = false;
+
+    switch (field) {
+      case 'name':
+      case 'address':
+      case 'description': {
+        const strs = contributions.map((c) => normaliseStr(String(c.value)));
+        hasConflict = strs.some((s) => s !== strs[0]);
+        break;
+      }
+      case 'website': {
+        const urls = contributions.map((c) => normaliseUrl(String(c.value)));
+        hasConflict = urls.some((u) => u !== urls[0]);
+        break;
+      }
+      case 'phoneNumber': {
+        const phones = contributions.map((c) =>
+          normalisePhone(String(c.value)),
+        );
+        hasConflict = phones.some((p) => p !== phones[0]);
+        break;
+      }
+      case 'externalRating': {
+        const ratings = contributions.map((c) => Number(c.value));
+        const min = Math.min(...ratings);
+        const max = Math.max(...ratings);
+        hasConflict = max - min > 0.3;
+        break;
+      }
+      case 'priceLevel': {
+        const levels = contributions.map((c) => Number(c.value));
+        hasConflict = levels.some((l) => l !== levels[0]);
+        break;
+      }
+      case 'permanentlyClosed': {
+        const bools = contributions.map((c) => Boolean(c.value));
+        hasConflict = bools.some((b) => b !== bools[0]);
+        break;
+      }
+    }
+
+    if (hasConflict) {
+      conflicts.push({ field, values: contributions });
+    }
+  }
+
+  return conflicts;
+}
+
 @Injectable()
 export class EnrichmentService {
   private readonly logger = new Logger(EnrichmentService.name);
@@ -111,14 +219,20 @@ export class EnrichmentService {
    * providers to fill missing fields. Returns null when no provider yields
    * a result.
    */
-  async enrich(query: EnrichmentQuery): Promise<EnrichmentResult | null> {
+  async enrich(query: EnrichmentQuery): Promise<EnrichmentRunResult | null> {
     let merged: EnrichmentResult | null = null;
+    const providerResults: Array<{
+      provider: string;
+      result: EnrichmentResult;
+    }> = [];
 
     for (const provider of this.providers) {
       if (!provider.isAvailable()) continue;
       try {
         const result = await provider.lookup(query);
         if (!result) continue;
+
+        providerResults.push({ provider: provider.name, result });
 
         if (!merged) {
           merged = result;
@@ -132,7 +246,12 @@ export class EnrichmentService {
       }
     }
 
-    return merged;
+    if (!merged) return null;
+
+    const conflicts = detectConflicts(providerResults);
+    const ranBy = providerResults.map((r) => r.provider);
+
+    return { merged, conflicts, ranBy };
   }
 
   async refresh(
