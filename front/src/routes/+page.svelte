@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import Plus from 'lucide-svelte/icons/plus';
 	import MapPin from 'lucide-svelte/icons/map-pin';
 	import { getSavedPlaces, type SavedPlace } from '$lib/api/savedPlace';
@@ -14,16 +16,27 @@
 	import SearchBar from '$lib/components/map/SearchBar.svelte';
 	import TagFilterChips from '$lib/components/map/TagFilterChips.svelte';
 	import PlaceSheet from '$lib/components/map/PlaceSheet.svelte';
+	import DoneFilter, { type DoneFilterValue } from '$lib/components/ui/DoneFilter.svelte';
 
 	let loading = $state(true);
 	let selectedTagIds = $state<string[]>([]);
+	let doneFilter = $state<DoneFilterValue>('all');
 
 	let sheetOpen = $state(false);
 	let selectedPlace = $state<SavedPlace | null>(null);
 
+	// Filtered places based on done state
+	const filteredPlaces = $derived(
+		$savedPlaces.filter((sp) => {
+			if (doneFilter === 'done') return sp.done === true;
+			if (doneFilter === 'todo') return sp.done !== true;
+			return true;
+		})
+	);
+
 	const source = $derived<MapSource>({
 		key: 'saved-places',
-		points: $savedPlaces.map((sp) => ({
+		points: filteredPlaces.map((sp) => ({
 			id: sp.place.id,
 			position: [sp.place.location.lng, sp.place.location.lat] as [number, number],
 			name: sp.place.name,
@@ -43,7 +56,26 @@
 		selectedPlace = null;
 	};
 
+	function syncUrl() {
+		const url = new URL($page.url);
+		if (doneFilter !== 'all') {
+			url.searchParams.set('done', doneFilter);
+		} else {
+			url.searchParams.delete('done');
+		}
+		goto(url.toString(), { replaceState: true, noScroll: true, keepFocus: true });
+	}
+
+	function onDoneFilterChange(v: DoneFilterValue) {
+		doneFilter = v;
+		syncUrl();
+	}
+
 	onMount(async () => {
+		// Rehydrate done filter from URL
+		const urlDone = $page.url.searchParams.get('done');
+		if (urlDone === 'todo' || urlDone === 'done') doneFilter = urlDone;
+
 		try {
 			const places = await getSavedPlaces();
 			if (places) savedPlaces.set(places);
@@ -65,15 +97,18 @@
 			<div class="pointer-events-auto w-full max-w-md self-center md:self-start">
 				<SearchBar />
 			</div>
-			{#if $tags?.length}
-				<div class="pointer-events-auto pt-1">
-					<TagFilterChips
-						tags={$tags}
-						bind:selected={selectedTagIds}
-						onChange={(v) => (selectedTagIds = v)}
-					/>
-				</div>
-			{/if}
+			<div class="pointer-events-auto flex items-center gap-2 pt-1">
+				{#if $tags?.length}
+					<div class="min-w-0 flex-1">
+						<TagFilterChips
+							tags={$tags}
+							bind:selected={selectedTagIds}
+							onChange={(v) => (selectedTagIds = v)}
+						/>
+					</div>
+				{/if}
+				<DoneFilter value={doneFilter} onChange={onDoneFilterChange} />
+			</div>
 		</div>
 
 		<Fab icon={plusIcon} label="Add place" href="/place/pick" offset={72} />
