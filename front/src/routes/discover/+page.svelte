@@ -7,12 +7,15 @@
 	} from '$lib/api/publicMap';
 	import { currentUser } from '$lib/stores/user';
 	import Input from '$lib/components/Input.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import UserSearch from '$lib/components/user/UserSearch.svelte';
 	import Globe from 'lucide-svelte/icons/globe';
 	import Users from 'lucide-svelte/icons/users';
 	import MapPin from 'lucide-svelte/icons/map-pin';
 	import Star from 'lucide-svelte/icons/star';
 	import UserCheck from 'lucide-svelte/icons/user-check';
+	import Search from 'lucide-svelte/icons/search';
+	import UserX from 'lucide-svelte/icons/user-x';
 
 	type Tab = 'discover' | 'following';
 	let activeTab = $state<Tab>('discover');
@@ -79,7 +82,7 @@
 		<button
 			class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition {activeTab ===
 			'discover'
-				? 'bg-accent text-white'
+				? 'bg-accent text-accent-fg'
 				: 'text-fg-muted hover:text-fg'}"
 			onclick={() => switchTab('discover')}
 		>
@@ -90,7 +93,7 @@
 			<button
 				class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition {activeTab ===
 				'following'
-					? 'bg-accent text-white'
+					? 'bg-accent text-accent-fg'
 					: 'text-fg-muted hover:text-fg'}"
 				onclick={() => switchTab('following')}
 			>
@@ -107,9 +110,12 @@
 		{#if loadingDiscover && discoverResults.length === 0}
 			<p class="text-sm text-fg-muted">Loading…</p>
 		{:else if discoverResults.length === 0}
-			<p class="py-8 text-center text-fg-muted">
-				No public maps found. {query ? 'Try a different search.' : ''}
-			</p>
+			{#snippet discoverEmptyIcon()}<Search class="h-5 w-5" />{/snippet}
+			<EmptyState
+				title="No public maps found"
+				description={query ? 'Try a different search term.' : 'Be the first to make your map public!'}
+				icon={discoverEmptyIcon}
+			/>
 		{:else}
 			<ul class="grid gap-3 sm:grid-cols-2">
 				{#each discoverResults as map (map.userId)}
@@ -152,9 +158,12 @@
 		{#if loadingFollowing}
 			<p class="text-sm text-fg-muted">Loading…</p>
 		{:else if followingResults.length === 0}
-			<p class="py-8 text-center text-fg-muted">
-				No public maps from people you follow yet. Follow some explorers to see their maps here!
-			</p>
+			{#snippet followingEmptyIcon()}<UserX class="h-5 w-5" />{/snippet}
+			<EmptyState
+				title="No maps yet"
+				description="Follow some explorers to see their public maps here."
+				icon={followingEmptyIcon}
+			/>
 		{:else}
 			<ul class="grid gap-3 sm:grid-cols-2">
 				{#each followingResults as map (map.userId)}

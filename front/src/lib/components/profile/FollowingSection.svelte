@@ -3,8 +3,11 @@
 	import { listMyFollowers, listMyFollowing, unfollowUser, type FollowUser } from '$lib/api/follow';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
 	import Button from '$lib/components/Button.svelte';
+	import EmptyState from '$lib/components/ui/EmptyState.svelte';
 	import Globe from 'lucide-svelte/icons/globe';
 	import UserMinus from 'lucide-svelte/icons/user-minus';
+	import UserRoundX from 'lucide-svelte/icons/user-round-x';
+	import Users from 'lucide-svelte/icons/users';
 
 	type Tab = 'following' | 'followers';
 
@@ -63,11 +66,21 @@
 	{#if loading}
 		<p class="text-sm text-fg-muted">Loading…</p>
 	{:else if list.length === 0}
-		<p class="py-8 text-center text-fg-muted">
-			{tab === 'following'
-				? "You aren't following anyone yet. Visit /discover to find some maps."
-				: 'No one follows you yet.'}
-		</p>
+		{#if tab === 'following'}
+			{#snippet followingEmpty()}<UserRoundX class="h-5 w-5" />{/snippet}
+			<EmptyState
+				title="Not following anyone yet"
+				description="Visit Discover to find explorers and follow their maps."
+				icon={followingEmpty}
+			/>
+		{:else}
+			{#snippet followersEmpty()}<Users class="h-5 w-5" />{/snippet}
+			<EmptyState
+				title="No followers yet"
+				description="Share your public map to attract followers."
+				icon={followersEmpty}
+			/>
+		{/if}
 	{:else}
 		<ul class="space-y-2">
 			{#each list as u (u.userId)}
