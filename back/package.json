@@ -71,6 +71,9 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.0"
   },
+  "resolutions": {
+    "form-data": "^4.0.4"
+  },
   "jest": {
     "moduleFileExtensions": [
       "js",

@@ -10,6 +10,7 @@ import {
 const TRANSPARENT_PNG_BASE64 =
 	'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
+declare const process: { env: Record<string, string | undefined> };
 const API_BASE = process.env.PUBLIC_API_BASE_URL || 'http://localhost:8089';
 
 export interface SeedUser {
