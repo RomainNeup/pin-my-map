@@ -8,6 +8,7 @@
 		type EnrichmentConflict
 	} from '$lib/api/place';
 	import { toast } from '$lib/stores/toast';
+	import Button from '$lib/components/Button.svelte';
 
 	let places = $state<Place[]>([]);
 	let total = $state(0);
@@ -108,7 +109,7 @@
 			</p>
 		</div>
 		{#if total > 0}
-			<span class="rounded-full bg-orange-100 px-3 py-1 text-sm font-medium text-orange-700">
+			<span class="rounded-full bg-bg-muted px-3 py-1 text-sm font-medium text-fg-muted">
 				{total} place{total !== 1 ? 's' : ''} with conflicts
 			</span>
 		{/if}
@@ -117,7 +118,7 @@
 	{#if loading}
 		<div class="flex h-40 items-center justify-center text-sm text-fg-muted">Loading…</div>
 	{:else if error}
-		<div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+		<div class="rounded-lg border border-danger/30 bg-danger-soft p-4 text-sm text-danger">{error}</div>
 	{:else if places.length === 0}
 		<div class="flex h-40 items-center justify-center text-sm text-fg-muted">
 			No conflicts to review.
@@ -125,29 +126,29 @@
 	{:else}
 		<div class="space-y-6">
 			{#each places as place (place.id)}
-				<div class="rounded-lg border border-border bg-surface p-4 shadow-sm">
+				<div class="rounded-lg border border-border bg-bg-elevated p-4 shadow-sm">
 					<div class="mb-3">
 						<h3 class="font-semibold">{place.name}</h3>
 						<p class="text-sm text-fg-muted">{place.address}</p>
 					</div>
 
 					{#each place.enrichmentConflicts ?? [] as conflict (conflict.field)}
-						<div class="mt-3 rounded-md border border-orange-200 bg-orange-50 p-3">
-							<p class="mb-2 text-sm font-medium text-orange-900">
-								Field: <span class="font-mono">{conflict.field}</span>
+						<div class="mt-3 rounded-md border border-border bg-bg-muted p-3">
+							<p class="mb-2 text-sm font-medium text-fg">
+								Field: <span class="font-mono text-accent">{conflict.field}</span>
 							</p>
 
 							<div class="space-y-1">
 								{#each conflict.values as entry}
 									{@const key = conflictKey(entry.provider, entry.value)}
-									<label class="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-orange-100">
+									<label class="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-bg-elevated">
 										<input
 											type="radio"
 											name="{place.id}-{conflict.field}"
 											value={key}
 											checked={getSelection(place.id, conflict.field) === key}
 											onchange={() => setSelection(place.id, conflict.field, key)}
-											class="accent-orange-500"
+											class="accent-accent"
 										/>
 										<span class="text-xs text-fg-muted">{entry.provider}:</span>
 										<span class="text-sm font-medium">{displayValue(entry.value)}</span>
@@ -156,19 +157,22 @@
 							</div>
 
 							<div class="mt-3 flex gap-2">
-								<button
-									onclick={() => handleResolve(place, conflict)}
+								<Button
+									size="sm"
+									tone="accent"
 									disabled={!getSelection(place.id, conflict.field)}
-									class="rounded bg-orange-500 px-3 py-1 text-xs font-medium text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
+									onclick={() => handleResolve(place, conflict)}
 								>
 									Apply selected
-								</button>
-								<button
+								</Button>
+								<Button
+									size="sm"
+									variant="ghost"
+									tone="neutral"
 									onclick={() => handleDismiss(place, conflict)}
-									class="rounded border border-border px-3 py-1 text-xs text-fg-muted hover:bg-surface-muted"
 								>
 									Dismiss
-								</button>
+								</Button>
 							</div>
 						</div>
 					{/each}
@@ -180,20 +184,24 @@
 			<div class="flex items-center justify-between text-sm text-fg-muted">
 				<span>Showing {offset + 1}–{Math.min(offset + LIMIT, total)} of {total}</span>
 				<div class="flex gap-2">
-					<button
-						onclick={prevPage}
+					<Button
+						variant="outline"
+						tone="neutral"
+						size="sm"
 						disabled={offset === 0}
-						class="rounded border border-border px-3 py-1 hover:bg-surface-muted disabled:opacity-40"
+						onclick={prevPage}
 					>
 						Previous
-					</button>
-					<button
-						onclick={nextPage}
+					</Button>
+					<Button
+						variant="outline"
+						tone="neutral"
+						size="sm"
 						disabled={offset + LIMIT >= total}
-						class="rounded border border-border px-3 py-1 hover:bg-surface-muted disabled:opacity-40"
+						onclick={nextPage}
 					>
 						Next
-					</button>
+					</Button>
 				</div>
 			</div>
 		{/if}
