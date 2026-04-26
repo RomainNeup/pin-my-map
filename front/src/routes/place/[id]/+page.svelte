@@ -5,18 +5,20 @@
 	import Button from '$lib/components/Button.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import EditPlaceDialog from '$lib/components/place/EditPlaceDialog.svelte';
-	import OpenInMenu from '$lib/components/place/OpenInMenu.svelte';
 	import PlaceEnrichmentDetails from '$lib/components/place/PlaceEnrichmentDetails.svelte';
 	import SuggestEditDialog from '$lib/components/place/SuggestEditDialog.svelte';
 	import IconButton from '$lib/components/ui/IconButton.svelte';
+	import Popover from '$lib/components/ui/Popover.svelte';
 	import { currentUser } from '$lib/stores/user';
 	import { toast } from '$lib/stores/toast';
 	import Bookmark from 'lucide-svelte/icons/bookmark';
 	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
+	import DotsHorizontal from 'lucide-svelte/icons/ellipsis';
 	import Eye from 'lucide-svelte/icons/eye';
 	import MapPinIcon from 'lucide-svelte/icons/map-pin';
 	import Pencil from 'lucide-svelte/icons/pencil';
 	import RefreshCw from 'lucide-svelte/icons/refresh-cw';
+	import XOctagon from 'lucide-svelte/icons/octagon-x';
 	import type { PageData } from './$types';
 
 	type Props = {
@@ -32,6 +34,12 @@
 	let place: Place = $state(data.place);
 	let refreshing = $state(false);
 
+	// overflow menu state
+	let overflowOpen = $state(false);
+	let overflowAnchor = $state<HTMLElement | null>(null);
+	let overflowAnchorMobile = $state<HTMLElement | null>(null);
+	let overflowOpenMobile = $state(false);
+
 	const canEdit = $derived(
 		$currentUser !== null &&
 			(place.createdBy === $currentUser.id || $currentUser.role === 'admin')
@@ -40,6 +48,8 @@
 	const isAdmin = $derived($currentUser?.role === 'admin');
 
 	const handleToggleClosed = async (closed: boolean) => {
+		overflowOpen = false;
+		overflowOpenMobile = false;
 		try {
 			place = await setPermanentlyClosed(place.id, closed);
 			toast(closed ? 'Place marked as permanently closed' : 'Place reopened', 'success');
@@ -49,6 +59,8 @@
 	};
 
 	const handleRefresh = async () => {
+		overflowOpen = false;
+		overflowOpenMobile = false;
 		refreshing = true;
 		try {
 			place = await refreshEnrichment(place.id);
@@ -75,26 +87,59 @@
 </script>
 
 {#snippet backIcon()}<ChevronLeft class="h-5 w-5" />{/snippet}
-{#snippet refreshIcon()}<RefreshCw
-		class={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`}
-	/>{/snippet}
+{#snippet dotsIcon()}<DotsHorizontal class="h-5 w-5" />{/snippet}
 {#snippet viewPrefix()}<Eye class="h-4 w-4" />{/snippet}
 {#snippet savePrefix()}<Bookmark class="h-4 w-4" />{/snippet}
-{#snippet editPrefix()}<Pencil class="h-4 w-4" />{/snippet}
+
+<!-- Shared overflow menu items snippet -->
+{#snippet overflowItems(closeFn: () => void)}
+	{#if canEdit}
+		<button
+			type="button"
+			class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-fg hover:bg-bg-muted"
+			role="menuitem"
+			onclick={() => { closeFn(); editOpen = true; }}
+		>
+			<Pencil class="h-4 w-4 text-fg-muted" />
+			Edit place
+		</button>
+	{/if}
+	<button
+		type="button"
+		class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-fg hover:bg-bg-muted"
+		role="menuitem"
+		onclick={() => { closeFn(); suggestOpen = true; }}
+	>
+		<Pencil class="h-4 w-4 text-fg-muted" />
+		Suggest an edit
+	</button>
+	<button
+		type="button"
+		class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-fg hover:bg-bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+		role="menuitem"
+		disabled={refreshing}
+		onclick={handleRefresh}
+	>
+		<RefreshCw class={`h-4 w-4 text-fg-muted ${refreshing ? 'animate-spin' : ''}`} />
+		Refresh data
+	</button>
+	{#if isAdmin}
+		<div class="my-1 border-t border-border"></div>
+		<button
+			type="button"
+			class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm {place.permanentlyClosed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} hover:bg-bg-muted"
+			role="menuitem"
+			onclick={() => handleToggleClosed(!place.permanentlyClosed)}
+		>
+			<XOctagon class="h-4 w-4" />
+			{place.permanentlyClosed ? 'Reopen place' : 'Mark as permanently closed'}
+		</button>
+	{/if}
+{/snippet}
 
 <div class="mx-auto w-full max-w-6xl px-4 py-4 md:py-6">
 	<div class="mb-4 flex items-center gap-2">
 		<IconButton label="Go back" variant="ghost" tone="neutral" onclick={onBack} icon={backIcon} />
-		<div class="ml-auto">
-			<IconButton
-				label="Refresh place data"
-				variant="ghost"
-				tone="neutral"
-				onclick={handleRefresh}
-				disabled={refreshing}
-				icon={refreshIcon}
-			/>
-		</div>
 	</div>
 
 	{#if place}
@@ -149,52 +194,46 @@
 
 			<!-- Desktop action stack -->
 			<div class="hidden space-y-2 lg:block">
-				{#if saved.isSaved}
-					<Button
-						variant="outline"
-						tone="neutral"
-						fullwidth
-						href={`/saved/${saved.id}`}
-						prefix={viewPrefix}
-					>
-						View in my places
-					</Button>
-				{:else}
-					<Button
-						variant="solid"
-						tone="accent"
-						fullwidth
-						loading={saving}
-						onclick={savePlace}
-						prefix={savePrefix}
-					>
-						Save to my places
-					</Button>
-				{/if}
-				<OpenInMenu
-					target={{ name: place.name, lat: place.location.lat, lng: place.location.lng, placeId: place.externalId }}
-					fullwidth
-				/>
-				{#if canEdit}
-					<Button
-						variant="outline"
-						tone="neutral"
-						fullwidth
-						prefix={editPrefix}
-						onclick={() => (editOpen = true)}
-					>
-						Edit place
-					</Button>
-				{/if}
-				<Button
-					variant="ghost"
-					tone="neutral"
-					fullwidth
-					prefix={editPrefix}
-					onclick={() => (suggestOpen = true)}
-				>
-					Suggest an edit
-				</Button>
+				<div class="flex items-center gap-2">
+					<!-- Primary action -->
+					{#if saved.isSaved}
+						<Button
+							variant="outline"
+							tone="neutral"
+							fullwidth
+							href={`/saved/${saved.id}`}
+							prefix={viewPrefix}
+						>
+							View in my places
+						</Button>
+					{:else}
+						<Button
+							variant="solid"
+							tone="accent"
+							fullwidth
+							loading={saving}
+							onclick={savePlace}
+							prefix={savePrefix}
+						>
+							Save to my places
+						</Button>
+					{/if}
+
+					<!-- Overflow menu trigger -->
+					<div bind:this={overflowAnchor}>
+						<IconButton
+							label="More actions"
+							variant="outline"
+							tone="neutral"
+							icon={dotsIcon}
+							onclick={() => (overflowOpen = !overflowOpen)}
+						/>
+					</div>
+				</div>
+
+				<Popover bind:open={overflowOpen} anchor={overflowAnchor} placement="bottom-end">
+					{@render overflowItems(() => (overflowOpen = false))}
+				</Popover>
 			</div>
 		</div>
 	{/if}
@@ -212,7 +251,8 @@
 	<div
 		class="sticky bottom-0 left-0 right-0 z-10 border-t border-border bg-bg-elevated px-4 py-3 shadow-lg lg:hidden"
 	>
-		<div class="mx-auto flex max-w-md flex-col gap-2">
+		<div class="mx-auto flex max-w-md items-center gap-2">
+			<!-- Primary action -->
 			{#if saved.isSaved}
 				<Button
 					variant="outline"
@@ -235,30 +275,21 @@
 					Save to my places
 				</Button>
 			{/if}
-			<OpenInMenu
-				target={{ name: place.name, lat: place.location.lat, lng: place.location.lng, placeId: place.externalId }}
-				fullwidth
-			/>
-			{#if canEdit}
-				<Button
+
+			<!-- Overflow menu trigger (mobile) -->
+			<div bind:this={overflowAnchorMobile}>
+				<IconButton
+					label="More actions"
 					variant="outline"
 					tone="neutral"
-					fullwidth
-					prefix={editPrefix}
-					onclick={() => (editOpen = true)}
-				>
-					Edit place
-				</Button>
-			{/if}
-			<Button
-				variant="ghost"
-				tone="neutral"
-				fullwidth
-				prefix={editPrefix}
-				onclick={() => (suggestOpen = true)}
-			>
-				Suggest an edit
-			</Button>
+					icon={dotsIcon}
+					onclick={() => (overflowOpenMobile = !overflowOpenMobile)}
+				/>
+			</div>
 		</div>
+
+		<Popover bind:open={overflowOpenMobile} anchor={overflowAnchorMobile} placement="top-end">
+			{@render overflowItems(() => (overflowOpenMobile = false))}
+		</Popover>
 	</div>
 {/if}

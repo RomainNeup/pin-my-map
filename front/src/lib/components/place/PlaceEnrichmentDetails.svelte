@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Place, PlaceEnrichment } from '$lib/api/place';
 	import PlacePhotoCarousel from './PlacePhotoCarousel.svelte';
-	import OpenInMenu from './OpenInMenu.svelte';
 	import Clock from 'lucide-svelte/icons/clock';
 	import Globe from 'lucide-svelte/icons/globe';
 	import Phone from 'lucide-svelte/icons/phone';
@@ -9,16 +8,17 @@
 	import MapPin from 'lucide-svelte/icons/map-pin';
 	import Bookmark from 'lucide-svelte/icons/bookmark';
 	import AlertTriangle from 'lucide-svelte/icons/triangle-alert';
-	import ExternalLink from 'lucide-svelte/icons/external-link';
 	import CalendarClock from 'lucide-svelte/icons/calendar-clock';
 
 	type Props = {
 		place: Place;
 		enrichment: PlaceEnrichment;
+		/** @deprecated kept for call-site compatibility; no longer rendered here — admin actions live in the page overflow menu */
 		isAdmin?: boolean;
+		/** @deprecated kept for call-site compatibility; no longer rendered here — admin actions live in the page overflow menu */
 		onToggleClosed?: (closed: boolean) => void;
 	};
-	let { place, enrichment, isAdmin = false, onToggleClosed }: Props = $props();
+	let { place, enrichment }: Props = $props();
 
 	let hoursOpen = $state(false);
 	let allReviews = $state(false);
@@ -28,13 +28,6 @@
 		if (level === 0) return 'Free';
 		return '$'.repeat(level);
 	};
-
-	const deeplinkTarget = $derived({
-		name: place.name,
-		lat: place.location.lat,
-		lng: place.location.lng,
-		placeId: place.externalId
-	});
 
 	// ── Amenity chips ─────────────────────────────────────────────────────────
 
@@ -242,10 +235,6 @@
 	</div>
 {/if}
 
-<div>
-	<OpenInMenu target={deeplinkTarget} />
-</div>
-
 {#if enrichment.reviews && enrichment.reviews.length > 0}
 	<div class="space-y-2">
 		<h2 class="text-sm font-semibold text-fg">Reviews</h2>
@@ -274,23 +263,5 @@
 				{allReviews ? 'Show less' : `Show all ${enrichment.reviews.length} reviews`}
 			</button>
 		{/if}
-	</div>
-{/if}
-
-{#if isAdmin}
-	<div class="border-t border-border pt-3">
-		<button
-			type="button"
-			class={[
-				'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
-				place.permanentlyClosed
-					? 'border-green-500/40 text-green-600 hover:bg-green-500/10 dark:text-green-400'
-					: 'border-red-500/40 text-red-600 hover:bg-red-500/10 dark:text-red-400'
-			].join(' ')}
-			onclick={() => onToggleClosed?.(!place.permanentlyClosed)}
-		>
-			<ExternalLink class="mr-1 inline h-3.5 w-3.5" />
-			{place.permanentlyClosed ? 'Reopen place' : 'Mark as permanently closed'}
-		</button>
 	</div>
 {/if}
