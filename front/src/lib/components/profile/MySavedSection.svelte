@@ -2,7 +2,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { getSavedPlaces, exportCsv, type SavedPlace } from '$lib/api/savedPlace';
+	import { getSavedPlaces, type SavedPlace } from '$lib/api/savedPlace';
 	import Button from '$lib/components/Button.svelte';
 	import StarRating from '$lib/components/StarRating.svelte';
 	import SavedTagFilter from '$lib/components/place/SavedTagFilter.svelte';
@@ -12,7 +12,7 @@
 	import SkeletonCard from '$lib/components/ui/SkeletonCard.svelte';
 	import { tags } from '$lib/stores/tags';
 	import Check from 'lucide-svelte/icons/check';
-	import Download from 'lucide-svelte/icons/download';
+	import Upload from 'lucide-svelte/icons/upload';
 	import MapPinIcon from 'lucide-svelte/icons/map-pin';
 	import Search from 'lucide-svelte/icons/search';
 
@@ -27,7 +27,6 @@
 	let loading = $state(false);
 	let initialLoaded = $state(false);
 	let hasMore = $state(false);
-	let exporting = $state(false);
 
 	let requestId = 0;
 
@@ -132,26 +131,11 @@
 		return `${Math.floor(diffMo / 12)}y ago`;
 	}
 
-	async function handleExportCsv() {
-		if (exporting) return;
-		exporting = true;
-		try {
-			const blob = await exportCsv();
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			const today = new Date().toISOString().slice(0, 10);
-			a.download = `pin-my-map-saved-${today}.csv`;
-			a.click();
-			URL.revokeObjectURL(url);
-		} finally {
-			exporting = false;
-		}
-	}
+
 </script>
 
 {#snippet searchPrefix()}<Search class="h-4 w-4" />{/snippet}
-{#snippet importPrefix()}<Download class="h-4 w-4" />{/snippet}
+{#snippet importPrefix()}<Upload class="h-4 w-4" />{/snippet}
 {#snippet mapPinIcon()}<MapPinIcon class="h-6 w-6" />{/snippet}
 {#snippet doneChipPrefix()}<Check class="h-3 w-3" />{/snippet}
 {#snippet searchAction()}
@@ -164,15 +148,6 @@
 	<!-- Header -->
 	<div class="mb-4 flex items-center justify-between gap-3">
 		<div class="flex gap-2">
-			<Button
-				variant="ghost"
-				tone="neutral"
-				onclick={handleExportCsv}
-				loading={exporting}
-				prefix={importPrefix}
-			>
-				Export CSV
-			</Button>
 			<Button variant="ghost" tone="neutral" href="/import" prefix={importPrefix}>Import</Button>
 			<Button variant="soft" tone="accent" href="/place/search" prefix={searchPrefix}>
 				Find new places

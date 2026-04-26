@@ -6,10 +6,12 @@
 	import Pencil from 'lucide-svelte/icons/pencil';
 	import Check from 'lucide-svelte/icons/check';
 	import X from 'lucide-svelte/icons/x';
+	import Download from 'lucide-svelte/icons/download';
 	import { gamificationProfile, loadGamificationProfile } from '$lib/stores/gamification';
 	import { currentUser } from '$lib/stores/user';
 	import { listMine, type Suggestion } from '$lib/api/suggestion';
 	import { updateMe } from '$lib/api/user';
+	import { exportCsv } from '$lib/api/savedPlace';
 	import { toast } from '$lib/stores/toast';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
@@ -158,6 +160,28 @@
 		pending: 'bg-bg-muted text-fg-muted',
 		approved: 'bg-accent-soft text-accent',
 		rejected: 'bg-danger-soft text-danger'
+	};
+
+	// ── export CSV ────────────────────────────────────────────────────
+	let exporting = $state(false);
+
+	const handleExportCsv = async () => {
+		if (exporting) return;
+		exporting = true;
+		try {
+			const blob = await exportCsv();
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			const today = new Date().toISOString().slice(0, 10);
+			a.download = `pin-my-map-saved-${today}.csv`;
+			a.click();
+			URL.revokeObjectURL(url);
+		} catch {
+			toast('Failed to export places.', 'error');
+		} finally {
+			exporting = false;
+		}
 	};
 </script>
 
@@ -352,6 +376,23 @@
 					{/if}
 				</section>
 			{/if}
+
+			<!-- Export -->
+			<section class="rounded-xl border border-border bg-bg p-5">
+				<h2 class="mb-1 text-lg font-semibold">Export data</h2>
+				<p class="mb-4 text-sm text-fg-muted">
+					Download all your saved places as a CSV file.
+				</p>
+				<Button
+					variant="outline"
+					tone="neutral"
+					onclick={handleExportCsv}
+					loading={exporting}
+				>
+					{#snippet prefix()}<Download class="h-4 w-4" />{/snippet}
+					Export saved places (CSV)
+				</Button>
+			</section>
 
 			<DangerZone />
 		</div>
