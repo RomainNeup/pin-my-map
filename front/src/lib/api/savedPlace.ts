@@ -74,3 +74,9 @@ export function exportCsv(): Promise<Blob> {
 		.get('/saved/export.csv', { responseType: 'blob' })
 		.then(({ data }) => data as Blob);
 }
+
+export function searchSaved(q: string): Promise<SavedPlace[]> {
+	return axiosInstance
+		.get<SavedPlace[]>('/saved/search', { params: { q } })
+		.then(({ data }) => data);
+}
