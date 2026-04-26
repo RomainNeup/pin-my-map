@@ -246,7 +246,7 @@
 
 				<div class="mt-5 flex gap-2">
 					<Button variant="solid" tone="accent" href="/">View on map</Button>
-					<Button variant="soft" tone="neutral" href="/saved/list">Open saved list</Button>
+					<Button variant="soft" tone="neutral" href="/profile?tab=saved">Open saved list</Button>
 				</div>
 			</div>
 		{/if}
@@ -354,7 +354,7 @@
 
 				<div class="mt-5 flex gap-2">
 					<Button variant="solid" tone="accent" href="/">View on map</Button>
-					<Button variant="soft" tone="neutral" href="/saved/list">Open saved list</Button>
+					<Button variant="soft" tone="neutral" href="/profile?tab=saved">Open saved list</Button>
 				</div>
 			</div>
 		{/if}

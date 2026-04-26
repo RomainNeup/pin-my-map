@@ -3,9 +3,7 @@
 	import Map from 'lucide-svelte/icons/map';
 	import Compass from 'lucide-svelte/icons/compass';
 	import Plus from 'lucide-svelte/icons/plus';
-	import User from 'lucide-svelte/icons/user';
 	import { twMerge } from 'tailwind-merge';
-	import UserMenu from './UserMenu.svelte';
 
 	const isActive = (path: string) => $page.url.pathname === path;
 
@@ -24,10 +22,6 @@
 		<Map class="h-5 w-5" />
 		Map
 	</a>
-	<a href="/discover" class={itemCls(isActive('/discover'))}>
-		<Compass class="h-5 w-5" />
-		Discover
-	</a>
 	<div class="flex items-center justify-center px-2">
 		<a
 			href="/place/create"
@@ -37,25 +31,8 @@
 			<Plus class="h-5 w-5" />
 		</a>
 	</div>
-	<a href="/profile" class={itemCls(isActive('/profile'))}>
-		<User class="h-5 w-5" />
-		Profile
+	<a href="/discover" class={itemCls(isActive('/discover'))}>
+		<Compass class="h-5 w-5" />
+		Discover
 	</a>
-	<UserMenu placement="top-end" class="flex-1">
-		{#snippet trigger({ toggle, open })}
-			<button
-				type="button"
-				class={twMerge(
-					'flex w-full flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition-colors',
-					open ? 'text-accent' : 'text-fg-muted hover:text-fg'
-				)}
-				onclick={toggle}
-				aria-label="Open menu"
-				aria-expanded={open}
-			>
-				<User class="h-5 w-5" />
-				You
-			</button>
-		{/snippet}
-	</UserMenu>
 </nav>
