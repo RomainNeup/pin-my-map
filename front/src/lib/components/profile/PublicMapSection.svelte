@@ -10,7 +10,7 @@
 	} from '$lib/api/user';
 	import Button from '$lib/components/Button.svelte';
 	import Input from '$lib/components/Input.svelte';
-	import Toggle from '$lib/components/Toggle.svelte';
+	import Toggle from '$lib/components/ui/Toggle.svelte';
 	import { toast } from '$lib/stores/toast';
 
 	let settings = $state<PublicMapSettings>({ isPublic: false });

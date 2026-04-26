@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { listAudit, type AuditLog } from '$lib/api/audit';
 	import Input from '$lib/components/Input.svelte';
+	import Button from '$lib/components/Button.svelte';
 	import { onMount } from 'svelte';
 
 	let logs = $state<AuditLog[]>([]);
@@ -31,12 +32,7 @@
 	<div class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
 		<Input bind:value={action} placeholder="Filter by action (e.g. suggestion.approve)" />
 		<Input bind:value={targetType} placeholder="Filter by target type (suggestion|user|place)" />
-		<button
-			class="rounded-lg border border-border px-3 py-2 text-sm hover:bg-bg-muted"
-			onclick={load}
-		>
-			Apply
-		</button>
+		<Button variant="outline" tone="neutral" onclick={load}>Apply</Button>
 	</div>
 
 	{#if loading}
