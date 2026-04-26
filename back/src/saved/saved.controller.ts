@@ -78,6 +78,29 @@ export class SavedController {
   }
 
   @Private()
+  @Get('search')
+  @HttpCode(200)
+  @ApiQuery({
+    name: 'q',
+    required: true,
+    type: String,
+    description:
+      'Case-insensitive substring to match against place name or tag name',
+  })
+  @ApiResponse({
+    status: 200,
+    type: [SavedPlaceDto],
+    description:
+      'Saved places whose place name or tag name matches the query (up to 30)',
+  })
+  async searchSavedPlaces(
+    @User('id') userId: string,
+    @Query('q') q: string,
+  ): Promise<SavedPlaceDto[]> {
+    return this.savedPlaceService.search(userId, q ?? '');
+  }
+
+  @Private()
   @Get('export.csv')
   @HttpCode(200)
   @ApiResponse({

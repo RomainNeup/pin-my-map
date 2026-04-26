@@ -6,10 +6,11 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { SavedPlace } from './saved.entity';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { PlaceIsSavedDto, SavedPlaceDto } from './saved.dto';
 import { SavedPlaceMapper } from './saved.mapper';
 import { PlaceService } from 'src/place/place.service';
+import { Tag } from 'src/tag/tag.entity';
 import { TagService } from 'src/tag/tag.service';
 import {
   GamificationAction,
@@ -27,12 +28,15 @@ export function csvEscape(value: unknown): string {
   return str;
 }
 
+const SEARCH_LIMIT = 30;
+
 @Injectable()
 export class SavedPlaceService {
   private readonly logger = new Logger(SavedPlaceService.name);
 
   constructor(
     @InjectModel(SavedPlace.name) private savedPlaceModel: Model<SavedPlace>,
+    @InjectModel(Tag.name) private tagModel: Model<Tag>,
     private placeService: PlaceService,
     private tagService: TagService,
     private gamificationService: GamificationService,
@@ -107,6 +111,51 @@ export class SavedPlaceService {
 
     const savedPlaces = await cursor.exec();
     return SavedPlaceMapper.toDtoList(savedPlaces);
+  }
+
+  /**
+   * Search the current user's saved places by place name OR tag name (case-insensitive substring).
+   * Returns up to 30 deduplicated results.
+   */
+  async search(userId: string, q: string): Promise<SavedPlaceDto[]> {
+    const userObjectId = new Types.ObjectId(userId);
+    const safe = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(safe, 'i');
+
+    // Find tags whose name matches the query for this user
+    const matchingTags = await this.tagModel
+      .find({ owner: userObjectId, name: regex })
+      .select('_id')
+      .lean()
+      .exec();
+    const matchingTagIdStrings = new Set(
+      matchingTags.map((t) => (t._id as Types.ObjectId).toString()),
+    );
+
+    // Fetch all user saved places (populate place + tags for in-memory filtering)
+    const allSaved = await this.savedPlaceModel
+      .find({ user: userObjectId })
+      .populate(['place', 'tags'])
+      .exec();
+
+    const results: SavedPlaceDto[] = [];
+
+    for (const sp of allSaved) {
+      if (results.length >= SEARCH_LIMIT) break;
+
+      const placeNameMatches = regex.test(sp.place?.name ?? '');
+      const tagMatches =
+        matchingTagIdStrings.size > 0 &&
+        (sp.tags ?? []).some((t) =>
+          matchingTagIdStrings.has((t._id as Types.ObjectId).toString()),
+        );
+
+      if (placeNameMatches || tagMatches) {
+        results.push(SavedPlaceMapper.toDto(sp));
+      }
+    }
+
+    return results;
   }
 
   async exists(userId: string, id: string): Promise<PlaceIsSavedDto> {

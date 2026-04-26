@@ -6,6 +6,7 @@ import { TagService } from 'src/tag/tag.service';
 import { GamificationService } from 'src/gamification/gamification.service';
 
 const SAVED_TOKEN = getModelToken('SavedPlace');
+const TAG_TOKEN = getModelToken('Tag');
 
 describe('csvEscape', () => {
   it('returns plain string when no special chars', () => {
@@ -55,6 +56,18 @@ describe('SavedPlaceService.exportCsv', () => {
       providers: [
         SavedPlaceService,
         { provide: SAVED_TOKEN, useValue: savedPlaceModel },
+        {
+          provide: TAG_TOKEN,
+          useValue: {
+            find: jest.fn().mockReturnValue({
+              select: jest.fn().mockReturnValue({
+                lean: jest.fn().mockReturnValue({
+                  exec: jest.fn().mockResolvedValue([]),
+                }),
+              }),
+            }),
+          },
+        },
         { provide: PlaceService, useValue: {} },
         { provide: TagService, useValue: {} },
         { provide: GamificationService, useValue: { award: jest.fn() } },
@@ -156,6 +169,18 @@ describe('SavedPlaceService.findAll — done filter', () => {
       providers: [
         SavedPlaceService,
         { provide: SAVED_TOKEN, useValue: savedPlaceModel },
+        {
+          provide: TAG_TOKEN,
+          useValue: {
+            find: jest.fn().mockReturnValue({
+              select: jest.fn().mockReturnValue({
+                lean: jest.fn().mockReturnValue({
+                  exec: jest.fn().mockResolvedValue([]),
+                }),
+              }),
+            }),
+          },
+        },
         { provide: PlaceService, useValue: {} },
         { provide: TagService, useValue: {} },
         { provide: GamificationService, useValue: { award: jest.fn() } },

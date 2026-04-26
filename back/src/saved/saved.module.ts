@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { SavedPlace, SavedPlaceSchema } from './saved.entity';
 import { SavedPlaceService } from './saved.service';
 import { PlaceModule } from 'src/place/place.module';
+import { Tag, TagSchema } from 'src/tag/tag.entity';
 import { TagModule } from 'src/tag/tag.module';
 import { GamificationModule } from 'src/gamification/gamification.module';
 
@@ -11,6 +12,7 @@ import { GamificationModule } from 'src/gamification/gamification.module';
   imports: [
     MongooseModule.forFeature([
       { name: SavedPlace.name, schema: SavedPlaceSchema },
+      { name: Tag.name, schema: TagSchema },
     ]),
     PlaceModule,
     TagModule,
