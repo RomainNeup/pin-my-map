@@ -1,0 +1,156 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  backend:
+    name: Backend (lint + unit + e2e)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: back
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+          cache-dependency-path: back/yarn.lock
+      - name: Cache mongodb-memory-server binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: ${{ runner.os }}-mongo-bin-${{ hashFiles('back/yarn.lock') }}
+      - run: yarn install --frozen-lockfile
+      - run: yarn lint
+      - run: yarn test --ci
+      - run: yarn test:e2e --ci
+
+  frontend-static:
+    name: Frontend (lint + check + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: front
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+          cache-dependency-path: front/yarn.lock
+      - run: yarn install --frozen-lockfile
+      - run: yarn lint
+      - run: yarn check
+      - run: yarn build
+        env:
+          PUBLIC_API_BASE_URL: http://localhost:8080
+          PUBLIC_MAPBOX_ACCESS_TOKEN: pk.test
+
+  frontend-e2e:
+    name: Frontend Playwright e2e
+    needs: [backend, frontend-static]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+          cache-dependency-path: |
+            back/yarn.lock
+            front/yarn.lock
+      - name: Cache mongodb-memory-server binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: ${{ runner.os }}-mongo-bin-${{ hashFiles('back/yarn.lock') }}
+      - name: Install backend deps
+        working-directory: back
+        run: yarn install --frozen-lockfile
+      - name: Build backend
+        working-directory: back
+        run: yarn build
+      - name: Install frontend deps
+        working-directory: front
+        run: yarn install --frozen-lockfile
+      - name: Install Playwright browsers
+        working-directory: front
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Run Playwright tests
+        working-directory: front
+        env:
+          CI: 'true'
+          PUBLIC_API_BASE_URL: http://localhost:8080
+          PUBLIC_MAPBOX_ACCESS_TOKEN: pk.test
+        run: yarn test:e2e
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            front/playwright-report
+            front/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  audit:
+    name: npm audit (HIGH+)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Backend audit (moderate, non-blocking)
+        working-directory: back
+        run: npm audit --audit-level=moderate || true
+      - name: Backend audit (high, blocking)
+        working-directory: back
+        run: npm audit --audit-level=high
+      - name: Frontend audit (moderate, non-blocking)
+        working-directory: front
+        run: npm audit --audit-level=moderate || true
+      - name: Frontend audit (high, blocking)
+        working-directory: front
+        run: npm audit --audit-level=high
+
+  gitleaks:
+    name: Gitleaks secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+
+  trivy-fs:
+    name: Trivy filesystem scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+          format: table

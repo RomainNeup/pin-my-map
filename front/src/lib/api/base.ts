@@ -50,12 +50,22 @@ axiosInstance.interceptors.response.use(
 	(error) => {
 		const url = error.config?.url ?? '';
 		const isAuthRoute = url.startsWith('/login') || url.startsWith('/register');
-		if (error.response?.status === 401) {
+		const status: number | undefined = error.response?.status;
+		if (status === 401) {
 			accessToken.set(null);
+			if (browser && !isAuthRoute) {
+				const here = window.location.pathname;
+				if (!here.startsWith('/login') && !here.startsWith('/register') && !here.startsWith('/u/') && !here.startsWith('/public/')) {
+					window.location.assign('/login');
+				}
+			}
 		}
 		if (!isAuthRoute) {
-			const message = error.response?.data?.message || error.message || 'An error occurred';
-			toast(message, 'error');
+			const serverMessage = error.response?.data?.message;
+			const fallback = status && status >= 500
+				? 'Something went wrong on the server. Please try again.'
+				: error.message || 'An error occurred';
+			toast(serverMessage || fallback, 'error');
 		}
 		return Promise.reject(error);
 	}

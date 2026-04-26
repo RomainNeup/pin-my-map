@@ -1,0 +1,13 @@
+# Gitleaks config: extend the default ruleset and allowlist example env files.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Project-wide allowlist"
+paths = [
+  '''^back/\.env\.example$''',
+  '''^front/\.env\.example$''',
+  '''^front/\.env\.test$''',
+  '''(^|/)yarn\.lock$''',
+  '''(^|/)package-lock\.json$''',
+]
