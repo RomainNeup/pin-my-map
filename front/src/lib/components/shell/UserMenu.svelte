@@ -4,10 +4,10 @@
 	import Sun from 'lucide-svelte/icons/sun';
 	import Moon from 'lucide-svelte/icons/moon';
 	import Monitor from 'lucide-svelte/icons/monitor';
+	import User from 'lucide-svelte/icons/user';
 	import Bookmark from 'lucide-svelte/icons/bookmark';
 	import Tag from 'lucide-svelte/icons/tag';
 	import Globe from 'lucide-svelte/icons/globe';
-	import Compass from 'lucide-svelte/icons/compass';
 	import Users from 'lucide-svelte/icons/users';
 	import LogOut from 'lucide-svelte/icons/log-out';
 	import Shield from 'lucide-svelte/icons/shield';
@@ -106,11 +106,11 @@
 		</div>
 		<hr class="my-1 border-border" />
 		<a
-			href="/profile?tab=saved"
+			href="/profile"
 			class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-bg-muted"
 			onclick={() => (open = false)}
 		>
-			<Bookmark class="h-4 w-4" /> My saved places
+			<User class="h-4 w-4" /> My profile
 		</a>
 		<a
 			href="/profile?tab=tags"
@@ -120,18 +120,11 @@
 			<Tag class="h-4 w-4" /> My tags
 		</a>
 		<a
-			href="/profile?tab=public-map"
+			href="/profile?tab=saved"
 			class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-bg-muted"
 			onclick={() => (open = false)}
 		>
-			<Globe class="h-4 w-4" /> Public map
-		</a>
-		<a
-			href="/discover"
-			class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-bg-muted"
-			onclick={() => (open = false)}
-		>
-			<Compass class="h-4 w-4" /> Discover
+			<Bookmark class="h-4 w-4" /> My saved places
 		</a>
 		<a
 			href="/profile?tab=following"
@@ -140,16 +133,24 @@
 		>
 			<Users class="h-4 w-4" /> Following
 		</a>
+		<a
+			href="/profile?tab=public-map"
+			class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-bg-muted"
+			onclick={() => (open = false)}
+		>
+			<Globe class="h-4 w-4" /> Public map
+		</a>
 		{#if $isAdmin}
 			<hr class="my-1 border-border" />
 			<a
-				href="/admin/suggestions"
+				href="/admin"
 				class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-bg-muted"
 				onclick={() => (open = false)}
 			>
-				<Shield class="h-4 w-4" /> Admin panel
+				<Shield class="h-4 w-4" /> Admin console
 			</a>
 		{/if}
+		<hr class="my-1 border-border" />
 		<button
 			class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-danger hover:bg-danger-soft"
 			onclick={logout}

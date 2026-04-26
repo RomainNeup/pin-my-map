@@ -1,20 +1,36 @@
 <script lang="ts">
-	import type { PublicMap } from '$lib/api/publicMap';
+	import type { PublicMap, PublicSavedPlace } from '$lib/api/publicMap';
 	import Map from '$lib/components/Map.svelte';
 	import StaticMapThumb from '$lib/components/StaticMapThumb.svelte';
 	import StarRating from '$lib/components/StarRating.svelte';
 	import FollowButton from '$lib/components/public/FollowButton.svelte';
+	import Button from '$lib/components/Button.svelte';
+	import Loader from '$lib/components/Loader.svelte';
 	import MapPinIcon from 'lucide-svelte/icons/map-pin';
 
 	type Props = {
 		map: PublicMap;
 		basePath: string;
+		/** Called when user requests the next page. Returns new saved places to append. */
+		onLoadMore?: () => Promise<PublicSavedPlace[]>;
+		/** Whether there are more pages to load. */
+		hasMore?: boolean;
+		/** Total count from the backend (if available). */
+		total?: number;
 	};
 
-	let { map, basePath }: Props = $props();
+	let { map, basePath, onLoadMore, hasMore = false, total }: Props = $props();
+
+	let loadedPlaces = $state<PublicSavedPlace[]>([...map.savedPlaces]);
+	let loadingMore = $state(false);
+
+	// Keep loadedPlaces in sync when initial map data changes (e.g. tab switch resets)
+	$effect(() => {
+		loadedPlaces = [...map.savedPlaces];
+	});
 
 	const points = $derived(
-		map.savedPlaces
+		loadedPlaces
 			.filter((sp) => sp.place?.location)
 			.map((sp) => ({
 				id: sp.id,
@@ -29,6 +45,19 @@
 			? { lat: points[0].position[1], lng: points[0].position[0] }
 			: { lat: 0, lng: 0 }
 	);
+
+	const displayTotal = $derived(total ?? map.total ?? loadedPlaces.length);
+
+	async function loadMore() {
+		if (!onLoadMore || loadingMore) return;
+		loadingMore = true;
+		try {
+			const next = await onLoadMore();
+			loadedPlaces = [...loadedPlaces, ...next];
+		} finally {
+			loadingMore = false;
+		}
+	}
 </script>
 
 <div class="mx-auto w-full max-w-6xl px-4 py-4 md:py-6">
@@ -36,7 +65,11 @@
 		<div>
 			<h1 class="text-2xl font-semibold text-fg">{map.owner.name}'s map</h1>
 			<p class="text-sm text-fg-muted">
-				{map.savedPlaces.length} saved place{map.savedPlaces.length === 1 ? '' : 's'}
+				{#if displayTotal !== loadedPlaces.length}
+					Showing {loadedPlaces.length} of {displayTotal} saved place{displayTotal === 1 ? '' : 's'}
+				{:else}
+					{displayTotal} saved place{displayTotal === 1 ? '' : 's'}
+				{/if}
 			</p>
 		</div>
 		{#if map.owner.userId}
@@ -48,11 +81,11 @@
 		<Map sources={[{ key: 'public', points }]} lat={center.lat} lng={center.lng} zoom={11} />
 	</div>
 
-	{#if map.savedPlaces.length === 0}
+	{#if loadedPlaces.length === 0}
 		<p class="py-8 text-center text-fg-muted">No saved places yet.</p>
 	{:else}
 		<ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			{#each map.savedPlaces as sp}
+			{#each loadedPlaces as sp (sp.id)}
 				<li
 					class="overflow-hidden rounded-xl border border-border bg-bg-elevated transition hover:border-accent"
 				>
@@ -86,5 +119,15 @@
 				</li>
 			{/each}
 		</ul>
+
+		{#if loadingMore}
+			<div class="mt-6 flex justify-center">
+				<Loader size="md" />
+			</div>
+		{:else if hasMore && onLoadMore}
+			<div class="mt-6 flex justify-center">
+				<Button variant="outline" tone="neutral" onclick={loadMore}>Load more</Button>
+			</div>
+		{/if}
 	{/if}
 </div>

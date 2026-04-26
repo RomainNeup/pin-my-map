@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { searchPlaces, type Place } from '$lib/api/place';
+	import { searchSaved, type SavedPlace } from '$lib/api/savedPlace';
+	import { accessToken } from '$lib/stores/user';
 	import { clickOutside } from '$lib/utils/clickOutside';
 	import Loader from '$lib/components/Loader.svelte';
 	import MapPinIcon from 'lucide-svelte/icons/map-pin';
@@ -8,24 +10,43 @@
 	import Search from 'lucide-svelte/icons/search';
 	import X from 'lucide-svelte/icons/x';
 
+	interface SearchBarProps {
+		/** Called when user selects a saved-place result (logged-in mode). */
+		onSelect?: (sp: SavedPlace) => void;
+	}
+
+	const { onSelect }: SearchBarProps = $props();
+
 	let query = $state('');
-	let results = $state<Place[] | null>(null);
+	let savedResults = $state<SavedPlace[] | null>(null);
+	let placeResults = $state<Place[] | null>(null);
 	let loading = $state(false);
 	let open = $state(false);
 
 	let debounceHandle: ReturnType<typeof setTimeout> | null = null;
 	let requestId = 0;
 
+	const isLoggedIn = $derived(!!$accessToken);
+
 	const runSearch = async (q: string) => {
 		const id = ++requestId;
 		loading = true;
 		try {
-			const r = await searchPlaces(q);
-			if (id !== requestId) return;
-			results = r;
+			if (isLoggedIn) {
+				const r = await searchSaved(q);
+				if (id !== requestId) return;
+				savedResults = r;
+				placeResults = null;
+			} else {
+				const r = await searchPlaces(q);
+				if (id !== requestId) return;
+				placeResults = r;
+				savedResults = null;
+			}
 		} catch {
 			if (id !== requestId) return;
-			results = [];
+			savedResults = null;
+			placeResults = [];
 		} finally {
 			if (id === requestId) loading = false;
 		}
@@ -34,24 +55,32 @@
 	const onInput = () => {
 		open = true;
 		if (debounceHandle) clearTimeout(debounceHandle);
-		if (query.trim().length < 3) {
-			results = null;
+		if (query.trim().length < 2) {
+			savedResults = null;
+			placeResults = null;
 			loading = false;
 			return;
 		}
 		const q = query;
-		debounceHandle = setTimeout(() => runSearch(q), 300);
+		debounceHandle = setTimeout(() => runSearch(q), 250);
 	};
 
 	const clear = () => {
 		query = '';
-		results = null;
+		savedResults = null;
+		placeResults = null;
 		loading = false;
 		if (debounceHandle) clearTimeout(debounceHandle);
 	};
 
 	const close = () => {
 		open = false;
+	};
+
+	const selectSaved = (sp: SavedPlace) => {
+		close();
+		clear();
+		onSelect?.(sp);
 	};
 
 	const goToPlace = (id: string) => {
@@ -64,7 +93,10 @@
 		goto(`/place/create`);
 	};
 
-	const showDropdown = $derived(open && query.trim().length >= 3);
+	const hasResults = $derived(
+		isLoggedIn ? savedResults !== null : placeResults !== null
+	);
+	const showDropdown = $derived(open && query.trim().length >= 2);
 </script>
 
 <div class="relative w-full" use:clickOutside={close}>
@@ -100,46 +132,91 @@
 				<div class="flex items-center justify-center py-6">
 					<Loader size="md" />
 				</div>
-			{:else if results && results.length > 0}
-				<ul class="py-1">
-					{#each results as place (place.id)}
-						<li>
-							<button
-								type="button"
-								class="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-bg-muted"
-								onclick={() => goToPlace(place.id)}
-							>
-								<div
-									class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-soft-fg"
+			{:else if isLoggedIn && savedResults !== null}
+				{#if savedResults.length > 0}
+					<ul class="py-1">
+						{#each savedResults as sp (sp.id)}
+							<li>
+								<button
+									type="button"
+									class="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-bg-muted"
+									onclick={() => selectSaved(sp)}
 								>
-									<MapPinIcon class="h-4 w-4" />
-								</div>
-								<div class="min-w-0 flex-1">
-									<div class="truncate text-sm font-medium text-fg">{place.name}</div>
-									{#if place.address}
-										<div class="truncate text-xs text-fg-muted">{place.address}</div>
-									{/if}
-								</div>
-							</button>
-						</li>
-					{/each}
-				</ul>
-			{:else if results}
-				<div class="px-4 py-6 text-center text-sm text-fg-muted">
-					No places match "{query.trim()}".
-				</div>
+									<div
+										class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-soft-fg"
+									>
+										<MapPinIcon class="h-4 w-4" />
+									</div>
+									<div class="min-w-0 flex-1">
+										<div class="truncate text-sm font-medium text-fg">{sp.place.name}</div>
+										{#if sp.place.address}
+											<div class="truncate text-xs text-fg-muted">{sp.place.address}</div>
+										{/if}
+										{#if sp.tags && sp.tags.length > 0}
+											<div class="mt-0.5 flex flex-wrap gap-1">
+												{#each sp.tags as tag}
+													<span
+														class="rounded bg-bg-muted px-1.5 py-0.5 text-[10px] text-fg-muted"
+													>
+														{tag.emoji ?? ''}{tag.name}
+													</span>
+												{/each}
+											</div>
+										{/if}
+									</div>
+								</button>
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<div class="px-4 py-6 text-center text-sm text-fg-muted">
+						No saved places match "{query.trim()}".
+					</div>
+				{/if}
+			{:else if !isLoggedIn && placeResults !== null}
+				{#if placeResults.length > 0}
+					<ul class="py-1">
+						{#each placeResults as place (place.id)}
+							<li>
+								<button
+									type="button"
+									class="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-bg-muted"
+									onclick={() => goToPlace(place.id)}
+								>
+									<div
+										class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-soft-fg"
+									>
+										<MapPinIcon class="h-4 w-4" />
+									</div>
+									<div class="min-w-0 flex-1">
+										<div class="truncate text-sm font-medium text-fg">{place.name}</div>
+										{#if place.address}
+											<div class="truncate text-xs text-fg-muted">{place.address}</div>
+										{/if}
+									</div>
+								</button>
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<div class="px-4 py-6 text-center text-sm text-fg-muted">
+						No places match "{query.trim()}".
+					</div>
+				{/if}
 			{/if}
 
-			<div class="border-t border-border">
-				<button
-					type="button"
-					class="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-accent hover:bg-bg-muted"
-					onclick={goToCreate}
-				>
-					<Plus class="h-4 w-4" />
-					<span>Create a new place</span>
-				</button>
-			</div>
+			{#if isLoggedIn}
+				<div class="border-t border-border">
+					<button
+						type="button"
+						class="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-accent hover:bg-bg-muted"
+						onclick={goToCreate}
+					>
+						<Plus class="h-4 w-4" />
+						<span>Create a new place</span>
+					</button>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>

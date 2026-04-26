@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import type * as mapboxgl from 'mapbox-gl';
 	import Plus from 'lucide-svelte/icons/plus';
 	import MapPin from 'lucide-svelte/icons/map-pin';
 	import { getSavedPlaces, type SavedPlace } from '$lib/api/savedPlace';
@@ -24,6 +25,7 @@
 
 	let sheetOpen = $state(false);
 	let selectedPlace = $state<SavedPlace | null>(null);
+	let mapInstance = $state<mapboxgl.Map | undefined>();
 
 	// Filtered places based on done state
 	const filteredPlaces = $derived(
@@ -49,6 +51,17 @@
 	const openPlace = (sp: SavedPlace) => {
 		selectedPlace = sp;
 		sheetOpen = true;
+	};
+
+	const onSearchSelect = (sp: SavedPlace) => {
+		if (mapInstance && sp.place.location) {
+			mapInstance.flyTo({
+				center: [sp.place.location.lng, sp.place.location.lat],
+				zoom: Math.max(mapInstance.getZoom(), 14),
+				duration: 800
+			});
+		}
+		openPlace(sp);
 	};
 
 	const closeSheet = () => {
@@ -89,13 +102,13 @@
 
 <div class="relative h-dvh w-full overflow-hidden">
 	{#snippet plusIcon()}<Plus class="h-6 w-6" />{/snippet}
-	<Map centerOnUser sources={[source]}>
+	<Map centerOnUser sources={[source]} onReady={(m) => (mapInstance = m)}>
 		<div
 			class="pointer-events-none absolute inset-x-0 top-0 z-overlay flex flex-col gap-2 px-3 pt-3 md:top-16 md:px-6"
 			style="padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));"
 		>
 			<div class="pointer-events-auto w-full max-w-md self-center md:self-start">
-				<SearchBar />
+				<SearchBar onSelect={onSearchSelect} />
 			</div>
 			<div class="pointer-events-auto flex items-center gap-2 pt-1">
 				{#if $tags?.length}

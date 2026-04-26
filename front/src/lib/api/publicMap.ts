@@ -30,6 +30,12 @@ export interface PublicMapOwner {
 export interface PublicMap {
 	owner: PublicMapOwner;
 	savedPlaces: PublicSavedPlace[];
+	total?: number;
+}
+
+export interface PublicMapParams {
+	limit?: number;
+	offset?: number;
 }
 
 const client = axios.create({
@@ -60,13 +66,18 @@ export function discoverPublicMaps(query?: string): Promise<PublicMapSummary[]> 
 		.then(({ data }) => data);
 }
 
-export function getPublicMapBySlug(slug: string): Promise<PublicMap> {
-	return client.get<PublicMap>(`/public/slug/${encodeURIComponent(slug)}`).then(({ data }) => data);
+export function getPublicMapBySlug(slug: string, params: PublicMapParams = {}): Promise<PublicMap> {
+	return client
+		.get<PublicMap>(`/public/slug/${encodeURIComponent(slug)}`, { params })
+		.then(({ data }) => data);
 }
 
-export function getPublicMapByToken(token: string): Promise<PublicMap> {
+export function getPublicMapByToken(
+	token: string,
+	params: PublicMapParams = {}
+): Promise<PublicMap> {
 	return client
-		.get<PublicMap>(`/public/token/${encodeURIComponent(token)}`)
+		.get<PublicMap>(`/public/token/${encodeURIComponent(token)}`, { params })
 		.then(({ data }) => data);
 }
 
