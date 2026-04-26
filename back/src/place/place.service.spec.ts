@@ -650,3 +650,199 @@ describe('PlaceService.findOneWithStats', () => {
     );
   });
 });
+
+// ── Conflict resolution / dismissal ─────────────────────────────────────────
+
+describe('PlaceService conflict resolution', () => {
+  const conflict = {
+    field: 'website',
+    values: [
+      { provider: 'google', value: 'https://google.com' },
+      { provider: 'osm', value: 'https://osm.org' },
+    ],
+  };
+
+  const buildConflictService = async (
+    placeDoc: Record<string, unknown> | null,
+  ) => {
+    const docSave = jest.fn().mockImplementation(function (this: unknown) {
+      return Promise.resolve(this);
+    });
+    const doc = placeDoc ? { ...placeDoc, save: docSave } : null;
+
+    const placeModel = {
+      findById: jest
+        .fn()
+        .mockReturnValue({ exec: jest.fn().mockResolvedValue(doc) }),
+      find: jest.fn().mockReturnValue({
+        skip: jest.fn().mockReturnValue({
+          limit: jest
+            .fn()
+            .mockReturnValue({ exec: jest.fn().mockResolvedValue([]) }),
+        }),
+      }),
+      countDocuments: jest
+        .fn()
+        .mockReturnValue({ exec: jest.fn().mockResolvedValue(0) }),
+      updateMany: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ modifiedCount: 0 }),
+      }),
+    };
+    const auditService = { log: jest.fn().mockResolvedValue(undefined) };
+
+    const module = await Test.createTestingModule({
+      providers: [
+        PlaceService,
+        { provide: getModelToken(Place.name), useValue: placeModel },
+        { provide: SAVED_PLACE_TOKEN, useValue: mockSavedPlaceModel },
+        {
+          provide: EnrichmentService,
+          useValue: { enrich: jest.fn(), refresh: jest.fn() },
+        },
+        { provide: GamificationService, useValue: { award: jest.fn() } },
+        { provide: AuditService, useValue: auditService },
+      ],
+    }).compile();
+
+    return {
+      service: module.get(PlaceService),
+      auditService,
+      doc,
+      docSave,
+    };
+  };
+
+  it('resolveConflict applies the value and removes the field from conflicts', async () => {
+    const id = new Types.ObjectId().toHexString();
+    const adminId = new Types.ObjectId().toHexString();
+    const { service, auditService, doc, docSave } = await buildConflictService({
+      _id: { toHexString: () => id },
+      name: 'Test',
+      location: [0, 0],
+      address: 'addr',
+      description: 'desc',
+      image: '',
+      moderationStatus: 'approved',
+      enrichment: {
+        externalId: 'x',
+        providerName: 'google',
+        website: 'https://google.com',
+        fetchedAt: new Date(),
+      },
+      enrichmentConflicts: [conflict],
+    });
+
+    const result = await service.resolveConflict(
+      id,
+      { field: 'website', value: 'https://chosen.com' },
+      adminId,
+    );
+
+    expect((doc as Record<string, unknown>).enrichmentConflicts).toEqual([]);
+    expect(docSave).toHaveBeenCalledTimes(1);
+    expect(result.hasUnresolvedConflicts).toBe(false);
+    expect(auditService.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'place.conflict.resolve',
+        targetId: id,
+        meta: expect.objectContaining({ field: 'website' }),
+      }),
+    );
+  });
+
+  it('dismissConflict removes the field from conflicts without changing value', async () => {
+    const id = new Types.ObjectId().toHexString();
+    const adminId = new Types.ObjectId().toHexString();
+    const { service, auditService, doc, docSave } = await buildConflictService({
+      _id: { toHexString: () => id },
+      name: 'Test',
+      location: [0, 0],
+      address: 'addr',
+      description: 'desc',
+      image: '',
+      moderationStatus: 'approved',
+      enrichment: {
+        externalId: 'x',
+        providerName: 'google',
+        website: 'https://google.com',
+        fetchedAt: new Date(),
+      },
+      enrichmentConflicts: [conflict],
+    });
+
+    const result = await service.dismissConflict(
+      id,
+      { field: 'website' },
+      adminId,
+    );
+
+    expect((doc as Record<string, unknown>).enrichmentConflicts).toEqual([]);
+    expect(docSave).toHaveBeenCalledTimes(1);
+    expect(result.hasUnresolvedConflicts).toBe(false);
+    expect(auditService.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'place.conflict.dismiss',
+        targetId: id,
+        meta: { field: 'website' },
+      }),
+    );
+  });
+
+  it('listConflicts returns paginated places with conflicts', async () => {
+    const id = new Types.ObjectId();
+    const placeDoc = {
+      _id: id,
+      name: 'Test',
+      location: [0, 0],
+      address: 'addr',
+      description: 'desc',
+      image: '',
+      moderationStatus: 'approved',
+      enrichmentConflicts: [conflict],
+    };
+
+    const placeModel = {
+      find: jest.fn().mockReturnValue({
+        skip: jest.fn().mockReturnValue({
+          limit: jest.fn().mockReturnValue({
+            exec: jest.fn().mockResolvedValue([placeDoc]),
+          }),
+        }),
+      }),
+      countDocuments: jest
+        .fn()
+        .mockReturnValue({ exec: jest.fn().mockResolvedValue(1) }),
+      findById: jest
+        .fn()
+        .mockReturnValue({ exec: jest.fn().mockResolvedValue(null) }),
+      updateMany: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ modifiedCount: 0 }),
+      }),
+    };
+
+    const module = await Test.createTestingModule({
+      providers: [
+        PlaceService,
+        { provide: getModelToken(Place.name), useValue: placeModel },
+        { provide: SAVED_PLACE_TOKEN, useValue: mockSavedPlaceModel },
+        {
+          provide: EnrichmentService,
+          useValue: { enrich: jest.fn(), refresh: jest.fn() },
+        },
+        { provide: GamificationService, useValue: { award: jest.fn() } },
+        { provide: AuditService, useValue: { log: jest.fn() } },
+      ],
+    }).compile();
+
+    const service = module.get(PlaceService);
+    const page = await service.listConflicts({ limit: 10, offset: 0 });
+
+    expect(page.total).toBe(1);
+    expect(page.items).toHaveLength(1);
+    expect(page.items[0].hasUnresolvedConflicts).toBe(true);
+    expect(page.items[0].enrichmentConflicts).toBeDefined();
+    expect(placeModel.find).toHaveBeenCalledWith(
+      expect.objectContaining({ enrichmentConflicts: expect.any(Object) }),
+    );
+  });
+});

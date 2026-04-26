@@ -49,6 +49,16 @@ export interface PlaceEnrichment {
 
 export type ModerationStatus = 'pending' | 'approved' | 'rejected';
 
+export interface EnrichmentConflictValue {
+	provider: string;
+	value: unknown;
+}
+
+export interface EnrichmentConflict {
+	field: string;
+	values: EnrichmentConflictValue[];
+}
+
 export interface Place {
 	id: string;
 	name: string;
@@ -71,6 +81,13 @@ export interface Place {
 	permanentlyClosed?: boolean;
 	permanentlyClosedAt?: string;
 	saveCount?: number;
+	hasUnresolvedConflicts: boolean;
+	enrichmentConflicts?: EnrichmentConflict[];
+}
+
+export interface PlaceConflictsPage {
+	items: Place[];
+	total: number;
 }
 
 export interface CreatePlaceRequest {
@@ -149,5 +166,29 @@ export function setPermanentlyClosed(
 ): Promise<Place> {
 	return axiosInstance
 		.post<Place>(`/place/${id}/closed`, { closed, reason })
+		.then(({ data }) => data);
+}
+
+export function listConflicts(
+	params: { limit?: number; offset?: number } = {}
+): Promise<PlaceConflictsPage> {
+	return axiosInstance
+		.get<PlaceConflictsPage>('/place/conflicts', { params })
+		.then(({ data }) => data);
+}
+
+export function resolveConflict(
+	placeId: string,
+	field: string,
+	value: unknown
+): Promise<Place> {
+	return axiosInstance
+		.post<Place>(`/place/${placeId}/resolve-conflict`, { field, value })
+		.then(({ data }) => data);
+}
+
+export function dismissConflict(placeId: string, field: string): Promise<Place> {
+	return axiosInstance
+		.post<Place>(`/place/${placeId}/dismiss-conflict`, { field })
 		.then(({ data }) => data);
 }

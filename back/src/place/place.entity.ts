@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
+import { EnrichmentConflict } from 'src/enrichment/enrichment.types';
 
 export type PlaceDocument = HydratedDocument<Place>;
 
@@ -106,6 +107,9 @@ export class Place {
   permanentlyClosed: boolean;
   @Prop({ required: false })
   permanentlyClosedAt?: Date;
+  /** Per-field enrichment conflicts detected when multiple providers disagreed. */
+  @Prop({ type: [Object], default: [] })
+  enrichmentConflicts: EnrichmentConflict[];
 }
 
 export type PlaceModerationStatus = 'pending' | 'approved' | 'rejected';

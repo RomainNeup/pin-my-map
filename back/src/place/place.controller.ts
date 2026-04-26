@@ -21,9 +21,12 @@ import {
   BulkEnrichDto,
   BulkEnrichSummaryDto,
   CreatePlaceRequestDto,
+  DismissConflictDto,
   PlaceClosedDto,
+  PlaceConflictsPageDto,
   PlaceDto,
   RejectPlaceDto,
+  ResolveConflictDto,
 } from './place.dto';
 import { User } from 'src/user/user.decorator';
 
@@ -95,6 +98,29 @@ export class PlaceController {
   })
   async listPending(): Promise<PlaceDto[]> {
     return await this.placeService.listPending();
+  }
+
+  @Admin()
+  @Get('conflicts')
+  @HttpCode(200)
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'offset', required: false, type: Number })
+  @ApiResponse({
+    status: 200,
+    type: PlaceConflictsPageDto,
+    description:
+      'Paginated list of places with unresolved enrichment conflicts.',
+  })
+  async listConflicts(
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ): Promise<PlaceConflictsPageDto> {
+    const parsedLimit = limit !== undefined ? Number(limit) : undefined;
+    const parsedOffset = offset !== undefined ? Number(offset) : undefined;
+    return await this.placeService.listConflicts({
+      limit: Number.isFinite(parsedLimit) ? parsedLimit : undefined,
+      offset: Number.isFinite(parsedOffset) ? parsedOffset : undefined,
+    });
   }
 
   @Admin()
@@ -266,5 +292,37 @@ export class PlaceController {
     @Param('id', ParseObjectIdPipe) id: string,
   ): Promise<PlaceDto> {
     return await this.placeService.refreshEnrichment(id);
+  }
+
+  @Admin()
+  @Post(':id/resolve-conflict')
+  @HttpCode(200)
+  @ApiResponse({
+    status: 200,
+    type: PlaceDto,
+    description: 'Conflict resolved: chosen value applied to enrichment.',
+  })
+  async resolveConflict(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() dto: ResolveConflictDto,
+    @User('id') adminId: string,
+  ): Promise<PlaceDto> {
+    return await this.placeService.resolveConflict(id, dto, adminId);
+  }
+
+  @Admin()
+  @Post(':id/dismiss-conflict')
+  @HttpCode(200)
+  @ApiResponse({
+    status: 200,
+    type: PlaceDto,
+    description: 'Conflict dismissed without changing the enrichment value.',
+  })
+  async dismissConflict(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() dto: DismissConflictDto,
+    @User('id') adminId: string,
+  ): Promise<PlaceDto> {
+    return await this.placeService.dismissConflict(id, dto, adminId);
   }
 }

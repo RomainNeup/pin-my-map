@@ -1,9 +1,19 @@
-import { PlaceDto, PlaceEnrichmentDto } from './place.dto';
+import {
+  EnrichmentConflictDto,
+  PlaceDto,
+  PlaceEnrichmentDto,
+} from './place.dto';
 import { PlaceDocument, PlaceEnrichment } from './place.entity';
+import { EnrichmentConflict } from 'src/enrichment/enrichment.types';
 
 export class PlaceMapper {
-  static toDto(entity: PlaceDocument, saveCount?: number): PlaceDto {
+  static toDto(
+    entity: PlaceDocument,
+    saveCount?: number,
+    isAdmin = false,
+  ): PlaceDto {
     const id = entity._id.toHexString();
+    const conflicts: EnrichmentConflict[] = entity.enrichmentConflicts ?? [];
     return {
       id,
       name: entity.name,
@@ -27,11 +37,17 @@ export class PlaceMapper {
       permanentlyClosed: entity.permanentlyClosed || undefined,
       permanentlyClosedAt: entity.permanentlyClosedAt?.toISOString(),
       saveCount,
+      hasUnresolvedConflicts: conflicts.length > 0,
+      enrichmentConflicts: isAdmin ? conflicts : undefined,
     };
   }
 
-  static toDtoList(entities: PlaceDocument[]): PlaceDto[] {
-    return entities.map((entity) => this.toDto(entity));
+  static toDtoList(entities: PlaceDocument[], isAdmin = false): PlaceDto[] {
+    return entities.map((entity) => this.toDto(entity, undefined, isAdmin));
+  }
+
+  static toConflictDto(c: EnrichmentConflict): EnrichmentConflictDto {
+    return { field: c.field, values: c.values };
   }
 
   private static enrichmentToDto(
