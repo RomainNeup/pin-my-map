@@ -104,3 +104,176 @@ describe('SuggestionService — listMine / countForPlace', () => {
     );
   });
 });
+
+// ── permanentlyClosed via suggestion ─────────────────────────────────────────
+
+describe('SuggestionService — permanentlyClosed', () => {
+  const userId = new Types.ObjectId().toHexString();
+  const placeId = new Types.ObjectId().toHexString();
+  const suggestionId = new Types.ObjectId().toHexString();
+  const adminId = new Types.ObjectId().toHexString();
+
+  /** Build a minimal PlaceDto-like object for `placeService.findOne`. */
+  const buildPlaceDto = (overrides: Record<string, unknown> = {}) => ({
+    id: placeId,
+    name: 'Test Place',
+    description: 'A place',
+    address: '1 rue de la Paix',
+    image: '',
+    location: { lat: 48.87, lng: 2.33 },
+    permanentlyClosed: false,
+    ...overrides,
+  });
+
+  /** Build the full test module wired for create / approve flows. */
+  const buildFullService = (
+    currentPlace: ReturnType<typeof buildPlaceDto>,
+    placeModelUpdateOne = jest.fn().mockReturnValue({ exec: jest.fn() }),
+  ) => {
+    const createdDoc = {
+      _id: new Types.ObjectId(suggestionId),
+      user: new Types.ObjectId(userId),
+      place: new Types.ObjectId(placeId),
+      changes: {} as Record<string, unknown>,
+      status: 'pending',
+      note: undefined,
+      save: jest.fn(),
+    };
+
+    // Tracks changes passed to .create()
+    const createdCapture: { changes?: Record<string, unknown> } = {};
+
+    const findByIdChain = {
+      populate: jest.fn().mockReturnThis(),
+      exec: jest.fn().mockResolvedValue(null),
+    };
+
+    const suggestionModel = {
+      create: jest.fn().mockImplementation((doc) => {
+        createdCapture.changes = doc.changes;
+        Object.assign(createdDoc, { changes: doc.changes });
+        return Promise.resolve(createdDoc);
+      }),
+      findById: jest.fn().mockImplementation(() => ({
+        populate: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue(createdDoc),
+      })),
+      find: jest.fn().mockReturnValue({
+        sort: jest.fn().mockReturnThis(),
+        populate: jest.fn().mockResolvedValue([]),
+      }),
+      countDocuments: jest.fn().mockResolvedValue(0),
+    };
+
+    const placeService = {
+      findOne: jest.fn().mockResolvedValue(currentPlace),
+    };
+
+    void findByIdChain;
+
+    return Test.createTestingModule({
+      providers: [
+        SuggestionService,
+        {
+          provide: getModelToken(PlaceSuggestion.name),
+          useValue: suggestionModel,
+        },
+        {
+          provide: getModelToken(Place.name),
+          useValue: { updateOne: placeModelUpdateOne },
+        },
+        { provide: PlaceService, useValue: placeService },
+        { provide: AuditService, useValue: { log: jest.fn() } },
+        { provide: GamificationService, useValue: { award: jest.fn() } },
+      ],
+    })
+      .compile()
+      .then((mod) => ({
+        service: mod.get(SuggestionService),
+        suggestionModel,
+        placeModelUpdateOne,
+        createdCapture,
+        createdDoc,
+        placeService,
+      }));
+  };
+
+  it('create stores permanentlyClosed=true in changes when place is currently open', async () => {
+    const currentPlace = buildPlaceDto({ permanentlyClosed: false });
+    const { service, createdCapture } = await buildFullService(currentPlace);
+
+    await service.create(userId, {
+      placeId,
+      changes: { permanentlyClosed: true },
+    });
+
+    expect(createdCapture.changes).toMatchObject({ permanentlyClosed: true });
+  });
+
+  it('create does NOT include permanentlyClosed when the value matches the current state', async () => {
+    const currentPlace = buildPlaceDto({ permanentlyClosed: true });
+    const { service } = await buildFullService(currentPlace);
+
+    await expect(
+      service.create(userId, {
+        placeId,
+        changes: { permanentlyClosed: true },
+      }),
+    ).rejects.toThrow('No changes to suggest');
+  });
+
+  it('approve sets permanentlyClosed=true and permanentlyClosedAt on the place', async () => {
+    const updateOne = jest.fn().mockReturnValue({ exec: jest.fn() });
+    const currentPlace = buildPlaceDto({ permanentlyClosed: false });
+    const { service, createdDoc } = await buildFullService(
+      currentPlace,
+      updateOne,
+    );
+
+    // Simulate an existing suggestion entity with permanentlyClosed
+    Object.assign(createdDoc, {
+      changes: { permanentlyClosed: true },
+      status: 'pending',
+      save: jest.fn(),
+    });
+
+    await service.approve(suggestionId, adminId);
+
+    expect(updateOne).toHaveBeenCalledWith(
+      { _id: placeId },
+      expect.objectContaining({
+        $set: expect.objectContaining({
+          permanentlyClosed: true,
+          permanentlyClosedAt: expect.any(Date),
+        }),
+      }),
+    );
+  });
+
+  it('approve clears permanentlyClosedAt when permanentlyClosed becomes false', async () => {
+    const updateOne = jest.fn().mockReturnValue({ exec: jest.fn() });
+    const currentPlace = buildPlaceDto({ permanentlyClosed: true });
+    const { service, createdDoc } = await buildFullService(
+      currentPlace,
+      updateOne,
+    );
+
+    Object.assign(createdDoc, {
+      changes: { permanentlyClosed: false },
+      status: 'pending',
+      save: jest.fn(),
+    });
+
+    await service.approve(suggestionId, adminId);
+
+    expect(updateOne).toHaveBeenCalledWith(
+      { _id: placeId },
+      expect.objectContaining({
+        $set: expect.objectContaining({
+          permanentlyClosed: false,
+          permanentlyClosedAt: null,
+        }),
+      }),
+    );
+  });
+});

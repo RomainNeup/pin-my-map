@@ -23,6 +23,9 @@ function changesToDto(
   if (Array.isArray(changes.location) && changes.location.length === 2) {
     dto.location = { lng: changes.location[0], lat: changes.location[1] };
   }
+  if (changes.permanentlyClosed !== undefined) {
+    dto.permanentlyClosed = changes.permanentlyClosed;
+  }
   return dto;
 }
 
