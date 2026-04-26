@@ -8,61 +8,61 @@ _Generated: 2026-04-25_
 
 All 53 Svelte component files under `src/lib/components/`:
 
-| File | Sub-folder | Imported by (call sites) |
-|------|-----------|--------------------------|
-| `Button.svelte` | root | ~15 files across routes + components |
-| `EmojiPicker.svelte` | root | `profile/MyTagsSection` |
-| `Input.svelte` | root | ~12 files |
-| `Loader.svelte` | root | auth layout |
-| `Map.svelte` | root | routes/+page, place/[id], place/pick, place/create, public/[token] |
-| `MapGeolocation.svelte` | root | routes/+page |
-| `MapPoints.svelte` | root | routes/+page |
-| `StarRating.svelte` | root | saved/[id], profile/MySavedSection |
-| `StaticMapThumb.svelte` | root | profile/MySavedSection, public/PublicMapView |
-| `TagPicker.svelte` | root | saved/[id] |
-| `Toggle.svelte` | root | (not imported — dead code) |
-| `map/PlaceSheet.svelte` | map | routes/+page |
-| `map/SearchBar.svelte` | map | routes/+page |
-| `map/TagFilterChips.svelte` | map | routes/+page |
-| `place/EditPlaceDialog.svelte` | place | place/[id], saved/[id] |
-| `place/EnrichmentDetails.svelte` | place | **NOBODY** — dead code |
-| `place/OpenInMenu.svelte` | place | saved/[id] |
-| `place/PlaceEnrichmentDetails.svelte` | place | place/[id] |
-| `place/PlacePhotoCarousel.svelte` | place | PlaceEnrichmentDetails |
-| `place/SavedTagFilter.svelte` | place | profile/MySavedSection |
-| `place/SuggestEditDialog.svelte` | place | place/[id] |
-| `place/TagChip.svelte` | place | map/PlaceSheet, saved/[id], public/PublicMapView |
-| `profile/DangerZone.svelte` | profile | routes/profile |
-| `profile/FollowingSection.svelte` | profile | routes/profile |
-| `profile/IdentityCard.svelte` | profile | routes/profile |
-| `profile/MySavedSection.svelte` | profile | routes/profile |
-| `profile/MyTagsSection.svelte` | profile | routes/profile |
-| `profile/PublicMapSection.svelte` | profile | routes/profile |
-| `profile/StatsSummary.svelte` | profile | routes/profile |
-| `public/CommentSection.svelte` | public | public/PublicMapView |
-| `public/FollowButton.svelte` | public | public/PublicMapView |
-| `public/PublicMapView.svelte` | public | routes/u/[slug], routes/public/[token] |
-| `shell/AppHeader.svelte` | shell | routes/+layout |
-| `shell/AppShell.svelte` | shell | routes/+layout |
-| `shell/BottomNav.svelte` | shell | routes/+layout |
-| `shell/UserMenu.svelte` | shell | shell/AppHeader |
-| `ui/Avatar.svelte` | ui | profile/FollowingSection, user/UserSearch, public/PublicMapView |
-| `ui/Chip.svelte` | ui | profile/MySavedSection, map/TagFilterChips |
-| `ui/ConfirmDialog.svelte` | ui | routes/+layout (global confirm store) |
-| `ui/Dialog.svelte` | ui | ~8 files |
-| `ui/DoneFilter.svelte` | ui | profile/MySavedSection |
-| `ui/EmptyState.svelte` | ui | routes/+page, place/search, profile/MySavedSection, profile/MyTagsSection |
-| `ui/Fab.svelte` | ui | routes/+page |
-| `ui/Field.svelte` | ui | several forms |
-| `ui/FormLabel.svelte` | ui | several forms |
-| `ui/IconButton.svelte` | ui | shell/AppHeader, place/[id] |
-| `ui/Popover.svelte` | ui | place/[id] |
-| `ui/Sheet.svelte` | ui | map/PlaceSheet |
-| `ui/Skeleton.svelte` | ui | profile/IdentityCard |
-| `ui/SkeletonCard.svelte` | ui | profile/MySavedSection |
-| `ui/Toast.svelte` | ui | routes/+layout (global) |
-| `user/FollowButton.svelte` | user | **NOBODY** — dead code |
-| `user/UserSearch.svelte` | user | routes/discover |
+| File                                  | Sub-folder | Imported by (call sites)                                                  |
+| ------------------------------------- | ---------- | ------------------------------------------------------------------------- |
+| `Button.svelte`                       | root       | ~15 files across routes + components                                      |
+| `EmojiPicker.svelte`                  | root       | `profile/MyTagsSection`                                                   |
+| `Input.svelte`                        | root       | ~12 files                                                                 |
+| `Loader.svelte`                       | root       | auth layout                                                               |
+| `Map.svelte`                          | root       | routes/+page, place/[id], place/pick, place/create, public/[token]        |
+| `MapGeolocation.svelte`               | root       | routes/+page                                                              |
+| `MapPoints.svelte`                    | root       | routes/+page                                                              |
+| `StarRating.svelte`                   | root       | saved/[id], profile/MySavedSection                                        |
+| `StaticMapThumb.svelte`               | root       | profile/MySavedSection, public/PublicMapView                              |
+| `TagPicker.svelte`                    | root       | saved/[id]                                                                |
+| `ui/Toggle.svelte`                    | ui         | profile/PublicMapSection, routes/saved/[id] (moved from root)             |
+| `map/PlaceSheet.svelte`               | map        | routes/+page                                                              |
+| `map/SearchBar.svelte`                | map        | routes/+page                                                              |
+| `map/TagFilterChips.svelte`           | map        | routes/+page                                                              |
+| `place/EditPlaceDialog.svelte`        | place      | place/[id], saved/[id]                                                    |
+| `place/EnrichmentDetails.svelte`      | place      | **NOBODY** — dead code (removed)                                          |
+| `place/OpenInMenu.svelte`             | place      | saved/[id]                                                                |
+| `place/PlaceEnrichmentDetails.svelte` | place      | place/[id]                                                                |
+| `place/PlacePhotoCarousel.svelte`     | place      | PlaceEnrichmentDetails                                                    |
+| `place/SavedTagFilter.svelte`         | place      | profile/MySavedSection                                                    |
+| `place/SuggestEditDialog.svelte`      | place      | place/[id]                                                                |
+| `place/TagChip.svelte`                | place      | map/PlaceSheet, saved/[id], public/PublicMapView                          |
+| `profile/DangerZone.svelte`           | profile    | routes/profile                                                            |
+| `profile/FollowingSection.svelte`     | profile    | routes/profile                                                            |
+| `profile/IdentityCard.svelte`         | profile    | routes/profile                                                            |
+| `profile/MySavedSection.svelte`       | profile    | routes/profile                                                            |
+| `profile/MyTagsSection.svelte`        | profile    | routes/profile                                                            |
+| `profile/PublicMapSection.svelte`     | profile    | routes/profile                                                            |
+| `profile/StatsSummary.svelte`         | profile    | routes/profile                                                            |
+| `public/CommentSection.svelte`        | public     | public/PublicMapView                                                      |
+| `public/FollowButton.svelte`          | public     | public/PublicMapView                                                      |
+| `public/PublicMapView.svelte`         | public     | routes/u/[slug], routes/public/[token]                                    |
+| `shell/AppHeader.svelte`              | shell      | routes/+layout                                                            |
+| `shell/AppShell.svelte`               | shell      | routes/+layout                                                            |
+| `shell/BottomNav.svelte`              | shell      | routes/+layout                                                            |
+| `shell/UserMenu.svelte`               | shell      | shell/AppHeader                                                           |
+| `ui/Avatar.svelte`                    | ui         | profile/FollowingSection, user/UserSearch, public/PublicMapView           |
+| `ui/Chip.svelte`                      | ui         | profile/MySavedSection, map/TagFilterChips                                |
+| `ui/ConfirmDialog.svelte`             | ui         | routes/+layout (global confirm store)                                     |
+| `ui/Dialog.svelte`                    | ui         | ~8 files                                                                  |
+| `ui/DoneFilter.svelte`                | ui         | profile/MySavedSection                                                    |
+| `ui/EmptyState.svelte`                | ui         | routes/+page, place/search, profile/MySavedSection, profile/MyTagsSection |
+| `ui/Fab.svelte`                       | ui         | routes/+page                                                              |
+| `ui/Field.svelte`                     | ui         | several forms                                                             |
+| `ui/FormLabel.svelte`                 | ui         | several forms                                                             |
+| `ui/IconButton.svelte`                | ui         | shell/AppHeader, place/[id]                                               |
+| `ui/Popover.svelte`                   | ui         | place/[id]                                                                |
+| `ui/Sheet.svelte`                     | ui         | map/PlaceSheet                                                            |
+| `ui/Skeleton.svelte`                  | ui         | profile/IdentityCard                                                      |
+| `ui/SkeletonCard.svelte`              | ui         | profile/MySavedSection                                                    |
+| `ui/Toast.svelte`                     | ui         | routes/+layout (global)                                                   |
+| `user/FollowButton.svelte`            | user       | **NOBODY** — dead code                                                    |
+| `user/UserSearch.svelte`              | user       | routes/discover                                                           |
 
 ---
 
@@ -70,9 +70,9 @@ All 53 Svelte component files under `src/lib/components/`:
 
 ### 2a. FollowButton — two variants, one unused
 
-| File | API | Used by |
-|------|-----|---------|
-| `user/FollowButton.svelte` | `{ userId }` → compact button only | **Nobody** |
+| File                         | API                                                       | Used by                |
+| ---------------------------- | --------------------------------------------------------- | ---------------------- |
+| `user/FollowButton.svelte`   | `{ userId }` → compact button only                        | **Nobody**             |
 | `public/FollowButton.svelte` | `{ userId }` → button + follower count + "isMe" stat line | `public/PublicMapView` |
 
 The `user/` variant was likely the first version; `public/` is the current superset used at every call site. `user/FollowButton` is **dead code**.
@@ -81,9 +81,9 @@ The `user/` variant was likely the first version; `public/` is the current super
 
 ### 2b. EnrichmentDetails — two components, old one unused
 
-| File | Used by |
-|------|---------|
-| `place/EnrichmentDetails.svelte` | **Nobody** |
+| File                                  | Used by      |
+| ------------------------------------- | ------------ |
+| `place/EnrichmentDetails.svelte`      | **Nobody**   |
 | `place/PlaceEnrichmentDetails.svelte` | `place/[id]` |
 
 `PlaceEnrichmentDetails` is the richer successor (photo carousel, amenity chips, social links, reservation links, "permanently closed" banner). The old `EnrichmentDetails` is dead code.
@@ -103,6 +103,7 @@ The `user/` variant was likely the first version; `public/` is the current super
 ### 3a. Hand-rolled `<button>` elements used as action buttons
 
 Admin conflicts page (`routes/admin/conflicts/+page.svelte`) has three raw `<button>` elements styled with bespoke Tailwind instead of `<Button>`:
+
 - "Apply selected" — `bg-orange-500 px-3 py-1 text-xs …`
 - "Dismiss" — `border border-border px-3 py-1 text-xs …`
 - Pagination "Previous" / "Next" — `border border-border px-3 py-1 …`
@@ -129,14 +130,14 @@ Conflicts page uses `bg-surface` and `hover:bg-surface-muted` which don't exist 
 
 The following locations output a paragraph with `text-fg-muted` instead of using the shared `<EmptyState>` component:
 
-| File | Text |
-|------|------|
-| `routes/admin/users/+page.svelte` | "No users." |
-| `routes/admin/suggestions/+page.svelte` | "No {status} suggestions." / "No pending places." |
-| `routes/discover/+page.svelte` | "No public maps found…" / "No public maps from people you follow yet." |
-| `routes/profile/+page.svelte` (suggestions tab) | "You haven't submitted any suggestions yet." |
-| `profile/FollowingSection.svelte` | "You aren't following anyone yet." / "No one follows you yet." |
-| `routes/admin/conflicts/+page.svelte` | "No conflicts to review." |
+| File                                            | Text                                                                   |
+| ----------------------------------------------- | ---------------------------------------------------------------------- |
+| `routes/admin/users/+page.svelte`               | "No users."                                                            |
+| `routes/admin/suggestions/+page.svelte`         | "No {status} suggestions." / "No pending places."                      |
+| `routes/discover/+page.svelte`                  | "No public maps found…" / "No public maps from people you follow yet." |
+| `routes/profile/+page.svelte` (suggestions tab) | "You haven't submitted any suggestions yet."                           |
+| `profile/FollowingSection.svelte`               | "You aren't following anyone yet." / "No one follows you yet."         |
+| `routes/admin/conflicts/+page.svelte`           | "No conflicts to review."                                              |
 
 `EmptyState` already exists and is used in 4 places. These 6 locations are inconsistent.
 
@@ -145,6 +146,7 @@ The following locations output a paragraph with `text-fg-muted` instead of using
 ### 3e. Tab-switcher pattern — inconsistent
 
 Three different tab-switcher implementations co-exist:
+
 1. `profile/+page.svelte` — `bg-accent text-accent-fg` active, full `<div>` pill bar
 2. `admin/suggestions/+page.svelte` — `border-accent text-accent` active, rounded-full pills
 3. `admin/users/+page.svelte` — same as suggestions
@@ -163,12 +165,14 @@ Some forms use `<FormLabel>` + `<Field>`, others use raw `<label class="…">`. 
 
 ## 4. Recommendations (priority order)
 
-1. **[Done]** Remove dead components: `user/FollowButton.svelte`, `place/EnrichmentDetails.svelte`, `Toggle.svelte`.
+1. **[Done]** Remove dead components: `user/FollowButton.svelte`, `place/EnrichmentDetails.svelte`. Move `Toggle.svelte` from root to `ui/` (it was active, not dead — grep missed it) and update imports.
 2. **[Done]** Fix `admin/conflicts/+page.svelte`: replace hand-rolled buttons with `<Button>`, fix non-token colors, fix `bg-surface`/`surface-muted` tokens.
-3. **[Done]** Fix `discover/+page.svelte`: replace inline empty states with `<EmptyState>`, fix `text-white` → `text-accent-fg` in tab buttons.
-4. **[Done]** Fix `profile/FollowingSection.svelte`: replace inline empty state with `<EmptyState>`.
-5. **Leave alone:** `admin/users/+page.svelte` "No users." — compact inline text appropriate for a data-admin table.
-6. **Leave alone:** `admin/suggestions/+page.svelte` "No {status} suggestions." — dynamic text with interpolation; extracting to `<EmptyState>` would require extra props with no visual gain.
-7. **Leave alone:** `profile/+page.svelte` suggestions tab — one-liner, low traffic.
-8. **Leave alone:** Form label inconsistency — visual result identical, refactor risk outweighs benefit.
-9. **Leave alone:** Tab-switcher component extraction — pattern is too context-specific, creates coupling.
+3. **[Done]** Fix `discover/+page.svelte`: replace inline empty states with `<EmptyState>` (2 spots), fix `text-white` → `text-accent-fg` in tab buttons.
+4. **[Done]** Fix `profile/FollowingSection.svelte`: replace inline empty state with `<EmptyState>` (2 spots: following / followers).
+5. **[Done]** Fix `admin/audit/+page.svelte`: replace hand-rolled Apply `<button>` with `<Button>` primitive.
+6. **Leave alone:** `admin/users/+page.svelte` "No users." — compact inline text appropriate for a data-admin table.
+7. **Leave alone:** `admin/suggestions/+page.svelte` "No {status} suggestions." — dynamic text with interpolation; extracting to `<EmptyState>` would require extra props with no visual gain.
+8. **Leave alone:** `profile/+page.svelte` suggestions tab — one-liner, low traffic.
+9. **Leave alone:** Form label inconsistency — visual result identical, refactor risk outweighs benefit.
+10. **Leave alone:** Tab-switcher component extraction — pattern is too context-specific, creates coupling.
+11. **Leave alone:** Disclosure/expand buttons in audit log rows and overflow menus in place detail — raw `<button>` is appropriate there (role="menuitem", complex layout not suited to Button primitive).
