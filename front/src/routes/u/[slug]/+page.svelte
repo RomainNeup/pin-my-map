@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { getPublicMapBySlug } from '$lib/api/publicMap';
+	import type { PublicSavedPlace } from '$lib/api/publicMap';
 	import PublicMapView from '$lib/components/public/PublicMapView.svelte';
 	import type { PageData } from './$types';
 	import MapPin from 'lucide-svelte/icons/map-pin';
@@ -6,7 +8,20 @@
 	import Tag from 'lucide-svelte/icons/tag';
 	import Star from 'lucide-svelte/icons/star';
 
+	const PAGE_SIZE = 30;
+
 	let { data }: { data: PageData } = $props();
+
+	let offset = $state(data.map.savedPlaces.length);
+	let hasMore = $state(data.map.savedPlaces.length === PAGE_SIZE);
+
+	async function loadMore(): Promise<PublicSavedPlace[]> {
+		const result = await getPublicMapBySlug(data.slug, { limit: PAGE_SIZE, offset });
+		const next = result.savedPlaces;
+		offset += next.length;
+		hasMore = next.length === PAGE_SIZE;
+		return next;
+	}
 </script>
 
 {#if data.stats || data.map.owner.level !== undefined}
@@ -41,4 +56,10 @@
 	</div>
 {/if}
 
-<PublicMapView map={data.map} basePath={data.basePath} />
+<PublicMapView
+	map={data.map}
+	basePath={data.basePath}
+	total={data.stats?.savedCount ?? data.map.total}
+	{hasMore}
+	onLoadMore={loadMore}
+/>
