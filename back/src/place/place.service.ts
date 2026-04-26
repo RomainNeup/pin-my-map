@@ -14,8 +14,11 @@ import {
   BulkEnrichDto,
   BulkEnrichSummaryDto,
   CreatePlaceRequestDto,
+  DismissConflictDto,
   PlaceClosedDto,
+  PlaceConflictsPageDto,
   PlaceDto,
+  ResolveConflictDto,
 } from './place.dto';
 import { PlaceMapper } from './place.mapper';
 import { EnrichmentService } from 'src/enrichment/enrichment.service';
@@ -443,17 +446,18 @@ export class PlaceService implements OnModuleInit {
       const placeId = place._id.toHexString();
 
       try {
-        const result = await this.enrichmentService.enrich({
+        const run = await this.enrichmentService.enrich({
           name: place.name,
           location: [place.location[0], place.location[1]],
           address: place.address,
         });
 
-        if (result) {
-          place.externalId = result.externalId;
-          place.externalProvider = result.providerName;
-          place.enrichment = result;
-          place.enrichedAt = result.fetchedAt;
+        if (run) {
+          place.externalId = run.merged.externalId;
+          place.externalProvider = run.merged.providerName;
+          place.enrichment = run.merged;
+          place.enrichedAt = run.merged.fetchedAt;
+          place.enrichmentConflicts = run.conflicts;
           await place.save();
           summary.enriched++;
         } else {
@@ -500,32 +504,153 @@ export class PlaceService implements OnModuleInit {
     place: PlaceDocument,
     refresh = false,
   ): Promise<void> {
-    let result = null;
+    // On refresh, try to fetch latest data from the primary provider via fetchById.
+    // This path returns a raw EnrichmentResult (single provider), no conflict tracking.
+    let singleResult = null;
     if (refresh && place.externalProvider && place.externalId) {
-      result = await this.enrichmentService.refresh(
+      singleResult = await this.enrichmentService.refresh(
         place.externalProvider,
         place.externalId,
       );
     }
-    if (!result) {
-      result = await this.enrichmentService.enrich({
-        name: place.name,
-        location: [place.location[0], place.location[1]],
-        address: place.address,
-      });
+
+    if (singleResult) {
+      // Refresh path: single provider, no multi-provider conflict to detect
+      place.externalId = singleResult.externalId;
+      place.externalProvider = singleResult.providerName;
+      place.enrichment = singleResult;
+      place.enrichedAt = singleResult.fetchedAt;
+      // Keep existing conflicts (they came from original multi-provider run)
+      if (singleResult.permanentlyClosed && !place.permanentlyClosed) {
+        place.permanentlyClosed = true;
+        place.permanentlyClosedAt = new Date();
+      }
+      await place.save();
+      return;
     }
-    if (result) {
-      place.externalId = result.externalId;
-      place.externalProvider = result.providerName;
-      place.enrichment = result;
-      place.enrichedAt = result.fetchedAt;
+
+    const run = await this.enrichmentService.enrich({
+      name: place.name,
+      location: [place.location[0], place.location[1]],
+      address: place.address,
+    });
+
+    if (run) {
+      place.externalId = run.merged.externalId;
+      place.externalProvider = run.merged.providerName;
+      place.enrichment = run.merged;
+      place.enrichedAt = run.merged.fetchedAt;
+      place.enrichmentConflicts = run.conflicts;
       // Propagate permanentlyClosed signal from enrichment providers
-      if (result.permanentlyClosed && !place.permanentlyClosed) {
+      if (run.merged.permanentlyClosed && !place.permanentlyClosed) {
         place.permanentlyClosed = true;
         place.permanentlyClosedAt = new Date();
       }
       await place.save();
     }
+  }
+
+  // ── Admin conflict-resolution methods ─────────────────────────────────────
+
+  async listConflicts(
+    options: { limit?: number; offset?: number } = {},
+  ): Promise<PlaceConflictsPageDto> {
+    const limit = Math.min(options.limit ?? 20, 100);
+    const offset = options.offset && options.offset > 0 ? options.offset : 0;
+
+    const filter = {
+      enrichmentConflicts: { $exists: true, $ne: [] },
+    };
+
+    const [items, total] = await Promise.all([
+      this.placeModel.find(filter).skip(offset).limit(limit).exec(),
+      this.placeModel.countDocuments(filter).exec(),
+    ]);
+
+    return {
+      items: items.map((p) => PlaceMapper.toDto(p, undefined, true)),
+      total,
+    };
+  }
+
+  async resolveConflict(
+    id: string,
+    dto: ResolveConflictDto,
+    adminId: string,
+  ): Promise<PlaceDto> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid id');
+    }
+    const place = await this.placeModel.findById(id).exec();
+    if (!place) {
+      throw new NotFoundException('Place not found');
+    }
+
+    // Apply the chosen value to enrichment
+    if (place.enrichment) {
+      (place.enrichment as unknown as Record<string, unknown>)[dto.field] =
+        dto.value;
+    }
+
+    // Remove this field from conflicts
+    place.enrichmentConflicts = (place.enrichmentConflicts ?? []).filter(
+      (c) => c.field !== dto.field,
+    );
+
+    await place.save();
+
+    try {
+      await this.auditService.log({
+        actor: adminId,
+        action: 'place.conflict.resolve',
+        targetType: 'Place',
+        targetId: id,
+        meta: { field: dto.field, value: dto.value as Record<string, unknown> },
+      });
+    } catch (err) {
+      this.logger.warn(
+        `audit log failed for place.conflict.resolve ${id}: ${(err as Error).message}`,
+      );
+    }
+
+    return PlaceMapper.toDto(place, undefined, true);
+  }
+
+  async dismissConflict(
+    id: string,
+    dto: DismissConflictDto,
+    adminId: string,
+  ): Promise<PlaceDto> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid id');
+    }
+    const place = await this.placeModel.findById(id).exec();
+    if (!place) {
+      throw new NotFoundException('Place not found');
+    }
+
+    // Drop the conflict entry without modifying the value
+    place.enrichmentConflicts = (place.enrichmentConflicts ?? []).filter(
+      (c) => c.field !== dto.field,
+    );
+
+    await place.save();
+
+    try {
+      await this.auditService.log({
+        actor: adminId,
+        action: 'place.conflict.dismiss',
+        targetType: 'Place',
+        targetId: id,
+        meta: { field: dto.field },
+      });
+    } catch (err) {
+      this.logger.warn(
+        `audit log failed for place.conflict.dismiss ${id}: ${(err as Error).message}`,
+      );
+    }
+
+    return PlaceMapper.toDto(place, undefined, true);
   }
 }
 

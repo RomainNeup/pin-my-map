@@ -16,6 +16,40 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+// ── Conflict DTOs ──────────────────────────────────────────────────────────
+
+@ApiSchema({ name: 'Enrichment Conflict Value' })
+export class EnrichmentConflictValueDto {
+  @ApiProperty()
+  provider: string;
+  @ApiProperty()
+  value: unknown;
+}
+
+@ApiSchema({ name: 'Enrichment Conflict' })
+export class EnrichmentConflictDto {
+  @ApiProperty()
+  field: string;
+  @ApiProperty({ type: [EnrichmentConflictValueDto] })
+  values: EnrichmentConflictValueDto[];
+}
+
+@ApiSchema({ name: 'Resolve Conflict Request' })
+export class ResolveConflictDto {
+  @ApiProperty()
+  @IsString()
+  field: string;
+  @ApiProperty()
+  value: unknown;
+}
+
+@ApiSchema({ name: 'Dismiss Conflict Request' })
+export class DismissConflictDto {
+  @ApiProperty()
+  @IsString()
+  field: string;
+}
+
 @ApiSchema({ name: 'Lat Lng' })
 export class LatLngDto {
   @ApiProperty()
@@ -280,4 +314,23 @@ export class PlaceDto {
       'Number of users who have saved this place. Only present on detail endpoints.',
   })
   saveCount?: number;
+  @ApiProperty({
+    description:
+      'True when there is at least one unresolved enrichment conflict.',
+  })
+  hasUnresolvedConflicts: boolean;
+  @ApiProperty({
+    type: [EnrichmentConflictDto],
+    required: false,
+    description: 'Admin-only: per-field conflicts detected during enrichment.',
+  })
+  enrichmentConflicts?: EnrichmentConflictDto[];
+}
+
+@ApiSchema({ name: 'Place Conflicts Page' })
+export class PlaceConflictsPageDto {
+  @ApiProperty({ type: () => [PlaceDto] })
+  items: PlaceDto[];
+  @ApiProperty()
+  total: number;
 }

@@ -28,9 +28,13 @@ function makePlaceDoc(
 
 async function buildModule(docs: unknown[]) {
   const enrichmentResult = {
-    externalId: 'osm:48.850000,2.350000',
-    providerName: 'osm',
-    fetchedAt: new Date(),
+    merged: {
+      externalId: 'osm:48.850000,2.350000',
+      providerName: 'osm',
+      fetchedAt: new Date(),
+    },
+    conflicts: [],
+    ranBy: ['osm'],
   };
 
   const enrichmentService = {
@@ -149,9 +153,13 @@ describe('PlaceService.bulkEnrich', () => {
     enrichmentService.enrich
       .mockRejectedValueOnce(new Error('timeout'))
       .mockResolvedValueOnce({
-        externalId: 'osm:48.850000,2.350000',
-        providerName: 'osm',
-        fetchedAt: new Date(),
+        merged: {
+          externalId: 'osm:48.850000,2.350000',
+          providerName: 'osm',
+          fetchedAt: new Date(),
+        },
+        conflicts: [],
+        ranBy: ['osm'],
       });
 
     const summary = await service.bulkEnrich(
