@@ -14,7 +14,7 @@
 	import Map from '$lib/components/Map.svelte';
 	import StarRating from '$lib/components/StarRating.svelte';
 	import TagPicker from '$lib/components/TagPicker.svelte';
-	import Toggle from '$lib/components/Toggle.svelte';
+	import Toggle from '$lib/components/ui/Toggle.svelte';
 	import Chip from '$lib/components/ui/Chip.svelte';
 	import IconButton from '$lib/components/ui/IconButton.svelte';
 	import Popover from '$lib/components/ui/Popover.svelte';
