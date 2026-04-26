@@ -145,3 +145,78 @@ describe('SavedPlaceService.exportCsv', () => {
     expect(dataLine).toContain(',a b|c,');
   });
 });
+
+describe('SavedPlaceService.findAll — done filter', () => {
+  const userId = 'user-1';
+
+  const buildService = async (mockFind: jest.Mock) => {
+    const savedPlaceModel = { find: mockFind };
+
+    const mod = await Test.createTestingModule({
+      providers: [
+        SavedPlaceService,
+        { provide: SAVED_TOKEN, useValue: savedPlaceModel },
+        { provide: PlaceService, useValue: {} },
+        { provide: TagService, useValue: {} },
+        { provide: GamificationService, useValue: { award: jest.fn() } },
+      ],
+    }).compile();
+
+    return mod.get(SavedPlaceService);
+  };
+
+  function makeCursor(results: unknown[]) {
+    return {
+      sort: jest.fn().mockReturnThis(),
+      populate: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      exec: jest.fn().mockResolvedValue(results),
+    };
+  }
+
+  it('passes done:true to mongo query when done option is true', async () => {
+    const findMock = jest.fn().mockReturnValue(makeCursor([]));
+    const service = await buildService(findMock);
+
+    // Mock the mapper to avoid deep dependency chain
+    jest
+      .spyOn((await import('./saved.mapper')).SavedPlaceMapper, 'toDtoList')
+      .mockReturnValue([]);
+
+    await service.findAll(userId, { done: true });
+
+    expect(findMock).toHaveBeenCalledWith(
+      expect.objectContaining({ user: userId, done: true }),
+    );
+  });
+
+  it('passes done:false to mongo query when done option is false', async () => {
+    const findMock = jest.fn().mockReturnValue(makeCursor([]));
+    const service = await buildService(findMock);
+
+    jest
+      .spyOn((await import('./saved.mapper')).SavedPlaceMapper, 'toDtoList')
+      .mockReturnValue([]);
+
+    await service.findAll(userId, { done: false });
+
+    expect(findMock).toHaveBeenCalledWith(
+      expect.objectContaining({ user: userId, done: false }),
+    );
+  });
+
+  it('does not include done in mongo query when option is omitted', async () => {
+    const findMock = jest.fn().mockReturnValue(makeCursor([]));
+    const service = await buildService(findMock);
+
+    jest
+      .spyOn((await import('./saved.mapper')).SavedPlaceMapper, 'toDtoList')
+      .mockReturnValue([]);
+
+    await service.findAll(userId, {});
+
+    const calledQuery = findMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(calledQuery).not.toHaveProperty('done');
+  });
+});

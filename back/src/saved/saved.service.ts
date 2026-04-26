@@ -76,13 +76,21 @@ export class SavedPlaceService {
 
   async findAll(
     userId: string,
-    options: { limit?: number; offset?: number; tagIds?: string[] } = {},
+    options: {
+      limit?: number;
+      offset?: number;
+      tagIds?: string[];
+      done?: boolean;
+    } = {},
   ): Promise<SavedPlaceDto[]> {
-    const { limit, offset, tagIds } = options;
+    const { limit, offset, tagIds, done } = options;
 
     const query: Record<string, unknown> = { user: userId };
     if (tagIds && tagIds.length > 0) {
       query.tags = { $in: tagIds };
+    }
+    if (done !== undefined) {
+      query.done = done;
     }
 
     let cursor = this.savedPlaceModel

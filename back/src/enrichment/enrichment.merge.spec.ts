@@ -104,4 +104,78 @@ describe('mergeEnrichments', () => {
 
     expect(merged.providerName).toBe('google+osm');
   });
+
+  // ── Provider chain including Mapbox ──────────────────────────────────────────
+
+  it('three-way merge: google+mapbox+osm providerName reflects all providers', () => {
+    const google = makeResult({
+      providerName: 'google',
+      types: ['restaurant'],
+    });
+    const mapbox = makeResult({
+      providerName: 'mapbox',
+      types: ['food_and_drink'],
+    });
+    const osm = makeResult({
+      providerName: 'osm',
+      description: 'A Wikipedia extract.',
+    });
+
+    // Simulate the EnrichmentService chain
+    const step1 = mergeEnrichments(google, mapbox);
+    const step2 = mergeEnrichments(step1, osm);
+
+    expect(step2.providerName).toBe('google+mapbox+osm');
+  });
+
+  it('mapbox types fill when google has none (google+mapbox slot)', () => {
+    const google = makeResult({
+      providerName: 'google',
+      types: undefined,
+      website: 'https://example.com',
+    });
+    const mapbox = makeResult({
+      providerName: 'mapbox',
+      types: ['landmark', 'tourist_attraction'],
+    });
+
+    const merged = mergeEnrichments(google, mapbox);
+
+    expect(merged.types).toEqual(['landmark', 'tourist_attraction']);
+    expect(merged.website).toBe('https://example.com'); // google field preserved
+  });
+
+  it('google types win over mapbox types, mapbox appends missing ones', () => {
+    const google = makeResult({
+      providerName: 'google',
+      types: ['restaurant'],
+    });
+    const mapbox = makeResult({
+      providerName: 'mapbox',
+      types: ['restaurant', 'food_and_drink'],
+    });
+
+    const merged = mergeEnrichments(google, mapbox);
+
+    // 'restaurant' deduplicated, 'food_and_drink' appended
+    expect(merged.types).toEqual(['restaurant', 'food_and_drink']);
+  });
+
+  it('mapbox+osm providerName when google is absent', () => {
+    const mapbox = makeResult({
+      providerName: 'mapbox',
+      types: ['landmark'],
+    });
+    const osm = makeResult({
+      providerName: 'osm',
+      description: 'A Wikipedia extract.',
+      types: ['museum'],
+    });
+
+    const merged = mergeEnrichments(mapbox, osm);
+
+    expect(merged.providerName).toBe('mapbox+osm');
+    expect(merged.types).toEqual(['landmark', 'museum']);
+    expect(merged.description).toBe('A Wikipedia extract.');
+  });
 });
