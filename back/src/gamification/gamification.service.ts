@@ -7,6 +7,7 @@ import { PlaceComment } from 'src/place-comment/place-comment.entity';
 import { SavedPlace } from 'src/saved/saved.entity';
 import { PlaceSuggestion } from 'src/suggestion/suggestion.entity';
 import { Tag } from 'src/tag/tag.entity';
+import { User } from 'src/user/user.entity';
 import {
   ACHIEVEMENTS,
   AchievementDefinition,
@@ -69,6 +70,68 @@ export function levelFromPoints(points: number): {
   return { level, pointsInLevel, pointsForNextLevel, progress };
 }
 
+/**
+ * Extract a country hint from a place address string.
+ * Naive heuristic: take the last non-empty comma-delimited segment, trimmed.
+ */
+export function extractCountryFromAddress(address: string | undefined): string {
+  if (!address) return '';
+  const parts = address
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return parts[parts.length - 1] ?? '';
+}
+
+/**
+ * Compute the number of distinct calendar days (UTC) on which saved places
+ * were created between 22:00 and 04:00 UTC.
+ */
+export function computeNightOwlDays(dates: Date[]): number {
+  const daySet = new Set<string>();
+  for (const d of dates) {
+    const hour = d.getUTCHours();
+    if (hour >= 22 || hour < 4) {
+      daySet.add(d.toISOString().slice(0, 10));
+    }
+  }
+  return daySet.size;
+}
+
+/**
+ * Compute the longest streak of consecutive calendar months (YYYY-MM) that
+ * contain at least one saved-place creation timestamp.
+ */
+export function computeConsecutiveActiveMonths(dates: Date[]): number {
+  if (dates.length === 0) return 0;
+
+  const months = new Set(
+    dates.map((d) => {
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+      return `${y}-${m}`;
+    }),
+  );
+
+  const sorted = Array.from(months).sort();
+  let maxStreak = 1;
+  let streak = 1;
+
+  for (let i = 1; i < sorted.length; i++) {
+    const [py, pm] = sorted[i - 1].split('-').map(Number);
+    const [cy, cm] = sorted[i].split('-').map(Number);
+    const diffMonths = (cy - py) * 12 + (cm - pm);
+    if (diffMonths === 1) {
+      streak++;
+      if (streak > maxStreak) maxStreak = streak;
+    } else {
+      streak = 1;
+    }
+  }
+
+  return maxStreak;
+}
+
 @Injectable()
 export class GamificationService {
   constructor(
@@ -86,6 +149,8 @@ export class GamificationService {
     private followModel: Model<Follow>,
     @InjectModel(PlaceComment.name)
     private commentModel: Model<PlaceComment>,
+    @InjectModel(User.name)
+    private userModel: Model<User>,
   ) {}
 
   async award(
@@ -237,7 +302,7 @@ export class GamificationService {
     return gam as never;
   }
 
-  private async computeStats(userId: string): Promise<UserStats> {
+  async computeStats(userId: string): Promise<UserStats> {
     const userObjectId = new Types.ObjectId(userId);
 
     const [
@@ -249,9 +314,14 @@ export class GamificationService {
       tagsCreated,
       placesCreated,
       suggestionsSubmitted,
+      approvedSuggestionsCount,
       uniqueTagsAggregation,
       followingCount,
+      followerCount,
       publicCommentsCount,
+      userRecord,
+      savedPlaceDates,
+      savedPlaceAddresses,
     ] = await Promise.all([
       this.savedPlaceModel.countDocuments({ user: userObjectId }).exec(),
       this.savedPlaceModel
@@ -272,6 +342,9 @@ export class GamificationService {
       this.tagModel.countDocuments({ owner: userObjectId }).exec(),
       this.placeModel.countDocuments({ createdBy: userObjectId }).exec(),
       this.suggestionModel.countDocuments({ user: userObjectId }).exec(),
+      this.suggestionModel
+        .countDocuments({ user: userObjectId, status: 'approved' })
+        .exec(),
       this.savedPlaceModel
         .aggregate<{
           _id: null;
@@ -283,10 +356,61 @@ export class GamificationService {
         ])
         .exec(),
       this.followModel.countDocuments({ follower: userObjectId }),
+      this.followModel.countDocuments({ followed: userObjectId }),
       this.commentModel.countDocuments({ author: userObjectId }),
+      this.userModel
+        .findById(userObjectId)
+        .select('publicSlug isPublic createdAt')
+        .lean()
+        .exec(),
+      this.savedPlaceModel
+        .find({ user: userObjectId })
+        .select('createdAt')
+        .lean()
+        .exec(),
+      this.savedPlaceModel
+        .find({ user: userObjectId })
+        .populate({ path: 'place', select: 'address' })
+        .select('place')
+        .lean()
+        .exec(),
     ]);
 
     const uniqueTagsApplied = uniqueTagsAggregation[0]?.tags.length ?? 0;
+
+    // Globe-trotter: distinct countries from place addresses
+    const countries = new Set<string>();
+    for (const sp of savedPlaceAddresses) {
+      const place = sp.place as { address?: string } | null;
+      const country = extractCountryFromAddress(place?.address);
+      if (country) countries.add(country.toLowerCase());
+    }
+    const countryCount = countries.size;
+
+    // Night Owl: calendar days with saves between 22:00 and 04:00
+    const dates = (savedPlaceDates as Array<{ createdAt?: Date }>)
+      .map((sp) => sp.createdAt)
+      .filter((d): d is Date => d instanceof Date);
+    const nightOwlDays = computeNightOwlDays(dates);
+
+    // Comeback Kid: longest run of consecutive active months
+    const consecutiveActiveMonths = computeConsecutiveActiveMonths(dates);
+
+    // Map Crafter: publicSlug set and isPublic true
+    const user = userRecord as {
+      publicSlug?: string;
+      isPublic?: boolean;
+      createdAt?: Date;
+    } | null;
+    const isPublicMapEnabled = !!(user?.publicSlug && user?.isPublic === true);
+
+    // Veteran: account age in days
+    const accountAgeDays = user?.createdAt
+      ? Math.floor(
+          (Date.now() - new Date(user.createdAt).getTime()) /
+            (1000 * 60 * 60 * 24),
+        )
+      : 0;
 
     return {
       savedCount,
@@ -300,6 +424,14 @@ export class GamificationService {
       suggestionsSubmitted,
       followingCount,
       publicCommentsCount,
+      // New fields
+      followerCount,
+      approvedSuggestionsCount,
+      countryCount,
+      nightOwlDays,
+      isPublicMapEnabled,
+      accountAgeDays,
+      consecutiveActiveMonths,
     };
   }
 }

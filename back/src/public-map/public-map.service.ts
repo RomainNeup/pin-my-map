@@ -182,20 +182,36 @@ export class PublicMapService {
     });
   }
 
-  async getBySlug(slug: string): Promise<PublicMapDto> {
+  async getBySlug(
+    slug: string,
+    pagination: { limit: number; offset: number },
+  ): Promise<PublicMapDto> {
     const user = await this.userService.findBySlug(slug);
     if (!user) {
       throw new NotFoundException('Public map not found');
     }
-    return this.buildPublicMap(user._id.toString(), user.name, user.publicSlug);
+    return this.buildPublicMap(
+      user._id.toString(),
+      user.name,
+      user.publicSlug,
+      pagination,
+    );
   }
 
-  async getByToken(token: string): Promise<PublicMapDto> {
+  async getByToken(
+    token: string,
+    pagination: { limit: number; offset: number },
+  ): Promise<PublicMapDto> {
     const user = await this.userService.findByPublicToken(token);
     if (!user) {
       throw new NotFoundException('Public map not found');
     }
-    return this.buildPublicMap(user._id.toString(), user.name, user.publicSlug);
+    return this.buildPublicMap(
+      user._id.toString(),
+      user.name,
+      user.publicSlug,
+      pagination,
+    );
   }
 
   async getSavedPlaceForSlug(
@@ -255,16 +271,25 @@ export class PublicMapService {
   private async buildPublicMap(
     userId: string,
     name: string,
-    publicSlug?: string,
+    publicSlug: string | undefined,
+    pagination: { limit: number; offset: number },
   ): Promise<PublicMapDto> {
-    const savedPlaces = await this.savedPlaceModel
-      .find({ user: userId })
-      .sort({ createdAt: -1 })
-      .populate(['place', 'tags'])
-      .exec();
+    const { limit, offset } = pagination;
+    const [total, savedPlaces] = await Promise.all([
+      this.savedPlaceModel.countDocuments({ user: userId }).exec(),
+      this.savedPlaceModel
+        .find({ user: userId })
+        .sort({ createdAt: -1 })
+        .skip(offset)
+        .limit(limit)
+        .populate(['place', 'tags'])
+        .exec(),
+    ]);
     return {
       owner: { userId, name, publicSlug },
       savedPlaces: SavedPlaceMapper.toPublicDtoList(savedPlaces),
+      total,
+      hasMore: offset + savedPlaces.length < total,
     };
   }
 }

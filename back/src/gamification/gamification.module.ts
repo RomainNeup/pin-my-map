@@ -12,6 +12,7 @@ import {
   PlaceSuggestionSchema,
 } from 'src/suggestion/suggestion.entity';
 import { Tag, TagSchema } from 'src/tag/tag.entity';
+import { User, UserSchema } from 'src/user/user.entity';
 import { GamificationController } from './gamification.controller';
 import {
   UserGamification,
@@ -29,6 +30,7 @@ import { GamificationService } from './gamification.service';
       { name: PlaceSuggestion.name, schema: PlaceSuggestionSchema },
       { name: Follow.name, schema: FollowSchema },
       { name: PlaceComment.name, schema: PlaceCommentSchema },
+      { name: User.name, schema: UserSchema },
     ]),
   ],
   controllers: [GamificationController],

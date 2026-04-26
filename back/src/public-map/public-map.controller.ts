@@ -1,4 +1,20 @@
 import { Controller, Get, HttpCode, Param, Query } from '@nestjs/common';
+
+const DEFAULT_LIMIT = 30;
+const MAX_LIMIT = 100;
+
+function parsePagination(
+  limitRaw?: string,
+  offsetRaw?: string,
+): { limit: number; offset: number } {
+  const rawLimit = limitRaw !== undefined ? Number(limitRaw) : DEFAULT_LIMIT;
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(Math.max(1, rawLimit), MAX_LIMIT)
+    : DEFAULT_LIMIT;
+  const rawOffset = offsetRaw !== undefined ? Number(offsetRaw) : 0;
+  const offset = Number.isFinite(rawOffset) ? Math.max(0, rawOffset) : 0;
+  return { limit, offset };
+}
 import { ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Private } from 'src/auth/auth.decorator';
 import { User } from 'src/user/user.decorator';
@@ -44,16 +60,54 @@ export class PublicMapController {
 
   @Get('slug/:slug')
   @HttpCode(200)
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Page size (1–100, default 30)',
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    type: Number,
+    description: 'Number of items to skip (default 0)',
+  })
   @ApiResponse({ status: 200, type: PublicMapDto })
-  async getBySlug(@Param('slug') slug: string): Promise<PublicMapDto> {
-    return this.publicMapService.getBySlug(slug);
+  async getBySlug(
+    @Param('slug') slug: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ): Promise<PublicMapDto> {
+    return this.publicMapService.getBySlug(
+      slug,
+      parsePagination(limit, offset),
+    );
   }
 
   @Get('token/:token')
   @HttpCode(200)
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Page size (1–100, default 30)',
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    type: Number,
+    description: 'Number of items to skip (default 0)',
+  })
   @ApiResponse({ status: 200, type: PublicMapDto })
-  async getByToken(@Param('token') token: string): Promise<PublicMapDto> {
-    return this.publicMapService.getByToken(token);
+  async getByToken(
+    @Param('token') token: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ): Promise<PublicMapDto> {
+    return this.publicMapService.getByToken(
+      token,
+      parsePagination(limit, offset),
+    );
   }
 
   @Get('slug/:slug/place/:savedPlaceId')

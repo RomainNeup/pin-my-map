@@ -36,6 +36,12 @@ export class PublicMapDto {
   owner: PublicMapOwnerDto;
   @ApiProperty({ type: [PublicSavedPlaceDto] })
   savedPlaces: PublicSavedPlaceDto[];
+  @ApiProperty({ description: 'Total number of saved places for this map' })
+  total: number;
+  @ApiProperty({
+    description: 'Whether there are more saved places beyond this page',
+  })
+  hasMore: boolean;
 }
 
 @ApiSchema({ name: 'Public Map Summary' })
