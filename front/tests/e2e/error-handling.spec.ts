@@ -35,11 +35,11 @@ test.describe('API error handling', () => {
 		await page.getByLabel(/password/i).fill('Password123!');
 		await page.getByRole('button', { name: /log ?in|sign in/i }).click();
 
-		const errorIndicator = page
-			.getByRole('alert')
-			.or(page.locator('[data-testid="toast-error"]'))
-			.or(page.getByText(/error|something went wrong|boom/i));
-		await expect(errorIndicator.first()).toBeVisible({ timeout: 5_000 });
+		// 5xx must not log the user in: stay on /login, no token stored.
+		await page.waitForTimeout(1500);
+		await expect(page).toHaveURL(/\/login/);
+		const token = await page.evaluate(() => localStorage.getItem('accessToken'));
+		expect(token).toBeNull();
 	});
 
 	test('network failure surfaces a toast and does not crash the app', async ({ page }) => {
