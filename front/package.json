@@ -12,14 +12,19 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"format": "prettier --write .",
-		"lint": "prettier --check . && eslint ."
+		"lint": "prettier --check . && eslint .",
+		"pretest:e2e": "cd ../back && yarn build",
+		"test:e2e": "cross-env NODE_ENV=test playwright test",
+		"test:e2e:ui": "cross-env NODE_ENV=test playwright test --ui"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.59.1",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.58.0",
 		"@sveltejs/vite-plugin-svelte": "^6.1.3",
 		"@tailwindcss/postcss": "^4.2.4",
 		"@types/eslint": "^9.6.0",
+		"cross-env": "^10.1.0",
 		"eslint": "^9.39.4",
 		"eslint-config-prettier": "^9.1.2",
 		"eslint-plugin-svelte": "^3.17.1",
@@ -32,7 +37,8 @@
 		"tailwindcss": "^4.2.4",
 		"typescript": "^5.9.3",
 		"typescript-eslint": "^8.59.0",
-		"vite": "^7.3.2"
+		"vite": "^7.3.2",
+		"wait-on": "^9.0.5"
 	},
 	"dependencies": {
 		"@joeattardi/emoji-button": "^4.6.4",

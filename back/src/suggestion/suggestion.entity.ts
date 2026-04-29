@@ -20,6 +20,7 @@ export class PlaceSuggestion {
     address?: string;
     location?: number[]; // [lng, lat]
     image?: string;
+    permanentlyClosed?: boolean;
   };
 
   @Prop({

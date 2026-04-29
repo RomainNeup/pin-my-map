@@ -93,7 +93,7 @@
 		goto(`/place/create`);
 	};
 
-	const hasResults = $derived(
+	const _hasResults = $derived(
 		isLoggedIn ? savedResults !== null : placeResults !== null
 	);
 	const showDropdown = $derived(open && query.trim().length >= 2);

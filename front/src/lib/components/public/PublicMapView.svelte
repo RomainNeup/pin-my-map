@@ -21,6 +21,7 @@
 
 	let { map, basePath, onLoadMore, hasMore = false, total }: Props = $props();
 
+	// eslint-disable-next-line svelte/prefer-writable-derived -- onLoadMore appends to loadedPlaces; effect re-syncs on initial map data change
 	let loadedPlaces = $state<PublicSavedPlace[]>([...map.savedPlaces]);
 	let loadingMore = $state(false);
 

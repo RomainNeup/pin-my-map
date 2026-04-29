@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { AuthModule } from './auth/auth.module';
 import { PlaceModule } from './place/place.module';
 import { TagModule } from './tag/tag.module';
@@ -19,10 +20,15 @@ import { MailerModule } from './mailer/mailer.module';
 
 @Module({
   imports: [
-    MongooseModule.forRoot(
-      process.env.MONGODB_URI || 'mongodb://localhost/pin-my-map',
-    ),
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
+    MongooseModule.forRootAsync({
+      useFactory: () => ({
+        uri: process.env.MONGODB_URI || 'mongodb://localhost/pin-my-map',
+      }),
+    }),
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 60 }],
+      skipIf: () => process.env.NODE_ENV === 'test',
+    }),
     ConfigModule,
     AuthModule,
     PlaceModule,
@@ -39,6 +45,9 @@ import { MailerModule } from './mailer/mailer.module';
     MailerModule,
   ],
   controllers: [],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+  ],
 })
 export class AppModule {}

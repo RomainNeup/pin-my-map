@@ -1,5 +1,6 @@
 import { ApiProperty, ApiSchema } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsEmail,
   IsIn,
   IsOptional,
@@ -86,8 +87,12 @@ export class PublicMapSettingsDto {
 @ApiSchema({ name: 'Update Public Map Request' })
 export class UpdatePublicMapDto {
   @ApiProperty()
+  @IsBoolean()
   isPublic: boolean;
   @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
   publicSlug?: string;
 }
 
