@@ -1,23 +1,23 @@
 import { test, expect } from './_setup/fixtures';
 
+declare const process: { env: Record<string, string | undefined> };
+const API_BASE = process.env.PUBLIC_API_BASE_URL || 'http://localhost:8089';
+
 test.describe('Authentication', () => {
 	test('register + login + me round-trips via the API', async ({ request }) => {
-		const apiBase =
-			(typeof process !== 'undefined' && process.env?.PUBLIC_API_BASE_URL) ||
-			'http://localhost:8089';
 		const email = `pw_${Date.now()}_${Math.random().toString(36).slice(2)}@example.test`;
 		const password = 'Password123!';
-		const reg = await request.post(`${apiBase}/auth/register`, {
+		const reg = await request.post(`${API_BASE}/auth/register`, {
 			data: { name: 'Playwright User', email, password }
 		});
 		expect([200, 201]).toContain(reg.status());
-		const login = await request.post(`${apiBase}/auth/login`, {
+		const login = await request.post(`${API_BASE}/auth/login`, {
 			data: { email, password }
 		});
 		expect([200, 201]).toContain(login.status());
 		const { accessToken } = await login.json();
 		expect(accessToken).toBeTruthy();
-		const me = await request.get(`${apiBase}/auth/me`, {
+		const me = await request.get(`${API_BASE}/auth/me`, {
 			headers: { Authorization: `Bearer ${accessToken}` }
 		});
 		expect(me.status()).toBe(200);
